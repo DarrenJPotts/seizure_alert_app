@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "229417490817",
+    "project_id": "seizure-alert-app",
+    "storage_bucket": "seizure-alert-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:229417490817:android:8d88565347f3d201083080",
+        "android_client_info": {
+          "package_name": "com.darren.potts.seizure_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwFJCEpCkmo817CJ0A6G6AsjS1WraS59k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
