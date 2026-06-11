@@ -1,4 +1,4 @@
-enum AlertType { sos, headsUpExpired }
+enum AlertType { sos, headsUp, headsUpExpired }
 enum AlertStatus { sent, resolved, cancelled }
 
 class AlertDto {

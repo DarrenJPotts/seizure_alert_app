@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
+import 'firebase_collections_service.dart';
 import 'local_notifications_service.dart';
 
 class FirebaseMessagingService extends GetxService {
@@ -41,15 +43,21 @@ class FirebaseMessagingService extends GetxService {
 
   Future<void> _handlePushNotificationsToken() async {
     final token = await FirebaseMessaging.instance.getToken();
-    fcmToken.value = token;
-    print('Push notifications token: $token');
+    if (token != null) {
+      fcmToken.value = token;
+      await _persistToken(token);
+    }
 
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
       fcmToken.value = newToken;
-      print('FCM token refreshed: $newToken');
-    }).onError((error) {
-      print('Error refreshing FCM token: $error');
+      _persistToken(newToken);
     });
+  }
+
+  Future<void> _persistToken(String token) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    await FirestoreService.instance().updateFcmToken(uid, token);
   }
 
   Future<void> _requestPermission() async {

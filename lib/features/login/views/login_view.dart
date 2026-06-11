@@ -7,6 +7,7 @@ import 'package:seizure_app/core/widgets/app_text_form_field.dart';
 import 'package:seizure_app/core/widgets/buttons/app_button.dart';
 import 'package:seizure_app/core/widgets/buttons/button_styles/base_button_style.dart';
 import 'package:seizure_app/core/widgets/picture.dart';
+import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/features/login/view_models/login_view_model.dart';
 
 class LoginView extends GetView<LoginViewModel> {
@@ -94,7 +95,7 @@ class LoginView extends GetView<LoginViewModel> {
                         AppButton(
                           buttonStyle: BaseButtonStyle.secondaryTextButtonStyle(context: context),
                           buttonText: 'Create an account',
-                          onTap: () {},
+                          onTap: () => Get.toNamed(AppRoutes.signup),
                         ),
                       ],
                     ),

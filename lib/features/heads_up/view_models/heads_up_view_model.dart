@@ -1,11 +1,15 @@
 // lib/features/heads_up/view_models/heads_up_view_model.dart
 
 import 'dart:async';
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:seizure_app/core/dtos/alert_dto.dart';
+import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/features/heads_up/models/heads_up_dto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 
 class HeadsUpViewModel extends GetxController {
@@ -27,6 +31,8 @@ class HeadsUpViewModel extends GetxController {
   static const List<int> windowOptions = [30, 60, 120];
 
   Timer? _countdownTimer;
+
+  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   @override
   void onInit() {
@@ -65,9 +71,10 @@ class HeadsUpViewModel extends GetxController {
     isLoading.value = true;
 
     final now = DateTime.now();
+    final id = now.millisecondsSinceEpoch.toString();
     final dto = HeadsUpDto(
-      // id: const Uuid().v4(),
-      id:"1",
+      id: id,
+      userId: _uid,
       createdAt: now,
       expiresAt: now.add(Duration(minutes: selectedMinutes.value)),
       note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
@@ -78,15 +85,60 @@ class HeadsUpViewModel extends GetxController {
     activeHeadsUp.value = dto;
     _startCountdown();
 
-    // TODO: notify contacts via FCM/SMS
-    // await _notificationService.sendHeadsUpAlert(dto);
+    final position = await LocationService.instance().getCurrentPosition();
+
+    // Save to Firestore so contacts can be notified
+    final firestoreService = FirestoreService.instance();
+    await firestoreService.upsertHeadsUp(dto);
+
+    // Create an alert record for contact notification tracking
+    if (_uid.isNotEmpty) {
+      final alert = AlertDto(
+        id: '${id}_alert',
+        userId: _uid,
+        type: AlertType.headsUp,
+        status: AlertStatus.sent,
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+        message: dto.note,
+        createdAt: now,
+      );
+      await firestoreService.createAlert(alert);
+    }
 
     isLoading.value = false;
     Get.back(); // close bottom sheet
-    _showHeadsUpSnackbar();
+    _showSnackbar('Heads Up sent', 'Your circle knows to check in on you');
   }
 
-  // ─── Check in (cancel) ────────────────────────────────────────────────────
+  // ─── Cancel ────────────────────────────────────────────────────────────────
+
+  Future<void> cancelHeadsUp() async {
+    final current = activeHeadsUp.value;
+    if (current == null) return;
+
+    _countdownTimer?.cancel();
+
+    final updated = current.copyWith(status: HeadsUpStatus.cancelled);
+    await _persist(updated);
+    activeHeadsUp.value = null;
+    remaining.value = Duration.zero;
+    noteController.clear();
+
+    final firestoreService = FirestoreService.instance();
+    await firestoreService.upsertHeadsUp(updated);
+
+    if (_uid.isNotEmpty) {
+      await firestoreService.updateAlertStatus(
+        '${current.id}_alert',
+        AlertStatus.cancelled,
+      );
+    }
+
+    _showSnackbar('Heads Up cancelled', 'Your circle has been notified');
+  }
+
+  // ─── Check in ─────────────────────────────────────────────────────────────
 
   Future<void> checkIn() async {
     final current = activeHeadsUp.value;
@@ -100,20 +152,17 @@ class HeadsUpViewModel extends GetxController {
     remaining.value = Duration.zero;
     noteController.clear();
 
-    // TODO: notify contacts they're okay
-    // await _notificationService.sendCheckInConfirmation();
+    final firestoreService = FirestoreService.instance();
+    await firestoreService.upsertHeadsUp(updated);
 
-    Get.snackbar(
-      '',
-      '',
-      titleText: Text("You're marked safe", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-      messageText: Text('Your circle has been notified', style: TextStyle(color: Colors.white)),
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.black,
-      margin: EdgeInsets.all(16),
-      borderRadius: 8,
-      duration: Duration(seconds: 3),
-    );
+    if (_uid.isNotEmpty) {
+      await firestoreService.updateAlertStatus(
+        '${current.id}_alert',
+        AlertStatus.resolved,
+      );
+    }
+
+    _showSnackbar("You're marked safe", 'Your circle has been notified');
   }
 
   // ─── Expiry ────────────────────────────────────────────────────────────────
@@ -124,8 +173,20 @@ class HeadsUpViewModel extends GetxController {
     activeHeadsUp.value = null;
     remaining.value = Duration.zero;
 
-    // TODO: notify contacts to check in on user
-    // await _notificationService.sendExpiredHeadsUp(dto);
+    final firestoreService = FirestoreService.instance();
+    await firestoreService.upsertHeadsUp(updated);
+
+    if (_uid.isNotEmpty) {
+      final alert = AlertDto(
+        id: '${dto.id}_expired',
+        userId: _uid,
+        type: AlertType.headsUpExpired,
+        status: AlertStatus.sent,
+        message: dto.note,
+        createdAt: DateTime.now(),
+      );
+      await firestoreService.createAlert(alert);
+    }
   }
 
   // ─── Countdown ────────────────────────────────────────────────────────────
@@ -133,7 +194,7 @@ class HeadsUpViewModel extends GetxController {
   void _startCountdown() {
     _countdownTimer?.cancel();
     _tick();
-    _countdownTimer = Timer.periodic(Duration(seconds: 1), (_) => _tick());
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
   void _tick() {
@@ -165,17 +226,17 @@ class HeadsUpViewModel extends GetxController {
     return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
-  void _showHeadsUpSnackbar() {
+  void _showSnackbar(String title, String message) {
     Get.snackbar(
       '',
       '',
-      titleText: Text('Heads Up sent', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-      messageText: Text('Your circle knows to check in on you', style: TextStyle(color: Colors.white)),
+      titleText: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+      messageText: Text(message, style: const TextStyle(color: Colors.white)),
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.black,
-      margin: EdgeInsets.all(16),
+      margin: const EdgeInsets.all(16),
       borderRadius: 8,
-      duration: Duration(seconds: 3),
+      duration: const Duration(seconds: 3),
     );
   }
 }
