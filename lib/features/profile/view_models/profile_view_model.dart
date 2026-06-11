@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:app_settings/app_settings.dart';
+import 'package:seizure_app/core/controllers/firebase_auth_controller/firebase_auth_controller.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
@@ -24,6 +25,7 @@ class ProfileViewModel extends GetxController {
   final Rxn<UserDto> user = Rxn<UserDto>();
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
   final Rxn<String> errorMessage = Rxn<String>();
+  final RxBool isDeleting = false.obs;
 
   /// `Permissions`
   final RxBool notificationsEnabled = false.obs;
@@ -61,6 +63,37 @@ class ProfileViewModel extends GetxController {
     }
   }
 
+  Future<bool> updateProfile({
+    required String displayName,
+    String? bloodType,
+    String? seizureType,
+    List<String>? medications,
+    String? emergencyNote,
+  }) async {
+    final current = user.value;
+    if (current == null) return false;
+
+    String? clean(String? v) {
+      final t = v?.trim();
+      return (t == null || t.isEmpty) ? null : t;
+    }
+
+    final updated = UserDto(
+      uid: current.uid,
+      email: current.email,
+      displayName: clean(displayName),
+      photoUrl: current.photoUrl,
+      bloodType: bloodType,
+      seizureType: clean(seizureType),
+      medications: medications,
+      emergencyNote: clean(emergencyNote),
+    );
+
+    final result = await _firestoreService.upsertUser(updated);
+    if (result.isSuccess) user.value = updated;
+    return result.isSuccess;
+  }
+
   // ─── Permissions ──────────────────────────────────────────────────────────
 
   Future<void> checkPermissions() async {
@@ -96,6 +129,15 @@ class ProfileViewModel extends GetxController {
       await AppSettings.openAppSettings(type: AppSettingsType.location);
       await checkPermissions();
     }
+  }
+
+  // ─── Account deletion ─────────────────────────────────────────────────────
+
+  Future<ResultDto<void>> deleteAccount(String password) async {
+    isDeleting.value = true;
+    final result = await FirebaseAuthController.instance().deleteAccount(password);
+    isDeleting.value = false;
+    return result;
   }
 
   String get notificationsLabel {

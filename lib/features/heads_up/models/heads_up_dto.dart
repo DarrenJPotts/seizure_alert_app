@@ -1,9 +1,10 @@
 // lib/core/dtos/heads_up_dto.dart
 
-enum HeadsUpStatus { active, checkedIn, expired, escalated }
+enum HeadsUpStatus { active, checkedIn, expired, escalated, cancelled }
 
 class HeadsUpDto {
   final String id;
+  final String userId;
   final DateTime createdAt;
   final DateTime expiresAt;
   final String? note;
@@ -11,6 +12,7 @@ class HeadsUpDto {
 
   HeadsUpDto({
     required this.id,
+    required this.userId,
     required this.createdAt,
     required this.expiresAt,
     this.note,
@@ -24,6 +26,7 @@ class HeadsUpDto {
   factory HeadsUpDto.fromMap(Map<String, dynamic> map) {
     return HeadsUpDto(
       id: map['id'] as String,
+      userId: map['userId'] as String? ?? '',
       createdAt: DateTime.parse(map['createdAt'] as String),
       expiresAt: DateTime.parse(map['expiresAt'] as String),
       note: map['note'] as String?,
@@ -33,6 +36,7 @@ class HeadsUpDto {
 
   Map<String, dynamic> toMap() => {
     'id': id,
+    'userId': userId,
     'createdAt': createdAt.toIso8601String(),
     'expiresAt': expiresAt.toIso8601String(),
     'note': note,
@@ -41,6 +45,7 @@ class HeadsUpDto {
 
   HeadsUpDto copyWith({HeadsUpStatus? status}) => HeadsUpDto(
     id: id,
+    userId: userId,
     createdAt: createdAt,
     expiresAt: expiresAt,
     note: note,

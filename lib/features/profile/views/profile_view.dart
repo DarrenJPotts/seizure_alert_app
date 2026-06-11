@@ -5,6 +5,8 @@ import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/features/profile/view_models/profile_view_model.dart';
 
+import 'widgets/delete_account_sheet.dart';
+import 'widgets/edit_profile_bottom_sheet.dart';
 import 'widgets/profile_item.dart';
 import 'widgets/profile_section.dart';
 
@@ -60,6 +62,12 @@ class ProfileView extends GetView<ProfileViewModel> {
                 ),
                 Text(user.displayName ?? 'No name', style: Theme.of(context).textTheme.titleMedium),
                 Text(user.email, style: Theme.of(context).textTheme.bodySmall),
+                TextButton.icon(
+                  onPressed: () => EditProfileBottomSheet.show(),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('Edit profile'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.black),
+                ),
               ],
             ),
           ),
@@ -69,13 +77,17 @@ class ProfileView extends GetView<ProfileViewModel> {
           ProfileSection(
             items: [
               ProfileItem(icon: Icons.bloodtype_outlined, label: 'Blood Type', value: user.bloodType ?? '—'),
-              ProfileItem(icon: Icons.medication_outlined, label: 'Medications', value: user.medications?.first ?? '—'),
+              ProfileItem(
+                icon: Icons.medication_outlined,
+                label: 'Medications',
+                value: user.medications?.isNotEmpty == true
+                    ? user.medications!.join(', ')
+                    : '—',
+              ),
               ProfileItem(icon: Icons.warning_amber_outlined, label: 'Seizure Type', value: user.seizureType ?? '—'),
               ProfileItem(icon: Icons.note_outlined, label: 'Emergency Note', value: user.emergencyNote ?? '—'),
             ],
           ),
-
-          /// Settings
           /// Settings
           Text('Settings', style: Theme.of(context).textTheme.titleMedium),
           Obx(() => ProfileSection(
@@ -108,6 +120,23 @@ class ProfileView extends GetView<ProfileViewModel> {
               ),
             ],
           )),
+
+          /// Delete account
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => DeleteAccountSheet.show(),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: BorderSide(color: Colors.red.shade200),
+                padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Delete Account'),
+            ),
+          ),
+          SizedBox(height: Dimensions.eight),
         ],
       ),
     );

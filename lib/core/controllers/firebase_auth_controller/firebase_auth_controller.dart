@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/shared_pref_keys.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
+import 'package:seizure_app/core/routes/app_routes.dart';
+import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthController extends GetxController {
@@ -28,8 +30,12 @@ class FirebaseAuthController extends GetxController {
         user.value = firebaseUser;
         isLoggedIn.value = true;
       } else {
-        user.value = null;
-        isLoggedIn.value = false;
+        // Handles both manual sign-out and token expiry
+        if (isLoggedIn.value) {
+          user.value = null;
+          isLoggedIn.value = false;
+          Get.offAllNamed(AppRoutes.login);
+        }
       }
     });
   }
@@ -79,8 +85,47 @@ class FirebaseAuthController extends GetxController {
   }
 
   Future<void> signOut() async {
-    FirebaseAuth.instance.signOut();
     await _clearData();
+    await FirebaseAuth.instance.signOut();
+    Get.offAllNamed(AppRoutes.login);
+  }
+
+  Future<ResultDto<void>> deleteAccount(String password) async {
+    try {
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser == null || firebaseUser.email == null) {
+        return ResultDto.failure('No authenticated user found.');
+      }
+
+      final credential = EmailAuthProvider.credential(
+        email: firebaseUser.email!,
+        password: password,
+      );
+      await firebaseUser.reauthenticateWithCredential(credential);
+
+      await FirestoreService.instance().deleteAllUserData(firebaseUser.uid);
+
+      await _clearData();
+
+      // Triggers userChanges listener which navigates to login
+      await firebaseUser.delete();
+
+      return ResultDto.success(null);
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'wrong-password':
+        case 'invalid-credential':
+          return ResultDto.failure('Incorrect password. Please try again.');
+        case 'too-many-requests':
+          return ResultDto.failure('Too many attempts. Try again later.');
+        case 'network-request-failed':
+          return ResultDto.failure('Network error. Check your connection.');
+        default:
+          return ResultDto.failure('Could not delete account. Please try again.');
+      }
+    } catch (_) {
+      return ResultDto.failure('An unexpected error occurred.');
+    }
   }
 
   Future<void> _storeUser() async {

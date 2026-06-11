@@ -30,6 +30,18 @@ class FirestoreService {
     }
   }
 
+  Future<ResultDto<void>> updateFcmToken(String uid, String token) async {
+    try {
+      await _db
+          .collection(FirebaseCollectionKeys.users)
+          .doc(uid)
+          .set({'fcmToken': token}, SetOptions(merge: true));
+      return ResultDto.success(null);
+    } catch (e) {
+      return ResultDto.failure(e.toString());
+    }
+  }
+
   Future<ResultDto<UserDto>> getUser(String uid) async {
     try {
       final doc = await _db.collection(FirebaseCollectionKeys.users).doc(uid).get();
@@ -76,9 +88,12 @@ class FirestoreService {
     return _db
         .collection(FirebaseCollectionKeys.seizureLogs)
         .where('userId', isEqualTo: userId)
-        .orderBy('occurredAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) => SeizureLogDto.fromMap(d.data())).toList());
+        .map((s) {
+          final list = s.docs.map((d) => SeizureLogDto.fromMap(d.data())).toList();
+          list.sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
+          return list;
+        });
   }
 
   Future<ResultDto<void>> addSeizureLog(SeizureLogDto log) async {
@@ -148,6 +163,28 @@ class FirestoreService {
       return ResultDto.success(HeadsUpDto.fromMap(snap.docs.first.data()));
     } catch (e) {
       return ResultDto.failure(e.toString());
+    }
+  }
+
+  // ─── Account deletion ─────────────────────────────────────────────────────
+
+  Future<void> deleteAllUserData(String uid) async {
+    await Future.wait([
+      _deleteWhere(FirebaseCollectionKeys.contacts, uid),
+      _deleteWhere(FirebaseCollectionKeys.seizureLogs, uid),
+      _deleteWhere(FirebaseCollectionKeys.alerts, uid),
+      _deleteWhere(FirebaseCollectionKeys.headsUp, uid),
+    ]);
+    await _db.collection(FirebaseCollectionKeys.users).doc(uid).delete();
+  }
+
+  Future<void> _deleteWhere(String collection, String uid) async {
+    final snap = await _db
+        .collection(collection)
+        .where('userId', isEqualTo: uid)
+        .get();
+    for (final doc in snap.docs) {
+      await doc.reference.delete();
     }
   }
 

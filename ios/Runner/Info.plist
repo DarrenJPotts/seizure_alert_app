@@ -49,5 +49,9 @@
     <string>Your location is shared with your emergency contacts when an alert is sent.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Background location allows alerts to include your position even when the app is closed.</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>sms</string>
+    </array>
 </dict>
 </plist>

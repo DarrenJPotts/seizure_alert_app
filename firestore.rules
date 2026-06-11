@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// Caller is signed in.
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    /// Caller is the owner identified by uid.
+    function isOwner(uid) {
+      return isAuthed() && request.auth.uid == uid;
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+    // Each user document is keyed by their Firebase Auth uid.
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ── Contacts ──────────────────────────────────────────────────────────────
+    // Scoped to the owning user via the userId field on each document.
+
+    match /contacts/{contactId} {
+      allow read, delete: if isAuthed()
+                          && resource.data.userId == request.auth.uid;
+      allow create:       if isOwner(request.resource.data.userId);
+      allow update:       if isAuthed()
+                          && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Seizure logs ──────────────────────────────────────────────────────────
+
+    match /seizureLogs/{logId} {
+      allow read, delete: if isAuthed()
+                          && resource.data.userId == request.auth.uid;
+      allow create:       if isOwner(request.resource.data.userId);
+      allow update:       if isAuthed()
+                          && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Alerts ────────────────────────────────────────────────────────────────
+
+    match /alerts/{alertId} {
+      allow read, delete: if isAuthed()
+                          && resource.data.userId == request.auth.uid;
+      allow create:       if isOwner(request.resource.data.userId);
+      allow update:       if isAuthed()
+                          && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Heads Up ──────────────────────────────────────────────────────────────
+
+    match /headsUp/{headsUpId} {
+      allow read, delete: if isAuthed()
+                          && resource.data.userId == request.auth.uid;
+      allow create:       if isOwner(request.resource.data.userId);
+      allow update:       if isAuthed()
+                          && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Alert responses ───────────────────────────────────────────────────────
+    // Emergency contacts tap a link and respond — they are authenticated users
+    // but are NOT the patient. Any signed-in user may create a response.
+    // Only the original responder may update their own response.
+
+    match /responses/{responseId} {
+      allow read:   if isAuthed();
+      allow create: if isAuthed();
+      allow update: if isAuthed()
+                    && resource.data.responderId == request.auth.uid;
+      allow delete: if isAuthed()
+                    && resource.data.responderId == request.auth.uid;
+    }
+  }
+}
