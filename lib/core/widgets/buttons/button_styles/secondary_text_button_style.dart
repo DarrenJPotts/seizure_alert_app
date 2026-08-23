@@ -15,10 +15,10 @@ final class SecondaryTextButtonStyle extends BaseButtonStyle {
         textAlign: TextAlign.center,
         maxLines: 3,
         loaderColor: Colors.black54,
-        loaderBackgroundColor: Colors.grey.shade200,
-        disabledColor: Colors.grey.shade200,
-        disabledLoaderColor: Colors.grey,
-        disabledLoaderBackgroundColor: Colors.grey,
+        loaderBackgroundColor: Colors.black12,
+        disabledColor: Colors.transparent,
+        disabledLoaderColor: Colors.black26,
+        disabledLoaderBackgroundColor: Colors.black12,
         textStyle: context.textTheme.bodyLarge!.copyWith(color: Colors.black),
         disabledTextStyle: context.textTheme.bodyLarge!.copyWith(
           color: Colors.black,
@@ -29,8 +29,8 @@ final class SecondaryTextButtonStyle extends BaseButtonStyle {
         loaderHeight: 24,
         textOverflow: TextOverflow.ellipsis,
         disabledBorderColor: Colors.transparent,
-        hoverColor: Colors.grey.shade200,
-        disabledHoverColor: Colors.grey.shade200,
+        hoverColor: Colors.black.withValues(alpha: 0.06),
+        disabledHoverColor: Colors.transparent,
       );
 
   final BuildContext context;

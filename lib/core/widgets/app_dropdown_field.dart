@@ -105,7 +105,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
         value: value,
         child: Text(
           _getDisplayText(value),
-          style: context.textTheme.bodyMedium!.copyWith(color: widget.enabled ? Colors.black87 : Colors.grey.shade300),
+          style: context.textTheme.bodyMedium!.copyWith(color: widget.enabled ? Colors.black : Colors.black26),
         ),
       );
     }).toList();
@@ -131,10 +131,10 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
         labelText: widget.label,
         hintText: widget.hintText,
         hintStyle: context.textTheme.bodyMedium!.copyWith(
-          color: widget.enabled ? Colors.black87 : Colors.grey.shade200,
+          color: widget.enabled ? Colors.black45 : Colors.black26,
         ),
         border: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey.shade100),
+          borderSide: const BorderSide(color: Colors.black12),
           borderRadius: BorderRadius.circular(Dimensions.eight),
         ),
         suffixIcon: widget.loading ? CircularProgressIndicator() : null,

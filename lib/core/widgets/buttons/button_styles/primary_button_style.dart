@@ -16,9 +16,9 @@ final class PrimaryButtonStyle extends BaseButtonStyle {
         maxLines: 3,
         loaderColor: Colors.white,
         loaderBackgroundColor: context.theme.primaryColor,
-        disabledColor: Colors.blue.shade400,
-        disabledLoaderColor: Colors.grey,
-        disabledLoaderBackgroundColor: Colors.grey,
+        disabledColor: Colors.black38,
+        disabledLoaderColor: Colors.white,
+        disabledLoaderBackgroundColor: Colors.black38,
         textStyle: context.textTheme.bodyLarge!.copyWith(color: Colors.white),
         disabledTextStyle: context.textTheme.bodyLarge!.copyWith(
           color: Colors.white,
@@ -28,7 +28,7 @@ final class PrimaryButtonStyle extends BaseButtonStyle {
         loaderWidth: 24,
         loaderHeight: 24,
         textOverflow: TextOverflow.ellipsis,
-        disabledBorderColor: Colors.grey,
+        disabledBorderColor: Colors.black38,
         hoverColor: context.theme.primaryColor,
         disabledHoverColor: context.theme.primaryColor,
       );

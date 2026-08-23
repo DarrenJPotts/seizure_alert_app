@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:seizure_app/core/constants/dimensions.dart';
 
 class SOSButton extends StatefulWidget {
   const SOSButton({super.key, required this.onPressed});
@@ -119,60 +120,87 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final progress = (5 - _remaining) / 5;
     return Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.black, width: 2),
+      insetPadding: EdgeInsets.zero,
+      backgroundColor: Colors.black,
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            Dimensions.twentyFour,
+            Dimensions.twentyFour,
+            Dimensions.twentyFour,
+            Dimensions.twentyEight,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'SENDING SOS',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 3,
+                    ),
               ),
-              child: Center(
-                child: Text(
-                  '$_remaining',
-                  style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$_remaining',
+                        style: const TextStyle(
+                          fontSize: 160,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                          color: Colors.white,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      SizedBox(height: Dimensions.twentyFour),
+                      Text(
+                        'Your circle is notified in $_remaining second${_remaining == 1 ? '' : 's'}.',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Sending Alert...',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Your emergency contacts will be notified in $_remaining second${_remaining == 1 ? '' : 's'}. Tap cancel to stop.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black.withValues(alpha: 0.6),
-                height: 1.5,
+              Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Dimensions.circular),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 4,
+                      backgroundColor: Colors.white.withValues(alpha: 0.18),
+                      valueColor: const AlwaysStoppedAnimation(Colors.white),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.twenty),
+                  SizedBox(
+                    width: double.infinity,
+                    child: _DialogButton(
+                      text: 'Cancel',
+                      onPressed: widget.onCancel,
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.twelve),
+                  Text(
+                    'Do nothing and help is on the way',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: _DialogButton(
-                text: 'Cancel',
-                onPressed: widget.onCancel,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -206,21 +234,23 @@ class _DialogButtonState extends State<_DialogButton> {
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
         decoration: BoxDecoration(
-          color: _isPressed ? Colors.grey.shade100 : Colors.white,
-          border: Border.all(color: Colors.black12, width: 1.5),
+          color: _isPressed ? Colors.black : Colors.white,
+          border: Border.all(
+            color: _isPressed ? Colors.white24 : Colors.transparent,
+            width: 1.5,
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Center(
           child: Text(
             widget.text,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-              letterSpacing: 0.3,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: _isPressed ? Colors.white : Colors.black,
+                  letterSpacing: 0.3,
+                ),
           ),
         ),
       ),
@@ -301,13 +331,12 @@ class _PulsingSOSCircleState extends State<PulsingSOSCircle>
             const SizedBox(height: 6),
             Text(
               'ACTIVE',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 3,
-                color: Colors.white.withValues(alpha: 0.6),
-                height: 1,
-              ),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 3,
+                    color: Colors.white.withValues(alpha: 0.6),
+                    height: 1,
+                  ),
             ),
           ],
         ),

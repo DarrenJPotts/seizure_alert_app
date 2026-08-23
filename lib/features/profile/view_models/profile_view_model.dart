@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:app_settings/app_settings.dart';
@@ -55,7 +56,29 @@ class ProfileViewModel extends GetxController {
     final ResultDto<UserDto> result = await _firestoreService.getUser(_uid);
 
     if (result.isSuccess) {
-      user.value = result.data;
+      var fetched = result.data!;
+
+      // verifyBeforeUpdateEmail only takes effect once the user confirms the
+      // link sent to their new address, so the Firestore copy can lag behind
+      // FirebaseAuth's record — reconcile it here if it's drifted.
+      final authEmail = FirebaseAuth.instance.currentUser?.email;
+      if (authEmail != null && authEmail != fetched.email) {
+        fetched = UserDto(
+          uid: fetched.uid,
+          email: authEmail,
+          displayName: fetched.displayName,
+          photoUrl: fetched.photoUrl,
+          phone: fetched.phone,
+          fcmToken: fetched.fcmToken,
+          bloodType: fetched.bloodType,
+          seizureType: fetched.seizureType,
+          medications: fetched.medications,
+          emergencyNote: fetched.emergencyNote,
+        );
+        await _firestoreService.upsertUser(fetched);
+      }
+
+      user.value = fetched;
       screenState.value = GenericScreenStates.loaded;
     } else {
       errorMessage.value = result.error ?? 'Failed to load profile.';
@@ -65,6 +88,7 @@ class ProfileViewModel extends GetxController {
 
   Future<bool> updateProfile({
     required String displayName,
+    String? phone,
     String? bloodType,
     String? seizureType,
     List<String>? medications,
@@ -83,6 +107,8 @@ class ProfileViewModel extends GetxController {
       email: current.email,
       displayName: clean(displayName),
       photoUrl: current.photoUrl,
+      phone: clean(phone),
+      fcmToken: current.fcmToken,
       bloodType: bloodType,
       seizureType: clean(seizureType),
       medications: medications,
@@ -96,7 +122,13 @@ class ProfileViewModel extends GetxController {
 
   // ─── Permissions ──────────────────────────────────────────────────────────
 
+  // permission_handler doesn't implement the OS-level location/notification
+  // permission APIs on web (throws UnimplementedError) — the browser handles
+  // those prompts itself via the underlying JS APIs instead, so there's
+  // nothing meaningful for this native-style permissions card to check there.
   Future<void> checkPermissions() async {
+    if (kIsWeb) return;
+
     final results = await Future.wait([Permission.notification.status, Permission.locationWhenInUse.status]);
 
     notificationsEnabled.value = results[0].isGranted;
@@ -104,6 +136,8 @@ class ProfileViewModel extends GetxController {
   }
 
   Future<void> requestNotifications() async {
+    if (kIsWeb) return;
+
     final status = await Permission.notification.request();
 
     await AppSettings.openAppSettings(type: AppSettingsType.notification);
@@ -118,6 +152,8 @@ class ProfileViewModel extends GetxController {
   }
 
   Future<void> requestLocation() async {
+    if (kIsWeb) return;
+
     // Ask for whenInUse first — iOS requires this before always
     final whenInUse = await Permission.locationWhenInUse.request();
 
@@ -129,6 +165,19 @@ class ProfileViewModel extends GetxController {
       await AppSettings.openAppSettings(type: AppSettingsType.location);
       await checkPermissions();
     }
+  }
+
+  // ─── Email ────────────────────────────────────────────────────────────────
+
+  Future<ResultDto<void>> changeEmail({required String newEmail, required String password}) {
+    return FirebaseAuthController.instance().changeEmail(newEmail: newEmail, password: password);
+  }
+
+  // ─── Password ─────────────────────────────────────────────────────────────
+
+  Future<ResultDto<void>> changePassword({required String currentPassword, required String newPassword}) {
+    return FirebaseAuthController.instance()
+        .changePassword(currentPassword: currentPassword, newPassword: newPassword);
   }
 
   // ─── Account deletion ─────────────────────────────────────────────────────

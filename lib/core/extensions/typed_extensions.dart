@@ -10,6 +10,11 @@ extension NullableStringX on String? {
   String? get lowerCaseFirstLetter => isNotNullOrEmpty ? this!.lowerCaseFirstLetter : null;
 
   bool get isSvg => isNotNullOrEmpty ? this!.endsWith('.svg') : false;
+
+  String? trimNullable() {
+    final trimmed = this?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
 }
 
 extension StringX on String {

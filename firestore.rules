@@ -63,17 +63,63 @@ service cloud.firestore {
     }
 
     // ── Alert responses ───────────────────────────────────────────────────────
-    // Emergency contacts tap a link and respond — they are authenticated users
-    // but are NOT the patient. Any signed-in user may create a response.
-    // Only the original responder may update their own response.
+    // A response is written by a contact (not the patient) and read by both
+    // that contact and the patient, so it can't be scoped by a single owner
+    // field the way the collections above are. Instead each document carries
+    // both uids: `responderId` (who wrote it) and `alertOwnerId` (whose alert
+    // it belongs to), and access is the union of those two.
+    //
+    // These rules previously allowed any signed-in user to read the whole
+    // collection and to create responses on strangers' alerts. `alertOwnerId`
+    // was added specifically so this could be locked down with plain field
+    // comparisons — no get() into /alerts, which would spend a document read
+    // on every rule evaluation.
 
-    match /responses/{responseId} {
-      allow read:   if isAuthed();
-      allow create: if isAuthed();
-      allow update: if isAuthed()
-                    && resource.data.responderId == request.auth.uid;
-      allow delete: if isAuthed()
-                    && resource.data.responderId == request.auth.uid;
+    match /alert_responses/{responseId} {
+      /// The contact who wrote this response.
+      function isResponder() {
+        return isAuthed() && resource.data.responderId == request.auth.uid;
+      }
+
+      /// The person the underlying alert belongs to.
+      function isAlertOwner() {
+        return isAuthed() && resource.data.alertOwnerId == request.auth.uid;
+      }
+
+      allow read: if isResponder() || isAlertOwner();
+
+      // The responder is the only party who may author a response, and only
+      // ever as themselves — stamping someone else's uid is what would let a
+      // caller fake a "responding" status on an alert they have nothing to do
+      // with.
+      allow create: if isAuthed()
+                    && request.resource.data.responderId == request.auth.uid
+                    && request.resource.data.alertOwnerId is string
+                    && request.resource.data.alertOwnerId != ''
+                    && request.resource.data.alertId is string;
+
+      // Neither uid may be rewritten after the fact, so a response can't be
+      // moved onto a different alert or reattributed to another responder.
+      allow update: if isResponder()
+                    && request.resource.data.responderId == resource.data.responderId
+                    && request.resource.data.alertOwnerId == resource.data.alertOwnerId
+                    && request.resource.data.alertId == resource.data.alertId;
+
+      allow delete: if isResponder();
+    }
+
+    // ── Circle invites ────────────────────────────────────────────────────────
+    // Sender and recipient are different users, so this can't be scoped by a
+    // single owner field. Both sides may read their own invites; all writes
+    // (create/accept/decline) go through the trusted sendCircleInvite /
+    // respondToInvite Cloud Functions, which use the Admin SDK and so bypass
+    // these rules entirely — clients never write invites directly.
+
+    match /invites/{inviteId} {
+      allow read:  if isAuthed()
+                   && (resource.data.senderUid == request.auth.uid
+                       || resource.data.recipientUid == request.auth.uid);
+      allow write: if false;
     }
   }
 }

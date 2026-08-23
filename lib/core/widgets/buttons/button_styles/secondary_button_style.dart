@@ -7,18 +7,18 @@ import 'base_button_style.dart';
 final class SecondaryButtonStyle extends BaseButtonStyle {
   SecondaryButtonStyle({required this.context})
     : super(
-        buttonColor: Colors.grey.shade200,
+        buttonColor: Colors.black.withValues(alpha: 0.06),
         textColor: Colors.black54,
         borderRadius: BorderRadius.circular(Dimensions.eight),
-        borderColor: Colors.grey.shade200,
+        borderColor: Colors.black.withValues(alpha: 0.06),
         padding: EdgeInsets.zero,
         textAlign: TextAlign.center,
         maxLines: 3,
         loaderColor: Colors.black54,
-        loaderBackgroundColor: Colors.grey.shade200,
-        disabledColor: Colors.grey.shade200,
-        disabledLoaderColor: Colors.grey,
-        disabledLoaderBackgroundColor: Colors.grey,
+        loaderBackgroundColor: Colors.black.withValues(alpha: 0.06),
+        disabledColor: Colors.black.withValues(alpha: 0.06),
+        disabledLoaderColor: Colors.black54,
+        disabledLoaderBackgroundColor: Colors.black.withValues(alpha: 0.06),
         textStyle: context.textTheme.bodyLarge!.copyWith(color: Colors.black),
         disabledTextStyle: context.textTheme.bodyLarge!.copyWith(
           color: Colors.black,
@@ -28,9 +28,9 @@ final class SecondaryButtonStyle extends BaseButtonStyle {
         loaderWidth: 24,
         loaderHeight: 24,
         textOverflow: TextOverflow.ellipsis,
-        disabledBorderColor: Colors.grey,
-        hoverColor: Colors.grey.shade200,
-        disabledHoverColor: Colors.grey.shade200,
+        disabledBorderColor: Colors.black.withValues(alpha: 0.06),
+        hoverColor: Colors.black.withValues(alpha: 0.08),
+        disabledHoverColor: Colors.black.withValues(alpha: 0.06),
       );
 
   final BuildContext context;

@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get_utils/src/extensions/context_extensions.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
 class RecentActivityCard extends StatelessWidget {
-  const RecentActivityCard({
-    super.key,
-    required this.label,
-    required this.hasAlert,
-    required this.onViewLog,
-  });
+  const RecentActivityCard({super.key, required this.label, required this.hasAlert, required this.onViewLog});
 
   /// Human-readable timestamp of the most recent alert, e.g. "Today, 8:14 AM".
   /// When [hasAlert] is false this shows a friendly empty-state message.
@@ -36,22 +32,12 @@ class RecentActivityCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: 4,
               children: [
-                Text(
-                  'Last alert sent',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.black45),
-                ),
-                Text(label, style: Theme.of(context).textTheme.bodyMedium),
+                Text('Last alert sent', style: context.theme.textTheme.bodySmall?.copyWith(color: Colors.black45)),
+                Text(label, style: context.theme.textTheme.bodyMedium),
               ],
             ),
           ),
-          if (hasAlert)
-            TextButton(
-              onPressed: onViewLog,
-              child: const Text('View log'),
-            ),
+          if (hasAlert) TextButton(onPressed: onViewLog, child: const Text('View log')),
         ],
       ),
     );

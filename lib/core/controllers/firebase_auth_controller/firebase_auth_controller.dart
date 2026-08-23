@@ -34,7 +34,13 @@ class FirebaseAuthController extends GetxController {
         if (isLoggedIn.value) {
           user.value = null;
           isLoggedIn.value = false;
-          Get.offAllNamed(AppRoutes.login);
+          // GetMaterialApp may not have mounted yet if this fires during
+          // app startup (e.g. a cached session invalidating on cold start).
+          // AuthMiddleware on the root route redirects to /login once the
+          // initial route resolves, so it's safe to skip navigating here.
+          if (Get.key.currentState != null) {
+            Get.offAllNamed(AppRoutes.login);
+          }
         }
       }
     });
@@ -103,12 +109,14 @@ class FirebaseAuthController extends GetxController {
       );
       await firebaseUser.reauthenticateWithCredential(credential);
 
-      await FirestoreService.instance().deleteAllUserData(firebaseUser.uid);
+      final deleteResult = await FirestoreService.instance().deleteAllUserData(firebaseUser.uid);
+      if (!deleteResult.isSuccess) {
+        return ResultDto.failure(deleteResult.error ?? 'Failed to delete account data.');
+      }
 
       await _clearData();
-
-      // Triggers userChanges listener which navigates to login
       await firebaseUser.delete();
+      Get.offAllNamed(AppRoutes.login);
 
       return ResultDto.success(null);
     } on FirebaseAuthException catch (e) {
@@ -122,6 +130,82 @@ class FirebaseAuthController extends GetxController {
           return ResultDto.failure('Network error. Check your connection.');
         default:
           return ResultDto.failure('Could not delete account. Please try again.');
+      }
+    } catch (_) {
+      return ResultDto.failure('An unexpected error occurred.');
+    }
+  }
+
+  Future<ResultDto<void>> changeEmail({required String newEmail, required String password}) async {
+    try {
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser == null || firebaseUser.email == null) {
+        return ResultDto.failure('No authenticated user found.');
+      }
+
+      final credential = EmailAuthProvider.credential(
+        email: firebaseUser.email!,
+        password: password,
+      );
+      await firebaseUser.reauthenticateWithCredential(credential);
+
+      await firebaseUser.verifyBeforeUpdateEmail(newEmail.trim());
+
+      return ResultDto.success(null);
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'wrong-password':
+        case 'invalid-credential':
+          return ResultDto.failure('Incorrect password. Please try again.');
+        case 'email-already-in-use':
+          return ResultDto.failure('That email is already in use by another account.');
+        case 'invalid-email':
+          return ResultDto.failure('Enter a valid email address.');
+        case 'requires-recent-login':
+          return ResultDto.failure('Please sign out and sign back in, then try again.');
+        case 'too-many-requests':
+          return ResultDto.failure('Too many attempts. Try again later.');
+        case 'network-request-failed':
+          return ResultDto.failure('Network error. Check your connection.');
+        default:
+          return ResultDto.failure('Could not update email. Please try again.');
+      }
+    } catch (_) {
+      return ResultDto.failure('An unexpected error occurred.');
+    }
+  }
+
+  Future<ResultDto<void>> changePassword({required String currentPassword, required String newPassword}) async {
+    try {
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser == null || firebaseUser.email == null) {
+        return ResultDto.failure('No authenticated user found.');
+      }
+
+      final credential = EmailAuthProvider.credential(
+        email: firebaseUser.email!,
+        password: currentPassword,
+      );
+      await firebaseUser.reauthenticateWithCredential(credential);
+
+      await firebaseUser.updatePassword(newPassword);
+
+      return ResultDto.success(null);
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'wrong-password':
+        case 'invalid-credential':
+          return ResultDto.failure('Current password is incorrect.');
+        case 'weak-password':
+          return ResultDto.failure('New password is too weak. Use at least 6 characters.');
+        case 'requires-recent-login':
+          return ResultDto.failure('Please sign out and sign back in, then try again.');
+        case 'too-many-requests':
+          return ResultDto.failure('Too many attempts. Try again later.');
+        case 'network-request-failed':
+          return ResultDto.failure('Network error. Check your connection.');
+        default:
+          return ResultDto.failure('Could not update password. Please try again.');
       }
     } catch (_) {
       return ResultDto.failure('An unexpected error occurred.');

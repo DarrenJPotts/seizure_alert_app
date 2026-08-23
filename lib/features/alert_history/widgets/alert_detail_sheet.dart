@@ -4,6 +4,7 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/widgets/alert_map_widget.dart';
 import 'package:seizure_app/core/widgets/alert_responses_widget.dart';
+import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 
 class AlertDetailSheet extends StatelessWidget {
   const AlertDetailSheet({super.key, required this.alert});
@@ -11,11 +12,8 @@ class AlertDetailSheet extends StatelessWidget {
   final AlertDto alert;
 
   static void show(AlertDto alert) {
-    showModalBottomSheet(
+    AppBottomSheet.show(
       context: Get.context!,
-      backgroundColor: Colors.white,
-      useSafeArea: true,
-      isScrollControlled: true,
       builder: (_) => AlertDetailSheet(alert: alert),
     );
   }
@@ -24,96 +22,86 @@ class AlertDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasLocation = alert.latitude != null && alert.longitude != null;
 
-    return SingleChildScrollView(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Padding(
-        padding: EdgeInsets.all(Dimensions.twentyFour),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: EdgeInsets.only(bottom: Dimensions.twentyFour),
+    return AppBottomSheetContent(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(Dimensions.circular),
+                  shape: BoxShape.circle,
+                  color: Colors.black.withValues(alpha: 0.06),
+                ),
+                child: Icon(
+                  alertIconForType(alert.type),
+                  size: 22,
+                  color: Colors.black54,
                 ),
               ),
-            ),
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withValues(alpha: 0.06),
-                  ),
-                  child: Icon(alertIconForType(alert.type),
-                      size: 22, color: Colors.black54),
+              SizedBox(width: Dimensions.twelve),
+              Expanded(
+                child: Text(
+                  alertLabelForType(alert.type),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                SizedBox(width: Dimensions.twelve),
-                Expanded(
-                  child: Text(alertLabelForType(alert.type),
-                      style: Theme.of(context).textTheme.titleMedium),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    alertLabelForStatus(alert.status),
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(color: Colors.black54),
-                  ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ],
-            ),
-            SizedBox(height: Dimensions.twentyFour),
-            _DetailRow(label: 'Sent', value: formatAlertDate(alert.createdAt)),
-            if (alert.resolvedAt != null) ...[
-              SizedBox(height: Dimensions.twelve),
-              _DetailRow(
-                label: alert.status == AlertStatus.cancelled
-                    ? 'Cancelled'
-                    : 'Resolved',
-                value: formatAlertDate(alert.resolvedAt!),
+                child: Text(
+                  alertLabelForStatus(alert.status),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: Colors.black54),
+                ),
               ),
             ],
-            if (alert.message != null && alert.message!.isNotEmpty) ...[
-              SizedBox(height: Dimensions.twelve),
-              _DetailRow(label: 'Note', value: alert.message!),
-            ],
-            if (alert.locationLabel != null &&
-                alert.locationLabel!.isNotEmpty) ...[
-              SizedBox(height: Dimensions.twelve),
-              _DetailRow(label: 'Location', value: alert.locationLabel!),
-            ],
-            SizedBox(height: Dimensions.twentyFour),
-            SizedBox(
-              height: 180,
-              width: double.infinity,
-              child: hasLocation
-                  ? AlertMapWidget(
-                      latitude: alert.latitude!,
-                      longitude: alert.longitude!,
-                    )
-                  : const AlertMapPlaceholder(),
+          ),
+          SizedBox(height: Dimensions.twentyFour),
+          _DetailRow(label: 'Sent', value: formatAlertDate(alert.createdAt)),
+          if (alert.resolvedAt != null) ...[
+            SizedBox(height: Dimensions.twelve),
+            _DetailRow(
+              label: alert.status == AlertStatus.cancelled
+                  ? 'Cancelled'
+                  : 'Resolved',
+              value: formatAlertDate(alert.resolvedAt!),
             ),
-            SizedBox(height: Dimensions.twentyFour),
-            AlertResponsesWidget(alertId: alert.id),
-            SizedBox(height: Dimensions.twentyFour),
           ],
-        ),
+          if (alert.message != null && alert.message!.isNotEmpty) ...[
+            SizedBox(height: Dimensions.twelve),
+            _DetailRow(label: 'Note', value: alert.message!),
+          ],
+          if (alert.locationLabel != null &&
+              alert.locationLabel!.isNotEmpty) ...[
+            SizedBox(height: Dimensions.twelve),
+            _DetailRow(label: 'Location', value: alert.locationLabel!),
+          ],
+          SizedBox(height: Dimensions.twentyFour),
+          SizedBox(
+            height: 180,
+            width: double.infinity,
+            child: hasLocation
+                ? AlertMapWidget(
+                    latitude: alert.latitude!,
+                    longitude: alert.longitude!,
+                  )
+                : const AlertMapPlaceholder(),
+          ),
+          SizedBox(height: Dimensions.twentyFour),
+          AlertResponsesWidget(alertId: alert.id),
+          SizedBox(height: Dimensions.twentyFour),
+        ],
       ),
     );
   }
@@ -134,15 +122,13 @@ class _DetailRow extends StatelessWidget {
           width: 80,
           child: Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.black45),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.black45),
           ),
         ),
         Expanded(
-          child:
-              Text(value, style: Theme.of(context).textTheme.bodySmall),
+          child: Text(value, style: Theme.of(context).textTheme.bodySmall),
         ),
       ],
     );
@@ -192,8 +178,18 @@ String formatAlertDate(DateTime dt) {
   if (diff == 0) return 'Today, ${_formatTime(dt)}';
   if (diff == 1) return 'Yesterday, ${_formatTime(dt)}';
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   return '${months[dt.month - 1]} ${dt.day}, ${_formatTime(dt)}';
 }

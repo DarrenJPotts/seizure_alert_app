@@ -23,15 +23,24 @@ class StatusCardWidget extends StatelessWidget {
             children: [
               Text(
                 'STATUS',
-                style: TextStyle(color: Colors.white54, fontSize: 11, letterSpacing: 1.2),
+                style: Theme.of(context)
+                    .textTheme
+                    .labelSmall
+                    ?.copyWith(color: Colors.white54, letterSpacing: 1.2),
               ),
               Text(
                 'Monitoring Active',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
               ),
               Text(
                 _contactsLabel,
-                style: TextStyle(color: Colors.white60, fontSize: 13),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.white60),
               ),
             ],
           ),

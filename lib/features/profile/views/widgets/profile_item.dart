@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get_utils/src/extensions/context_extensions.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
 class ProfileItem extends StatelessWidget {
@@ -34,7 +35,7 @@ class ProfileItem extends StatelessWidget {
               width: 130,
               child: Text(
                 label,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: context.theme.textTheme.bodyMedium,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -42,7 +43,7 @@ class ProfileItem extends StatelessWidget {
             Expanded(
               child: Text(
                 value,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: valueColor ?? Colors.black45),
+                style: context.theme.textTheme.bodySmall?.copyWith(color: valueColor ?? Colors.black45),
                 textAlign: TextAlign.end,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

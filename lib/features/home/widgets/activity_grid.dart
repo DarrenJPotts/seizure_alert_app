@@ -20,11 +20,10 @@ class ActivityGrid extends StatelessWidget {
                     child: Center(
                       child: Text(
                         d,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.black38,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.black38,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                     ),
                   ))

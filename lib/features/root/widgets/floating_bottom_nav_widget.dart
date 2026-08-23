@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/features/root/root_view.dart';
 
 class FloatingBottomNavWidget extends StatelessWidget {
@@ -9,7 +10,11 @@ class FloatingBottomNavWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: EdgeInsets.only(left: 24, right: 24, bottom: 20),
+    margin: EdgeInsets.only(
+      left: Dimensions.twentyFour,
+      right: Dimensions.twentyFour,
+      bottom: Dimensions.twenty,
+    ),
     child: Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
@@ -20,7 +25,7 @@ class FloatingBottomNavWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(35),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: Offset(0, 10))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: Offset(0, 10))],
           ),
           child: Obx(
             () => Row(
@@ -38,7 +43,7 @@ class FloatingBottomNavWidget extends StatelessWidget {
                   isActive: controller.currentIndex.value == 1,
                   onTap: () => controller.changePage(1),
                 ),
-                SizedBox(width: 56), // Space for elevated button
+                const SizedBox(width: 56), // Space for elevated button
                 _FloatingNavItem(
                   icon: Icons.people_outline,
                   activeIcon: Icons.people,
@@ -61,17 +66,15 @@ class FloatingBottomNavWidget extends StatelessWidget {
           top: -25,
           child: GestureDetector(
             onTap: () => controller.changePage(2),
-            child: Obx(
-              () => Container(
-                width: 65,
-                height: 65,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: controller.currentIndex.value == 2 ? Colors.black : Colors.black,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 15, offset: Offset(0, 8))],
-                ),
-                child: Icon(Icons.emergency, color: Colors.white, size: 32),
+            child: Container(
+              width: 65,
+              height: 65,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black,
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 15, offset: Offset(0, 8))],
               ),
+              child: Icon(Icons.emergency, color: Colors.white, size: 32),
             ),
           ),
         ),
@@ -115,13 +118,13 @@ class _FloatingNavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.all(12),
+        padding: EdgeInsets.all(Dimensions.twelve),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isActive ? activeIcon : icon, color: isActive ? Colors.black : Colors.grey.shade400, size: 26),
-            SizedBox(height: 4),
+            Icon(isActive ? activeIcon : icon, color: isActive ? Colors.black : Colors.black38, size: 26),
+            SizedBox(height: Dimensions.four),
             AnimatedContainer(
               duration: Duration(milliseconds: 200),
               width: isActive ? 6 : 0,

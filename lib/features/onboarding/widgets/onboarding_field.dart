@@ -32,15 +32,19 @@ class OnboardingField extends StatelessWidget {
           controller: controller,
           autofocus: autofocus,
           keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 14),
+          style: Theme.of(context).textTheme.bodyMedium,
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
             helperText: helper,
-            hintStyle:
-                const TextStyle(color: Colors.black38, fontSize: 14),
-            helperStyle:
-                const TextStyle(color: Colors.black45, fontSize: 12),
+            hintStyle: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.black38),
+            helperStyle: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Colors.black45),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(

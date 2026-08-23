@@ -5,4 +5,5 @@ abstract final class FirebaseCollectionKeys {
   static const String alerts = 'alerts';
   static const String headsUp = 'headsUp';
   static const String responses = 'alert_responses';
+  static const String invites = 'invites';
 }

@@ -6,6 +6,20 @@ class LocationService {
       ? Get.find<LocationService>()
       : Get.put(LocationService());
 
+  /// Whether location permission is currently granted (whileInUse or always).
+  Future<bool> hasPermission() async {
+    final permission = await Geolocator.checkPermission();
+    return permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
+  }
+
+  /// Requests location permission, returning true if granted.
+  Future<bool> requestPermission() async {
+    final permission = await Geolocator.requestPermission();
+    return permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
+  }
+
   /// Returns the device's current position, or null if permission is denied
   /// or the location cannot be determined within the timeout.
   Future<Position?> getCurrentPosition() async {

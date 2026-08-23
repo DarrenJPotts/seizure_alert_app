@@ -29,8 +29,8 @@ class AlertDto {
   factory AlertDto.fromMap(Map<String, dynamic> map) => AlertDto(
     id: map['id'] as String,
     userId: map['userId'] as String,
-    type: AlertType.values.firstWhere((e) => e.name == map['type']),
-    status: AlertStatus.values.firstWhere((e) => e.name == map['status']),
+    type: AlertType.values.firstWhere((AlertType e) => e.name == map['type']),
+    status: AlertStatus.values.firstWhere((AlertStatus e) => e.name == map['status']),
     latitude: (map['latitude'] as num?)?.toDouble(),
     longitude: (map['longitude'] as num?)?.toDouble(),
     locationLabel: map['locationLabel'] as String?,
@@ -52,13 +52,18 @@ class AlertDto {
     'resolvedAt': resolvedAt?.toIso8601String(),
   };
 
-  AlertDto copyWith({AlertStatus? status, DateTime? resolvedAt}) => AlertDto(
+  AlertDto copyWith({
+    AlertStatus? status,
+    DateTime? resolvedAt,
+    double? latitude,
+    double? longitude,
+  }) => AlertDto(
     id: id,
     userId: userId,
     type: type,
     status: status ?? this.status,
-    latitude: latitude,
-    longitude: longitude,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
     locationLabel: locationLabel,
     message: message,
     createdAt: createdAt,

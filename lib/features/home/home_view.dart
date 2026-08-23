@@ -4,6 +4,7 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/features/home/view_models/home_view_model.dart';
 import 'package:seizure_app/features/home/widgets/activity_grid.dart';
+import 'package:seizure_app/features/home/widgets/circle_invite_banner.dart';
 import 'package:seizure_app/features/home/widgets/days_free_card.dart';
 import 'package:seizure_app/features/home/widgets/greeting_widget.dart';
 import 'package:seizure_app/features/home/widgets/stat_chip.dart';
@@ -19,10 +20,20 @@ class HomeView extends GetView<HomeViewModel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Dimensions.twentyFour,
         children: [
-          Obx(() => GreetingWidget(
-                greeting: controller.greeting,
-                name: controller.firstName,
-              )),
+          Obx(() {
+            final invites = controller.pendingInvites;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: Dimensions.twentyFour,
+              children: [
+                if (invites.isNotEmpty) CircleInviteBanner(invite: invites.first),
+                GreetingWidget(
+                  greeting: controller.greeting,
+                  name: controller.firstName,
+                ),
+              ],
+            );
+          }),
           Obx(() {
             final _ = controller.seizureLogs.length;
             final state = controller.screenState.value;
