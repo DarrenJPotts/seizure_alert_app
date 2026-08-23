@@ -1,3 +1,7 @@
+import 'package:seizure_app/core/helpers/phone_number.dart';
+
+enum ContactStatus { active, pending }
+
 class ContactDto {
   final String id;
   final String userId;
@@ -8,6 +12,11 @@ class ContactDto {
   final bool notifyViaSms;
   final bool notifyViaPush;
   final DateTime createdAt;
+  final ContactStatus status;
+
+  /// E.164 form of [phone] — the field every cross-user lookup queries on.
+  /// Derived rather than stored so no write path can forget to set it.
+  String? get phoneNormalized => PhoneNumber.normalize(phone);
 
   ContactDto({
     required this.id,
@@ -19,6 +28,7 @@ class ContactDto {
     this.notifyViaSms = true,
     this.notifyViaPush = true,
     required this.createdAt,
+    this.status = ContactStatus.active,
   });
 
   factory ContactDto.fromMap(Map<String, dynamic> map) => ContactDto(
@@ -31,6 +41,10 @@ class ContactDto {
     notifyViaSms: map['notifyViaSms'] as bool? ?? true,
     notifyViaPush: map['notifyViaPush'] as bool? ?? true,
     createdAt: DateTime.parse(map['createdAt'] as String),
+    status: ContactStatus.values.firstWhere(
+      (ContactStatus e) => e.name == map['status'],
+      orElse: () => ContactStatus.active,
+    ),
   );
 
   Map<String, dynamic> toMap() => {
@@ -38,10 +52,12 @@ class ContactDto {
     'userId': userId,
     'name': name,
     'phone': phone,
+    'phoneNormalized': phoneNormalized,
     'relation': relation,
     'priority': priority,
     'notifyViaSms': notifyViaSms,
     'notifyViaPush': notifyViaPush,
     'createdAt': createdAt.toIso8601String(),
+    'status': status.name,
   };
 }

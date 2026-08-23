@@ -2,8 +2,12 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13+ refuses to display any notification without this. Alerts
+         to the contact circle are the app's core function, so its absence
+         silently disabled the whole feature on modern devices. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
-        android:label="seizure_app"
+        android:label="SeizureAlert"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -33,6 +37,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Routes background FCM notifications to the max-importance channel
+             created in LocalNotificationsService. Must match
+             LocalNotificationsService.alertChannelId. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="seizure_alerts" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -48,5 +58,24 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="sms"/>
         </intent>
+        <!-- Android 11+ hides apps that aren't declared here, which makes
+             canLaunchUrl() return false for them. Without the tel entry the
+             "Call" buttons on the caregiver and SOS screens did nothing at
+             all, with no error — the single most important action in the app.
+             The https entry covers the wa.me invite link. -->
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="tel"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
     </queries>
 </manifest>

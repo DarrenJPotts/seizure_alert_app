@@ -3,23 +3,53 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
-import 'package:seizure_app/features/seizure_log/view_models/seizure_log_view_model.dart';
+import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
+
+typedef AddSeizureLogCallback =
+    Future<bool> Function({
+      required DateTime occurredAt,
+      int? durationSeconds,
+      String? location,
+      String? trigger,
+      String? notes,
+      bool alertFired,
+    });
+
+typedef UpdateSeizureLogCallback =
+    Future<bool> Function({
+      required String id,
+      required DateTime occurredAt,
+      int? durationSeconds,
+      String? location,
+      String? trigger,
+      String? notes,
+      bool alertFired,
+    });
 
 class AddSeizureLogBottomSheet extends StatefulWidget {
-  const AddSeizureLogBottomSheet({super.key, this.existingLog});
+  const AddSeizureLogBottomSheet({
+    super.key,
+    required this.onAdd,
+    required this.onUpdate,
+    this.existingLog,
+  });
 
   final SeizureLogDto? existingLog;
+  final AddSeizureLogCallback onAdd;
+  final UpdateSeizureLogCallback onUpdate;
 
-  static Future<void> show({SeizureLogDto? existingLog}) => showModalBottomSheet(
-        context: Get.context!,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (_) => AddSeizureLogBottomSheet(existingLog: existingLog),
-      );
+  static Future<void> show({
+    required AddSeizureLogCallback onAdd,
+    required UpdateSeizureLogCallback onUpdate,
+    SeizureLogDto? existingLog,
+  }) => AppBottomSheet.show(
+    context: Get.context!,
+    builder: (_) => AddSeizureLogBottomSheet(
+      onAdd: onAdd,
+      onUpdate: onUpdate,
+      existingLog: existingLog,
+    ),
+  );
 
   @override
   State<AddSeizureLogBottomSheet> createState() =>
@@ -88,7 +118,12 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
 
     setState(() {
       _occurredAt = DateTime(
-          date.year, date.month, date.day, time.hour, time.minute);
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
     });
   }
 
@@ -101,11 +136,10 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
     final seconds = int.tryParse(_secondsController.text.trim()) ?? 0;
     final totalSeconds = (minutes * 60 + seconds).clamp(0, 99999);
 
-    final vm = Get.find<SeizureLogViewModel>();
     final bool success;
 
     if (_isEditing) {
-      success = await vm.updateEntry(
+      success = await widget.onUpdate(
         id: widget.existingLog!.id,
         occurredAt: _occurredAt,
         durationSeconds: totalSeconds > 0 ? totalSeconds : null,
@@ -115,7 +149,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
         alertFired: widget.existingLog!.alertFired,
       );
     } else {
-      success = await vm.addEntry(
+      success = await widget.onAdd(
         occurredAt: _occurredAt,
         durationSeconds: totalSeconds > 0 ? totalSeconds : null,
         location: _locationController.text,
@@ -138,8 +172,18 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
 
   String _formatDateTime(DateTime dt) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
     final m = dt.minute.toString().padLeft(2, '0');
@@ -151,152 +195,141 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          Dimensions.twentyFour,
-          Dimensions.twentyFour,
-          Dimensions.twentyFour,
-          Dimensions.twentyFour,
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Handle ──────────────────────────────────────────────────
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+    return AppBottomSheetContent(
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _isEditing ? 'Edit Entry' : 'Add Seizure Entry',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            SizedBox(height: Dimensions.twentyFour),
+
+            // ── Date / Time ─────────────────────────────────────────────
+            _SectionLabel(label: 'Date & Time'),
+            SizedBox(height: Dimensions.eight),
+            InkWell(
+              onTap: _pickDateTime,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Dimensions.sixteen,
+                  vertical: Dimensions.sixteen,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 18,
+                      color: Colors.black54,
+                    ),
+                    SizedBox(width: Dimensions.twelve),
+                    Expanded(
+                      child: Text(
+                        _formatDateTime(_occurredAt),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: Colors.black26,
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                _isEditing ? 'Edit Entry' : 'Add Seizure Entry',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              SizedBox(height: Dimensions.twentyFour),
+            ),
+            SizedBox(height: Dimensions.sixteen),
 
-              // ── Date / Time ─────────────────────────────────────────────
-              _SectionLabel(label: 'Date & Time'),
-              SizedBox(height: Dimensions.eight),
-              InkWell(
-                onTap: _pickDateTime,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: Dimensions.sixteen,
-                      vertical: Dimensions.sixteen),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black12),
+            // ── Duration ────────────────────────────────────────────────
+            _SectionLabel(label: 'Duration (optional)'),
+            SizedBox(height: Dimensions.eight),
+            Row(
+              children: [
+                Expanded(
+                  child: _NumberField(
+                    controller: _minutesController,
+                    label: 'Minutes',
+                    max: 99,
+                  ),
+                ),
+                SizedBox(width: Dimensions.twelve),
+                Expanded(
+                  child: _NumberField(
+                    controller: _secondsController,
+                    label: 'Seconds',
+                    max: 59,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: Dimensions.sixteen),
+
+            // ── Location ────────────────────────────────────────────────
+            _SectionLabel(label: 'Location (optional)'),
+            SizedBox(height: Dimensions.eight),
+            _OutlinedTextField(
+              controller: _locationController,
+              hintText: 'e.g. Home, Work, Gym',
+              textCapitalization: TextCapitalization.words,
+            ),
+            SizedBox(height: Dimensions.sixteen),
+
+            // ── Trigger ─────────────────────────────────────────────────
+            _SectionLabel(label: 'Trigger (optional)'),
+            SizedBox(height: Dimensions.eight),
+            _OutlinedTextField(
+              controller: _triggerController,
+              hintText: 'e.g. Stress, Lack of sleep',
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            SizedBox(height: Dimensions.sixteen),
+
+            // ── Notes ───────────────────────────────────────────────────
+            _SectionLabel(label: 'Notes (optional)'),
+            SizedBox(height: Dimensions.eight),
+            _OutlinedTextField(
+              controller: _notesController,
+              hintText: 'Any additional observations…',
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            SizedBox(height: Dimensions.twentyFour),
+
+            // ── Save ────────────────────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.black38,
+                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.calendar_today_outlined,
-                          size: 18, color: Colors.black54),
-                      SizedBox(width: Dimensions.twelve),
-                      Expanded(
-                        child: Text(_formatDateTime(_occurredAt),
-                            style: Theme.of(context).textTheme.bodyMedium),
-                      ),
-                      const Icon(Icons.edit_outlined,
-                          size: 16, color: Colors.black26),
-                    ],
-                  ),
                 ),
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(_isEditing ? 'Save Changes' : 'Save Entry'),
               ),
-              SizedBox(height: Dimensions.sixteen),
-
-              // ── Duration ────────────────────────────────────────────────
-              _SectionLabel(label: 'Duration (optional)'),
-              SizedBox(height: Dimensions.eight),
-              Row(
-                children: [
-                  Expanded(
-                    child: _NumberField(
-                      controller: _minutesController,
-                      label: 'Minutes',
-                      max: 99,
-                    ),
-                  ),
-                  SizedBox(width: Dimensions.twelve),
-                  Expanded(
-                    child: _NumberField(
-                      controller: _secondsController,
-                      label: 'Seconds',
-                      max: 59,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: Dimensions.sixteen),
-
-              // ── Location ────────────────────────────────────────────────
-              _SectionLabel(label: 'Location (optional)'),
-              SizedBox(height: Dimensions.eight),
-              _OutlinedTextField(
-                controller: _locationController,
-                hintText: 'e.g. Home, Work, Gym',
-                textCapitalization: TextCapitalization.words,
-              ),
-              SizedBox(height: Dimensions.sixteen),
-
-              // ── Trigger ─────────────────────────────────────────────────
-              _SectionLabel(label: 'Trigger (optional)'),
-              SizedBox(height: Dimensions.eight),
-              _OutlinedTextField(
-                controller: _triggerController,
-                hintText: 'e.g. Stress, Lack of sleep',
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              SizedBox(height: Dimensions.sixteen),
-
-              // ── Notes ───────────────────────────────────────────────────
-              _SectionLabel(label: 'Notes (optional)'),
-              SizedBox(height: Dimensions.eight),
-              _OutlinedTextField(
-                controller: _notesController,
-                hintText: 'Any additional observations…',
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              SizedBox(height: Dimensions.twentyFour),
-
-              // ── Save ────────────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.black38,
-                    padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
-                        )
-                      : Text(_isEditing ? 'Save Changes' : 'Save Entry'),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -311,12 +344,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.black54,
-            ),
-      );
+    label,
+    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: Colors.black54,
+    ),
+  );
 }
 
 class _OutlinedTextField extends StatelessWidget {
@@ -334,11 +367,11 @@ class _OutlinedTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TextFormField(
-        controller: controller,
-        maxLines: maxLines,
-        textCapitalization: textCapitalization,
-        decoration: _inputDecoration(hintText: hintText),
-      );
+    controller: controller,
+    maxLines: maxLines,
+    textCapitalization: textCapitalization,
+    decoration: _inputDecoration(hintText: hintText),
+  );
 }
 
 class _NumberField extends StatelessWidget {
@@ -354,22 +387,21 @@ class _NumberField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TextFormField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          _MaxValueFormatter(max),
-        ],
-        decoration: _inputDecoration(labelText: label),
-      );
+    controller: controller,
+    keyboardType: TextInputType.number,
+    inputFormatters: [
+      FilteringTextInputFormatter.digitsOnly,
+      _MaxValueFormatter(max),
+    ],
+    decoration: _inputDecoration(labelText: label),
+  );
 }
 
 InputDecoration _inputDecoration({String? labelText, String? hintText}) =>
     InputDecoration(
       labelText: labelText,
       hintText: hintText,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.black12),
@@ -390,7 +422,9 @@ class _MaxValueFormatter extends TextInputFormatter {
 
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     if (newValue.text.isEmpty) return newValue;
     final value = int.tryParse(newValue.text) ?? 0;
     return value > max ? oldValue : newValue;

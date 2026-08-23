@@ -49,9 +49,21 @@
     <string>Your location is shared with your emergency contacts when an alert is sent.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Background location allows alerts to include your position even when the app is closed.</string>
+    <!-- iOS returns false from canOpenURL for any scheme not listed here, so
+         an omission silently disables the feature rather than erroring. The
+         tel entry backs the "Call" buttons on the caregiver and SOS screens;
+         whatsapp backs the invite share sheet. -->
     <key>LSApplicationQueriesSchemes</key>
     <array>
         <string>sms</string>
+        <string>tel</string>
+        <string>whatsapp</string>
+    </array>
+    <!-- Lets a silent/content-available push wake the app so an incoming
+         alert is ready before the caregiver taps the notification. -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
     </array>
 </dict>
 </plist>

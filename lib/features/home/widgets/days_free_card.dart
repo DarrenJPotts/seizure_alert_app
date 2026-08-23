@@ -36,14 +36,13 @@ class DaysFreeCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Dimensions.eight,
         children: [
-          const Text(
+          Text(
             'LAST SEIZURE',
-            style: TextStyle(
-              color: Colors.white38,
-              fontSize: 11,
-              letterSpacing: 1.5,
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.white38,
+                  letterSpacing: 1.5,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           Text(
             headline,
@@ -56,7 +55,10 @@ class DaysFreeCard extends StatelessWidget {
           ),
           Text(
             sub,
-            style: const TextStyle(color: Colors.white60, fontSize: 14),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.white60),
           ),
         ],
       ),

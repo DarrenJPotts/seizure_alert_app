@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:seizure_app/core/dtos/invite_dto.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
@@ -18,9 +19,11 @@ class HomeViewModel extends GetxController {
 
   final Rxn<UserDto> user = Rxn<UserDto>();
   final RxList<SeizureLogDto> seizureLogs = <SeizureLogDto>[].obs;
+  final RxList<InviteDto> pendingInvites = <InviteDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
 
   StreamSubscription<List<SeizureLogDto>>? _seizureLogsSub;
+  StreamSubscription<List<InviteDto>>? _pendingInvitesSub;
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
@@ -33,7 +36,10 @@ class HomeViewModel extends GetxController {
   }
 
   Future<void> _init() async {
-    if (_uid.isEmpty) return;
+    if (_uid.isEmpty) {
+      screenState.value = GenericScreenStates.error;
+      return;
+    }
     screenState.value = GenericScreenStates.loading;
 
     final userResult = await _firestoreService.getUser(_uid);
@@ -45,6 +51,11 @@ class HomeViewModel extends GetxController {
         screenState.value = GenericScreenStates.loaded;
       },
       onError: (_) => screenState.value = GenericScreenStates.error,
+    );
+
+    _pendingInvitesSub = _firestoreService.watchPendingInvites(_uid).listen(
+      (list) => pendingInvites.value = list,
+      onError: (_) {},
     );
   }
 
@@ -121,6 +132,7 @@ class HomeViewModel extends GetxController {
   @override
   void onClose() {
     _seizureLogsSub?.cancel();
+    _pendingInvitesSub?.cancel();
     super.onClose();
   }
 }

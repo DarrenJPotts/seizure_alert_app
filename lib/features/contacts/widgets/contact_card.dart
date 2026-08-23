@@ -24,10 +24,7 @@ class ContactCard extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: Dimensions.twentyFour),
-        decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12)),
         child: Icon(Icons.delete_outline, color: Colors.red.shade400),
       ),
       confirmDismiss: (_) async => _confirmDelete(context),
@@ -48,25 +45,31 @@ class ContactCard extends StatelessWidget {
                 backgroundColor: Colors.black,
                 child: Text(
                   contact.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
               SizedBox(width: Dimensions.twelve),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 4,
+                  spacing: Dimensions.four,
                   children: [
-                    Text(contact.name,
-                        style: Theme.of(context).textTheme.bodyMedium),
-                    Text(
-                      _subtitle,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.black45),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            contact.name,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (contact.status == ContactStatus.pending) ...[
+                          SizedBox(width: Dimensions.eight),
+                          const _PendingBadge(),
+                        ],
+                      ],
                     ),
+                    Text(_subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45)),
                   ],
                 ),
               ),
@@ -76,10 +79,9 @@ class ContactCard extends StatelessWidget {
                 message: 'Send app invite',
                 child: GestureDetector(
                   onTap: onInvite,
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(Icons.send_outlined,
-                        size: 16, color: Colors.black38),
+                  child: Padding(
+                    padding: EdgeInsets.all(Dimensions.four),
+                    child: const Icon(Icons.send_outlined, size: 16, color: Colors.black38),
                   ),
                 ),
               ),
@@ -99,24 +101,33 @@ class ContactCard extends StatelessWidget {
   }
 
   Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Remove contact?'),
-          content:
-              Text('${contact.name} will be removed from your circle.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Remove'),
-            ),
-          ],
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Remove contact?'),
+      content: Text('${contact.name} will be removed from your circle.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          child: const Text('Remove'),
         ),
-      );
+      ],
+    ),
+  );
+}
+
+class _PendingBadge extends StatelessWidget {
+  const _PendingBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: Dimensions.eight, vertical: 2),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(20)),
+      child: Text('Pending', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black54)),
+    );
+  }
 }
 
 class _NotifyIcons extends StatelessWidget {
@@ -126,26 +137,24 @@ class _NotifyIcons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (contact.notifyViaSms)
-            Tooltip(
-              message: 'SMS alerts on',
-              child: const Padding(
-                padding: EdgeInsets.only(left: 4),
-                child: Icon(Icons.sms_outlined,
-                    size: 16, color: Colors.black38),
-              ),
-            ),
-          if (contact.notifyViaPush)
-            Tooltip(
-              message: 'Push alerts on',
-              child: const Padding(
-                padding: EdgeInsets.only(left: 4),
-                child: Icon(Icons.notifications_outlined,
-                    size: 16, color: Colors.black38),
-              ),
-            ),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (contact.notifyViaSms)
+        Tooltip(
+          message: 'SMS alerts on',
+          child: Padding(
+            padding: EdgeInsets.only(left: Dimensions.four),
+            child: Icon(Icons.sms_outlined, size: 16, color: Colors.black38),
+          ),
+        ),
+      if (contact.notifyViaPush)
+        Tooltip(
+          message: 'Push alerts on',
+          child: Padding(
+            padding: EdgeInsets.only(left: Dimensions.four),
+            child: Icon(Icons.notifications_outlined, size: 16, color: Colors.black38),
+          ),
+        ),
+    ],
+  );
 }

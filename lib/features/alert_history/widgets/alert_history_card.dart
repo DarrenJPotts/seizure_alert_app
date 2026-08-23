@@ -43,7 +43,7 @@ class AlertHistoryCard extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 4,
+                spacing: Dimensions.four,
                 children: [
                   Text(alertLabelForType(alert.type),
                       style: Theme.of(context).textTheme.bodyMedium),

@@ -70,7 +70,7 @@ class PermissionRow extends StatelessWidget {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('Enable', style: TextStyle(fontSize: 13)),
+              child: Text('Enable', style: Theme.of(context).textTheme.bodySmall),
             ),
         ],
       ),

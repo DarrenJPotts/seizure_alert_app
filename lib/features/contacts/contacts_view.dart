@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
-import 'package:seizure_app/core/services/invite_service.dart';
+import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
 import 'package:seizure_app/features/contacts/widgets/add_contact_bottom_sheet.dart';
 import 'package:seizure_app/features/contacts/widgets/contact_card.dart';
+import 'package:seizure_app/features/contacts/widgets/invite_picker_sheet.dart';
 
 class ContactsView extends GetView<ContactsViewModel> {
   const ContactsView({super.key});
@@ -16,19 +17,19 @@ class ContactsView extends GetView<ContactsViewModel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(
+          padding: EdgeInsets.all(
             Dimensions.twentyFour,
-            Dimensions.twentyFour,
-            Dimensions.twentyFour,
-            Dimensions.twelve,
-          ),
+          ).copyWith(bottom: Dimensions.twelve),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('My Circle',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text('My Circle', style: context.theme.textTheme.titleMedium),
               TextButton.icon(
-                onPressed: () => AddContactBottomSheet.show(),
+                onPressed: () => AddContactBottomSheet.show(
+                  onAdd: controller.addContact,
+                  onUpdate: controller.updateContact,
+                  onSendInvite: controller.sendCircleInvite,
+                ),
                 icon: const Icon(Icons.person_add_outlined, size: 16),
                 label: const Text('Add contact'),
               ),
@@ -52,14 +53,16 @@ class ContactsView extends GetView<ContactsViewModel> {
                   mainAxisSize: MainAxisSize.min,
                   spacing: Dimensions.twelve,
                   children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: Colors.black26),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.black26,
+                    ),
                     Text(
                       'Could not load your circle',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.black54),
+                      style: context.theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.black54,
+                      ),
                     ),
                   ],
                 ),
@@ -74,17 +77,23 @@ class ContactsView extends GetView<ContactsViewModel> {
                   mainAxisSize: MainAxisSize.min,
                   spacing: Dimensions.twelve,
                   children: [
-                    const Icon(Icons.people_outline,
-                        size: 48, color: Colors.black26),
+                    const Icon(
+                      Icons.people_outline,
+                      size: 48,
+                      color: Colors.black26,
+                    ),
                     Text(
                       'No contacts in your circle yet',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.black54),
+                      style: context.theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.black54,
+                      ),
                     ),
                     TextButton(
-                      onPressed: () => AddContactBottomSheet.show(),
+                      onPressed: () => AddContactBottomSheet.show(
+                        onAdd: controller.addContact,
+                        onUpdate: controller.updateContact,
+                        onSendInvite: controller.sendCircleInvite,
+                      ),
                       child: const Text('Add your first contact'),
                     ),
                   ],
@@ -93,20 +102,24 @@ class ContactsView extends GetView<ContactsViewModel> {
             }
 
             return ListView.separated(
-              padding:
-                  EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
+              padding: EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
               itemCount: contacts.length,
               separatorBuilder: (_, _) => SizedBox(height: Dimensions.twelve),
               itemBuilder: (context, index) => ContactCard(
                 contact: contacts[index],
                 onTap: () => AddContactBottomSheet.show(
+                  onAdd: controller.addContact,
+                  onUpdate: controller.updateContact,
+                  onSendInvite: controller.sendCircleInvite,
                   existingContact: contacts[index],
                 ),
-                onDelete: () =>
-                    controller.deleteContact(contacts[index].id),
-                onInvite: () => InviteService.showInvitePicker(
-                  phone: contacts[index].phone,
-                  contactName: contacts[index].name,
+                onDelete: () => controller.deleteContact(contacts[index].id),
+                onInvite: () => AppBottomSheet.show(
+                  context: context,
+                  builder: (_) => InvitePickerSheet(
+                    phone: contacts[index].phone,
+                    contactName: contacts[index].name,
+                  ),
                 ),
               ),
             );

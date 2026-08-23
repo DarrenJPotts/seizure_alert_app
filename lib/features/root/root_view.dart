@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/controllers/firebase_auth_controller/firebase_auth_controller.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
+import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/features/contacts/contacts_view.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
@@ -22,7 +23,12 @@ class RootViewModel extends GetxController {
     Get.lazyPut(() => ProfileViewModel(FirestoreService.instance()));
     Get.lazyPut(() => HomeViewModel(FirestoreService.instance()));
     Get.lazyPut(() => SeizureLogViewModel(FirestoreService.instance()));
-    Get.lazyPut(() => ContactsViewModel(FirestoreService.instance()));
+    Get.lazyPut(
+      () => ContactsViewModel(
+        FirestoreService.instance(),
+        CircleInviteService.instance(),
+      ),
+    );
     Get.lazyPut(() => SosViewModel());
   }
 
@@ -73,40 +79,71 @@ class RootView extends StatelessWidget {
   });
 
   Widget _buildScaffold(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          elevation: 0,
-          foregroundColor: Colors.black,
-          title: const _MonitoringBadge(),
-          centerTitle: false,
-          actionsPadding: EdgeInsets.only(right: Dimensions.twelve),
-          actions: [
-            IconButton(
-              onPressed: () => Get.toNamed(AppRoutes.alertHistory),
-              icon: const Icon(Icons.history),
-              tooltip: 'Alert history',
-            ),
-            IconButton(
-              onPressed: () => FirebaseAuthController.instance().signOut(),
-              icon: const Icon(Icons.logout),
-              tooltip: 'Sign out',
-            ),
-          ],
+    appBar: AppBar(
+      elevation: 0,
+      foregroundColor: Colors.black,
+      title: const _MonitoringBadge(),
+      centerTitle: false,
+      actionsPadding: EdgeInsets.only(right: Dimensions.twelve),
+      actions: [
+        IconButton(
+          onPressed: () => Get.toNamed(AppRoutes.caregiverMode),
+          icon: const Icon(Icons.supervisor_account_outlined),
+          tooltip: 'Caregiver mode',
         ),
-        body: Obx(
-          () => IndexedStack(
-            index: viewModel.currentIndex.value,
-            children: [
-              const HomeView(),
-              const SeizureLogView(),
-              SosView(viewModel: viewModel),
-              const ContactsView(),
-              const ProfileView(),
-            ],
+        IconButton(
+          onPressed: () => Get.toNamed(AppRoutes.alertHistory),
+          icon: const Icon(Icons.history),
+          tooltip: 'Alert history',
+        ),
+        IconButton(
+          onPressed: () => _confirmSignOut(context),
+          icon: const Icon(Icons.logout),
+          tooltip: 'Sign out',
+        ),
+      ],
+    ),
+    body: Obx(
+      () => IndexedStack(
+        index: viewModel.currentIndex.value,
+        children: [
+          const HomeView(),
+          const SeizureLogView(),
+          SosView(viewModel: viewModel),
+          const ContactsView(),
+          const ProfileView(),
+        ],
+      ),
+    ),
+    bottomNavigationBar: FloatingBottomNavWidget(controller: viewModel),
+  );
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+          'You will need to sign in again to continue monitoring.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
           ),
-        ),
-        bottomNavigationBar:
-            FloatingBottomNavWidget(controller: viewModel),
-      );
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.black),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await FirebaseAuthController.instance().signOut();
+    }
+  }
 }
 
 class _MonitoringBadge extends StatelessWidget {
@@ -136,9 +173,9 @@ class _MonitoringBadge extends StatelessWidget {
         Text(
           'Monitoring Active',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.black54,
-                fontWeight: FontWeight.w500,
-              ),
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );

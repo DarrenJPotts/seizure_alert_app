@@ -127,7 +127,7 @@ class AppTextFormField extends StatelessWidget {
           prefixText: prefixText,
           suffixText: suffixText,
           filled: fillColor != null,
-          fillColor: fillColor ?? Colors.grey.shade100,
+          fillColor: fillColor ?? Colors.black.withValues(alpha: 0.06),
           contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(borderRadius),
@@ -151,7 +151,7 @@ class AppTextFormField extends StatelessWidget {
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(color: AppColors.secondaryLight),
+            borderSide: const BorderSide(color: Colors.black12),
           ),
         ),
       ),
@@ -161,7 +161,7 @@ class AppTextFormField extends StatelessWidget {
   Widget? _buildSuffixIcon(RxBool isObscured) {
     if (enableObscureToggle) {
       return IconButton(
-        icon: Icon(isObscured.value ? Icons.visibility_off : Icons.visibility, color: Colors.grey.shade600),
+        icon: Icon(isObscured.value ? Icons.visibility_off : Icons.visibility, color: Colors.black45),
         onPressed: () => isObscured.value = !isObscured.value,
       );
     }

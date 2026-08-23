@@ -64,8 +64,10 @@ class OnboardingBottomNav extends StatelessWidget {
                       )
                     : Text(
                         isLast ? 'Get Started' : 'Next',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
               ),
             ),

@@ -25,9 +25,12 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Seizure Log',
-                  style: Theme.of(context).textTheme.titleMedium),
+                  style: context.theme.textTheme.titleMedium),
               TextButton.icon(
-                onPressed: () => AddSeizureLogBottomSheet.show(),
+                onPressed: () => AddSeizureLogBottomSheet.show(
+                  onAdd: controller.addEntry,
+                  onUpdate: controller.updateEntry,
+                ),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Add entry'),
               ),
@@ -55,7 +58,7 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
                         size: 48, color: Colors.black26),
                     Text(
                       'Could not load seizure log',
-                      style: Theme.of(context)
+                      style: context.theme
                           .textTheme
                           .bodyMedium
                           ?.copyWith(color: Colors.black54),
@@ -77,13 +80,16 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
                         size: 48, color: Colors.black26),
                     Text(
                       'No seizures logged yet',
-                      style: Theme.of(context)
+                      style: context.theme
                           .textTheme
                           .bodyMedium
                           ?.copyWith(color: Colors.black54),
                     ),
                     TextButton(
-                      onPressed: () => AddSeizureLogBottomSheet.show(),
+                      onPressed: () => AddSeizureLogBottomSheet.show(
+                        onAdd: controller.addEntry,
+                        onUpdate: controller.updateEntry,
+                      ),
                       child: const Text('Add your first entry'),
                     ),
                   ],
@@ -101,6 +107,8 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
               itemBuilder: (context, index) => SeizureLogCard(
                 log: logs[index],
                 onTap: () => AddSeizureLogBottomSheet.show(
+                  onAdd: controller.addEntry,
+                  onUpdate: controller.updateEntry,
                   existingLog: logs[index],
                 ),
               ),

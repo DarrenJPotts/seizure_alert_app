@@ -5,6 +5,8 @@ import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/features/profile/view_models/profile_view_model.dart';
 
+import 'widgets/change_email_sheet.dart';
+import 'widgets/change_password_sheet.dart';
 import 'widgets/delete_account_sheet.dart';
 import 'widgets/edit_profile_bottom_sheet.dart';
 import 'widgets/profile_item.dart';
@@ -58,18 +60,45 @@ class ProfileView extends GetView<ProfileViewModel> {
                 CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.black,
-                  child: Text(_initials(user.displayName), style: const TextStyle(color: Colors.white, fontSize: 22)),
+                  child: Text(
+                    _initials(user.displayName),
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(color: Colors.white),
+                  ),
                 ),
                 Text(user.displayName ?? 'No name', style: Theme.of(context).textTheme.titleMedium),
                 Text(user.email, style: Theme.of(context).textTheme.bodySmall),
                 TextButton.icon(
-                  onPressed: () => EditProfileBottomSheet.show(),
+                  onPressed: () => EditProfileBottomSheet.show(
+                  user: controller.user.value,
+                  onSave: controller.updateProfile,
+                ),
                   icon: const Icon(Icons.edit_outlined, size: 16),
                   label: const Text('Edit profile'),
                   style: TextButton.styleFrom(foregroundColor: Colors.black),
                 ),
               ],
             ),
+          ),
+
+          /// Contact Info
+          Text('Contact Info', style: Theme.of(context).textTheme.titleMedium),
+          ProfileSection(
+            items: [
+              ProfileItem(icon: Icons.phone_outlined, label: 'Phone', value: user.phone ?? '—'),
+              ProfileItem(
+                icon: Icons.email_outlined,
+                label: 'Email',
+                value: user.email,
+                tappable: true,
+                onTap: () => ChangeEmailSheet.show(
+                  currentEmail: user.email,
+                  onChangeEmail: controller.changeEmail,
+                ),
+              ),
+            ],
           ),
 
           /// Medical ID
@@ -113,6 +142,15 @@ class ProfileView extends GetView<ProfileViewModel> {
                 onTap: () =>controller.requestLocation(),
               ),
               ProfileItem(
+                icon: Icons.key_outlined,
+                label: 'Password',
+                value: '',
+                tappable: true,
+                onTap: () => ChangePasswordSheet.show(
+                  onChangePassword: controller.changePassword,
+                ),
+              ),
+              ProfileItem(
                 icon: Icons.lock_outline,
                 label: 'Privacy',
                 value: '',
@@ -125,7 +163,9 @@ class ProfileView extends GetView<ProfileViewModel> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () => DeleteAccountSheet.show(),
+              onPressed: () => DeleteAccountSheet.show(
+                onDelete: controller.deleteAccount,
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: BorderSide(color: Colors.red.shade200),

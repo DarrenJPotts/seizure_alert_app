@@ -29,7 +29,10 @@ class SeizureLogViewModel extends GetxController {
   }
 
   void _init() {
-    if (_uid.isEmpty) return;
+    if (_uid.isEmpty) {
+      screenState.value = GenericScreenStates.error;
+      return;
+    }
     screenState.value = GenericScreenStates.loading;
     _logsSub = _firestoreService.watchSeizureLogs(_uid).listen(
       (list) {

@@ -1,3 +1,5 @@
+import 'package:seizure_app/core/helpers/phone_number.dart';
+
 class UserDto {
   UserDto({
     required this.uid,
@@ -23,6 +25,11 @@ class UserDto {
   final List<String>? medications;
   final String? emergencyNote;
 
+  /// E.164 form of [phone], written on every save so the Cloud Functions can
+  /// match contacts to accounts by exact query. Never set directly — it is
+  /// always derived from [phone] in [toMap].
+  String? get phoneNormalized => PhoneNumber.normalize(phone);
+
   factory UserDto.fromMap(Map<String, dynamic> map) => UserDto(
     uid: map['uid'] as String,
     email: map['email'] as String,
@@ -43,6 +50,7 @@ class UserDto {
     'displayName': displayName,
     'photoUrl': photoUrl,
     'phone': phone,
+    'phoneNormalized': phoneNormalized,
     'fcmToken': fcmToken,
     'bloodType': bloodType,
     'seizureType': seizureType,
