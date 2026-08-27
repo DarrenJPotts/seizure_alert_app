@@ -24,12 +24,25 @@ service cloud.firestore {
     // ── Contacts ──────────────────────────────────────────────────────────────
     // Scoped to the owning user via the userId field on each document.
 
+    // `linkedUid` is the verified uid of the person who accepted the invite to
+    // watch this contact's owner, and it is the authorization key for every
+    // cross-user read in functions/index.js. It is written only by
+    // respondToInvite under the Admin SDK, which bypasses these rules. If a
+    // client could write it, the owner could grant a stranger access to their
+    // own emergency data with no consent from that stranger — and, worse, the
+    // field would stop meaning "this person accepted".
+
     match /contacts/{contactId} {
       allow read, delete: if isAuthed()
                           && resource.data.userId == request.auth.uid;
-      allow create:       if isOwner(request.resource.data.userId);
+
+      allow create:       if isOwner(request.resource.data.userId)
+                          && !('linkedUid' in request.resource.data);
+
       allow update:       if isAuthed()
-                          && resource.data.userId == request.auth.uid;
+                          && resource.data.userId == request.auth.uid
+                          && !request.resource.data.diff(resource.data)
+                               .affectedKeys().hasAny(['linkedUid']);
     }
 
     // ── Seizure logs ──────────────────────────────────────────────────────────
@@ -88,22 +101,21 @@ service cloud.firestore {
 
       allow read: if isResponder() || isAlertOwner();
 
-      // The responder is the only party who may author a response, and only
-      // ever as themselves — stamping someone else's uid is what would let a
-      // caller fake a "responding" status on an alert they have nothing to do
-      // with.
-      allow create: if isAuthed()
-                    && request.resource.data.responderId == request.auth.uid
-                    && request.resource.data.alertOwnerId is string
-                    && request.resource.data.alertOwnerId != ''
-                    && request.resource.data.alertId is string;
-
-      // Neither uid may be rewritten after the fact, so a response can't be
-      // moved onto a different alert or reattributed to another responder.
-      allow update: if isResponder()
-                    && request.resource.data.responderId == resource.data.responderId
-                    && request.resource.data.alertOwnerId == resource.data.alertOwnerId
-                    && request.resource.data.alertId == resource.data.alertId;
+      // All writes go through the submitAlertResponse Cloud Function, which
+      // runs under the Admin SDK and so bypasses these rules.
+      //
+      // Client writes used to be allowed if `responderId == auth.uid`. That
+      // proved the writer was not impersonating another responder, but not
+      // that they had anything to do with the alert: `alertId` and
+      // `alertOwnerId` were both attacker-supplied strings, and alert ids
+      // were wall-clock milliseconds and therefore guessable. Anyone who knew
+      // a victim's uid could forge "<name> is responding" onto their live SOS.
+      // A false "help is on the way" during a seizure is worse than silence.
+      //
+      // The callable derives alertOwnerId, contactId and contactName from the
+      // alert and the caller's accepted contact, so none of them can be
+      // spoofed, and it bounds the note length.
+      allow create, update: if false;
 
       allow delete: if isResponder();
     }
@@ -114,6 +126,15 @@ service cloud.firestore {
     // (create/accept/decline) go through the trusted sendCircleInvite /
     // respondToInvite Cloud Functions, which use the Admin SDK and so bypass
     // these rules entirely — clients never write invites directly.
+
+    // ── Rate limits ───────────────────────────────────────────────────────────
+    // Per-user call counters, written only by the Cloud Functions under the
+    // Admin SDK. Denied to clients outright: a limit the caller can reset is
+    // not a limit.
+
+    match /rate_limits/{limitId} {
+      allow read, write: if false;
+    }
 
     match /invites/{inviteId} {
       allow read:  if isAuthed()

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:seizure_app/core/controllers/firebase_auth_controller/firebase_auth_controller.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
+import 'package:seizure_app/features/onboarding/view_models/onboarding_view_model.dart';
 
 class SignupBinding extends Bindings {
   @override
@@ -23,6 +24,9 @@ class SignupViewModel extends GetxController {
 
   final Rxn<String> errorMessage = Rxn<String>();
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
+
+  bool get showSetupProgress =>
+      Get.isRegistered<OnboardingViewModel>() && Get.find<OnboardingViewModel>().hasDraft;
 
   String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) return 'Email is required';
@@ -51,8 +55,9 @@ class SignupViewModel extends GetxController {
         emailController.text.trim(),
         passwordController.text,
       );
+      await OnboardingViewModel.commitAndDisposeDraft();
+
       screenState.value = GenericScreenStates.loaded;
-      // Root will detect no Firestore profile and redirect to onboarding
       Get.offAllNamed(AppRoutes.root);
     } on FirebaseAuthException catch (e) {
       screenState.value = GenericScreenStates.error;

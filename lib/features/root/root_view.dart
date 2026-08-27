@@ -4,12 +4,20 @@ import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/controllers/firebase_auth_controller/firebase_auth_controller.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
+import 'package:seizure_app/core/services/app_mode_service.dart';
+import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/widgets/live_indicator.dart';
+import 'package:seizure_app/features/alert_history/alert_history_view.dart';
+import 'package:seizure_app/features/alert_history/view_models/alert_history_view_model.dart';
+import 'package:seizure_app/features/caregiver/caregiver_view.dart';
+import 'package:seizure_app/features/caregiver/view_models/caregiver_view_model.dart';
 import 'package:seizure_app/features/contacts/contacts_view.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
 import 'package:seizure_app/features/home/home_view.dart';
 import 'package:seizure_app/features/home/view_models/home_view_model.dart';
+import 'package:seizure_app/features/onboarding/view_models/onboarding_view_model.dart';
 import 'package:seizure_app/features/profile/view_models/profile_view_model.dart';
 import 'package:seizure_app/features/profile/views/profile_view.dart';
 import 'package:seizure_app/features/root/widgets/floating_bottom_nav_widget.dart';
@@ -17,20 +25,31 @@ import 'package:seizure_app/features/seizure_log/seizure_log_view.dart';
 import 'package:seizure_app/features/seizure_log/view_models/seizure_log_view_model.dart';
 import 'package:seizure_app/features/sos/sos_view.dart';
 import 'package:seizure_app/features/sos/view_models/sos_view_model.dart';
+import 'package:seizure_app/features/splash/widgets/splash_body.dart';
+
+class RootBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut(() => ProfileViewModel(FirestoreService.instance()), fenix: true);
+    Get.lazyPut(() => HomeViewModel(FirestoreService.instance()), fenix: true);
+    Get.lazyPut(() => SeizureLogViewModel(FirestoreService.instance()), fenix: true);
+    Get.lazyPut(
+      () => ContactsViewModel(FirestoreService.instance(), CircleInviteService.instance()),
+      fenix: true,
+    );
+    Get.lazyPut(() => SosViewModel(), fenix: true);
+
+    Get.lazyPut(() => CaregiverViewModel(CaregiverService.instance()), fenix: true);
+    Get.lazyPut(() => AlertHistoryViewModel(FirestoreService.instance()), fenix: true);
+
+    Get.lazyPut(() => RootViewModel(), fenix: true);
+  }
+}
 
 class RootViewModel extends GetxController {
-  RootViewModel() {
-    Get.lazyPut(() => ProfileViewModel(FirestoreService.instance()));
-    Get.lazyPut(() => HomeViewModel(FirestoreService.instance()));
-    Get.lazyPut(() => SeizureLogViewModel(FirestoreService.instance()));
-    Get.lazyPut(
-      () => ContactsViewModel(
-        FirestoreService.instance(),
-        CircleInviteService.instance(),
-      ),
-    );
-    Get.lazyPut(() => SosViewModel());
-  }
+  final AppModeService _appMode = AppModeService.instance();
+
+  RxBool get caregiverMode => _appMode.caregiverMode;
 
   final currentIndex = 2.obs;
   final RxBool ready = false.obs;
@@ -38,6 +57,10 @@ class RootViewModel extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    if (caregiverMode.value) currentIndex.value = 0;
+
+    ever<bool>(caregiverMode, (bool isCaregiver) => currentIndex.value = isCaregiver ? 0 : 2);
+
     _checkOnboarding();
   }
 
@@ -50,7 +73,10 @@ class RootViewModel extends GetxController {
 
     final result = await FirestoreService.instance().getUser(uid);
     if (!result.isSuccess || result.data == null) {
-      Get.offAllNamed(AppRoutes.onboarding);
+      Get.offAllNamed(
+        AppRoutes.onboarding,
+        arguments: <String, OnboardingMode>{'mode': OnboardingMode.completeProfile},
+      );
       return;
     }
 
@@ -62,23 +88,36 @@ class RootViewModel extends GetxController {
   }
 }
 
-class RootView extends StatelessWidget {
-  RootView({super.key});
-
-  final viewModel = Get.put(RootViewModel());
+class RootView extends GetView<RootViewModel> {
+  const RootView({super.key});
 
   @override
   Widget build(BuildContext context) => Obx(() {
-    if (!viewModel.ready.value) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator(color: Colors.black)),
-      );
+    if (!controller.ready.value) {
+      return const Scaffold(backgroundColor: Colors.black, body: SplashBody());
     }
-    return _buildScaffold(context);
+    return controller.caregiverMode.value ? _buildCaregiverShell() : _buildPatientShell(context);
   });
 
-  Widget _buildScaffold(BuildContext context) => Scaffold(
+  Widget _buildCaregiverShell() => Scaffold(
+    body: SafeArea(
+      bottom: false,
+      child: Obx(
+        () => IndexedStack(
+          index: controller.currentIndex.value,
+          children: [
+            CaregiverView(onOpenProfile: () => controller.changePage(3)),
+            const AlertHistoryView(),
+            const SeizureLogView(),
+            const ProfileView(),
+          ],
+        ),
+      ),
+    ),
+    bottomNavigationBar: FloatingBottomNavWidget(controller: controller, caregiver: true),
+  );
+
+  Widget _buildPatientShell(BuildContext context) => Scaffold(
     appBar: AppBar(
       elevation: 0,
       foregroundColor: Colors.black,
@@ -87,35 +126,26 @@ class RootView extends StatelessWidget {
       actionsPadding: EdgeInsets.only(right: Dimensions.twelve),
       actions: [
         IconButton(
-          onPressed: () => Get.toNamed(AppRoutes.caregiverMode),
-          icon: const Icon(Icons.supervisor_account_outlined),
-          tooltip: 'Caregiver mode',
-        ),
-        IconButton(
           onPressed: () => Get.toNamed(AppRoutes.alertHistory),
           icon: const Icon(Icons.history),
           tooltip: 'Alert history',
         ),
-        IconButton(
-          onPressed: () => _confirmSignOut(context),
-          icon: const Icon(Icons.logout),
-          tooltip: 'Sign out',
-        ),
+        IconButton(onPressed: () => _confirmSignOut(context), icon: const Icon(Icons.logout), tooltip: 'Sign out'),
       ],
     ),
     body: Obx(
       () => IndexedStack(
-        index: viewModel.currentIndex.value,
+        index: controller.currentIndex.value,
         children: [
           const HomeView(),
           const SeizureLogView(),
-          SosView(viewModel: viewModel),
+          SosView(viewModel: controller),
           const ContactsView(),
           const ProfileView(),
         ],
       ),
     ),
-    bottomNavigationBar: FloatingBottomNavWidget(controller: viewModel),
+    bottomNavigationBar: FloatingBottomNavWidget(controller: controller),
   );
 
   Future<void> _confirmSignOut(BuildContext context) async {
@@ -123,14 +153,9 @@ class RootView extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Sign out?'),
-        content: const Text(
-          'You will need to sign in again to continue monitoring.',
-        ),
+        content: const Text('You will need to sign in again to continue monitoring.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.black),
@@ -150,34 +175,12 @@ class _MonitoringBadge extends StatelessWidget {
   const _MonitoringBadge();
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.greenAccent,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.greenAccent.withValues(alpha: 0.6),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          'Monitoring Active',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.black54,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => LiveStatusLabel(
+    label: 'Monitoring active',
+    indicatorSize: 14,
+    gap: Dimensions.eight,
+    textStyle: Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: Colors.black.withValues(alpha: 0.7), fontWeight: FontWeight.w500),
+  );
 }

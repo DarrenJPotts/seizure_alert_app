@@ -8,6 +8,8 @@ import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/extensions/typed_extensions.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ContactsViewModel extends GetxController {
   ContactsViewModel(this._firestoreService, this._circleInviteService);
@@ -52,7 +54,7 @@ class ContactsViewModel extends GetxController {
     bool notifyViaPush = true,
   }) async {
     final contact = ContactDto(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: FirebaseFirestore.instance.collection(FirebaseCollectionKeys.contacts).doc().id,
       userId: _uid,
       name: name.trim(),
       phone: phone.trim(),

@@ -13,6 +13,8 @@ import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/features/seizure_log/view_models/seizure_log_view_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SosViewModel extends GetxController {
   static const _storageKey = 'active_sos';
@@ -68,7 +70,10 @@ class SosViewModel extends GetxController {
       );
 
       final DateTime now = DateTime.now();
-      final String id = now.millisecondsSinceEpoch.toString();
+      final String id = FirebaseFirestore.instance
+          .collection(FirebaseCollectionKeys.alerts)
+          .doc()
+          .id;
       final AlertDto alert = AlertDto(
         id: id,
         userId: _uid,

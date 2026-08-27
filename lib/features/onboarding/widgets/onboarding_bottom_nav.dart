@@ -11,7 +11,7 @@ class OnboardingBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final isLast = vm.step.value == OnboardingViewModel.totalSteps - 1;
+      final isLast = vm.isLastStep;
 
       return Padding(
         padding: EdgeInsets.fromLTRB(
@@ -44,7 +44,7 @@ class OnboardingBottomNav extends StatelessWidget {
                 onPressed: vm.isLoading.value
                     ? null
                     : isLast
-                        ? vm.complete
+                        ? vm.finish
                         : vm.next,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
@@ -63,7 +63,7 @@ class OnboardingBottomNav extends StatelessWidget {
                             color: Colors.white, strokeWidth: 2),
                       )
                     : Text(
-                        isLast ? 'Get Started' : 'Next',
+                        isLast ? vm.finishLabel : 'Next',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,

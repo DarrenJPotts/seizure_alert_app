@@ -8,7 +8,7 @@ Minimal, clinical, and serious. This is a medical app used by people with epilep
 
 ## Colours
 
-The palette is strictly black and white with opacity variants for hierarchy. No colour is used decoratively — the one exception is the monitoring indicator green, which communicates live status.
+The palette is strictly black and white with opacity variants for hierarchy. No colour is used decoratively, and as of the caregiver-mode pass there is no functional colour either: the monitoring green was replaced by `LiveIndicator`, a pulsing monochrome ring in `lib/core/widgets/live_indicator.dart`. Motion carries "live" — it stays legible for colour-blind users and in bright sunlight, where the neon green was the lowest-contrast element on the screen.
 
 | Role | Value |
 |---|---|
@@ -20,7 +20,7 @@ The palette is strictly black and white with opacity variants for hierarchy. No 
 | Disabled / placeholder | `Colors.black26` |
 | Page background | `Colors.white` |
 | Inverted surfaces (hero cards, buttons) | `Colors.black` with `Colors.white` text |
-| Monitoring dot only | `Colors.greenAccent` |
+| Live status indicator | `LiveIndicator` — monochrome pulsing ring, **no colour** |
 
 Never introduce new colours without a clear functional reason.
 

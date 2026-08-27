@@ -11,7 +11,8 @@ import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/core/dtos/heads_up_dto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HeadsUpViewModel extends GetxController {
   HeadsUpViewModel();
@@ -77,7 +78,10 @@ class HeadsUpViewModel extends GetxController {
 
     try {
       final now = DateTime.now();
-      final id = now.millisecondsSinceEpoch.toString();
+      final id = FirebaseFirestore.instance
+          .collection(FirebaseCollectionKeys.headsUp)
+          .doc()
+          .id;
       final dto = HeadsUpDto(
         id: id,
         userId: _uid,
@@ -209,7 +213,6 @@ class HeadsUpViewModel extends GetxController {
   // ─── Expiry ────────────────────────────────────────────────────────────────
 
   /// Clears the local countdown once the window has run out.
-  ///
   /// Escalation itself — flipping the Firestore `headsUp` document to
   /// `expired` and creating the `headsUpExpired` alert that notifies the
   /// contact circle — is deliberately *not* done here. It belongs to the
@@ -218,7 +221,6 @@ class HeadsUpViewModel extends GetxController {
   /// If the client escalated too, the two would race: writing `expired` from
   /// here would take the document out of the sweep's `status == active` query
   /// and could strand it without an alert ever being sent.
-  ///
   /// The trade-off is up to a minute of latency on a window the user chose to
   /// be 30 minutes or longer, in exchange for the escalation being guaranteed
   /// rather than best-effort.

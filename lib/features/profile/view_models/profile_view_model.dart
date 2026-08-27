@@ -12,7 +12,7 @@ import 'package:seizure_app/core/services/firebase_collections_service.dart';
 class ProfileBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut(() => ProfileViewModel(FirestoreService.instance()));
+    Get.lazyPut(() => ProfileViewModel(FirestoreService.instance()), fenix: true);
   }
 }
 

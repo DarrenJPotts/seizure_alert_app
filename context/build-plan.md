@@ -50,13 +50,13 @@ Development roadmap for the Seizure Alert app. Features are grouped into phases.
 
 ## Phase 5 — Polish & Reliability
 
-- [x] **16 Alert history**
+- [x] **16 Alert history** — View past alerts (SOS and Heads Up) on a dedicated screen, with status (resolved, cancelled), timestamp, and location map if available
 - [x] **17 Contact responses** — real-time `alert_responses` stream on active SOS + alert history detail
-- [x] **18 App invite** — SMS invite from add-contact sheet (toggle, default on) + send-invite icon on each contact card (`url_launcher`) — View past alerts (SOS and Heads Up) on a dedicated screen, with status (resolved, cancelled), timestamp, and location map if available
-- [ ] **17 Contact responses** — On SOS/Heads Up detail, show which contacts have seen the alert and who is responding (real-time Firestore stream of `alert_responses`)
-- [ ] **18 Notification deep-link** — Tapping a push notification navigates to the relevant alert detail screen rather than just opening the app
-- [ ] **19 Firestore security rules audit** — Review and tighten all rules; verify that alert_responses allow contact-side writes correctly
-- [ ] **20 Offline resilience** — Test app behaviour with no network; confirm alerts queue and fire when connectivity returns; show an appropriate offline banner
+- [x] **18 App invite** — Invite picker (SMS, WhatsApp, clipboard fallback) from add-contact sheet (toggle, default on) + send-invite icon on each contact card (`url_launcher`)
+- [x] **19 Notification deep-link** — SOS alerts only: tapping a "sent"-status SOS push opens the Incoming Alert screen. Heads Up / Heads Up Expired notifications still just open the app — no dedicated detail screen exists for those yet, so this remains a gap.
+- [ ] **20 Firestore security rules audit** — Review and tighten all rules; verify that alert_responses allow contact-side writes correctly
+- [ ] **21 Offline resilience** — Test app behaviour with no network; confirm alerts queue and fire when connectivity returns; show an appropriate offline banner
+- [x] **22 Caregiver mode** — Redesigned SOS send-countdown + active-alert "status board"; new "People I watch" list and Incoming Alert detail screen backed by two admin-privileged Cloud Functions (`getPeopleIWatch`, `getAlertDetail`), since `firestore.rules` stays owner-only
 
 ---
 

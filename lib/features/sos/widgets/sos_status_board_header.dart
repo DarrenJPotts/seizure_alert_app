@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/widgets/live_indicator.dart';
 
 /// Black status-board header shown at the top of the active-SOS screen.
 /// Shows a live "SOS ACTIVE" indicator, elapsed time, a segmented
@@ -34,11 +35,7 @@ class SosStatusBoardHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.greenAccent),
-              ),
+              const LiveIndicator(size: 12, color: Colors.white),
               SizedBox(width: Dimensions.eight),
               Expanded(
                 child: Text(

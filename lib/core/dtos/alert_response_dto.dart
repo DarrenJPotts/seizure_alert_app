@@ -19,6 +19,8 @@ class AlertResponseDto {
   final DateTime? seenAt;
   final DateTime? respondedAt;
 
+  final String? note;
+
   AlertResponseDto({
     required this.id,
     required this.alertId,
@@ -30,6 +32,7 @@ class AlertResponseDto {
     this.responding = false,
     this.seenAt,
     this.respondedAt,
+    this.note,
   });
 
   factory AlertResponseDto.fromMap(Map<String, dynamic> map) => AlertResponseDto(
@@ -43,6 +46,7 @@ class AlertResponseDto {
     responding: map['responding'] as bool? ?? false,
     seenAt: map['seenAt'] != null ? DateTime.parse(map['seenAt'] as String) : null,
     respondedAt: map['respondedAt'] != null ? DateTime.parse(map['respondedAt'] as String) : null,
+    note: map['note'] as String?,
   );
 
   Map<String, dynamic> toMap() => {
@@ -56,5 +60,6 @@ class AlertResponseDto {
     'responding': responding,
     'seenAt': seenAt?.toIso8601String(),
     'respondedAt': respondedAt?.toIso8601String(),
+    'note': note,
   };
 }
