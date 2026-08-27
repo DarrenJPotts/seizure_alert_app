@@ -25,6 +25,36 @@ void main() {
       expect(PhoneNumber.normalize('00447700900123'), '+447700900123');
     });
 
+    test('treats a leading 00 as the international prefix, not a trunk zero', () {
+      // Must match functions/test/phone.test.js exactly. "00" is the
+      // international access code, so these two strings — one character apart
+      // — resolve to different countries.
+      expect(PhoneNumber.normalize('00821234567'), '+821234567');
+      expect(PhoneNumber.normalize('0821234567'), '+27821234567');
+    });
+
+    test('is idempotent', () {
+      final String? once = PhoneNumber.normalize('082 123 4567');
+      expect(PhoneNumber.normalize(once), once);
+    });
+
+    test('rejects a number too short to be dialable', () {
+      expect(PhoneNumber.normalize('+27 12'), isNull);
+      expect(PhoneNumber.normalize('0 1 2'), isNull);
+    });
+
+    test('assumes dial code 27 for local-form numbers', () {
+      // Part of the contract, not an implementation detail — it must match
+      // DEFAULT_DIAL_CODE in functions/phone.js.
+      expect(PhoneNumber.defaultDialCode, '27');
+    });
+
+    test('isValid agrees with normalize', () {
+      for (final String? input in <String?>['082 123 4567', '+44 7700 900123', null, '', 'abc', '123']) {
+        expect(PhoneNumber.isValid(input), PhoneNumber.normalize(input) != null, reason: 'input: $input');
+      }
+    });
+
     test('returns null for values that are not usable numbers', () {
       for (final String? input in <String?>[null, '', '   ', 'abc', '123']) {
         expect(PhoneNumber.normalize(input), isNull, reason: 'input: $input');

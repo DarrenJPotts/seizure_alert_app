@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/shared_pref_keys.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
-import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthController extends GetxController {
@@ -30,14 +30,9 @@ class FirebaseAuthController extends GetxController {
         user.value = firebaseUser;
         isLoggedIn.value = true;
       } else {
-        // Handles both manual sign-out and token expiry
         if (isLoggedIn.value) {
           user.value = null;
           isLoggedIn.value = false;
-          // GetMaterialApp may not have mounted yet if this fires during
-          // app startup (e.g. a cached session invalidating on cold start).
-          // AuthMiddleware on the root route redirects to /login once the
-          // initial route resolves, so it's safe to skip navigating here.
           if (Get.key.currentState != null) {
             Get.offAllNamed(AppRoutes.login);
           }
@@ -103,15 +98,12 @@ class FirebaseAuthController extends GetxController {
         return ResultDto.failure('No authenticated user found.');
       }
 
-      final credential = EmailAuthProvider.credential(
-        email: firebaseUser.email!,
-        password: password,
-      );
+      final credential = EmailAuthProvider.credential(email: firebaseUser.email!, password: password);
       await firebaseUser.reauthenticateWithCredential(credential);
 
-      final deleteResult = await FirestoreService.instance().deleteAllUserData(firebaseUser.uid);
+      final deleteResult = await CaregiverService.instance().deleteMyData();
       if (!deleteResult.isSuccess) {
-        return ResultDto.failure(deleteResult.error ?? 'Failed to delete account data.');
+        return ResultDto.failure('Could not delete your data. Nothing was removed — please try again.');
       }
 
       await _clearData();
@@ -143,10 +135,7 @@ class FirebaseAuthController extends GetxController {
         return ResultDto.failure('No authenticated user found.');
       }
 
-      final credential = EmailAuthProvider.credential(
-        email: firebaseUser.email!,
-        password: password,
-      );
+      final credential = EmailAuthProvider.credential(email: firebaseUser.email!, password: password);
       await firebaseUser.reauthenticateWithCredential(credential);
 
       await firebaseUser.verifyBeforeUpdateEmail(newEmail.trim());
@@ -182,10 +171,7 @@ class FirebaseAuthController extends GetxController {
         return ResultDto.failure('No authenticated user found.');
       }
 
-      final credential = EmailAuthProvider.credential(
-        email: firebaseUser.email!,
-        password: currentPassword,
-      );
+      final credential = EmailAuthProvider.credential(email: firebaseUser.email!, password: currentPassword);
       await firebaseUser.reauthenticateWithCredential(credential);
 
       await firebaseUser.updatePassword(newPassword);

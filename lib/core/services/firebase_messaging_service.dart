@@ -165,18 +165,15 @@ class FirebaseMessagingService extends GetxService {
       return;
     }
 
-    if (data.containsKey('route')) {
-      Get.toNamed(data['route']);
-    } else if (data.containsKey('screen')) {
-      switch (data['screen']) {
-        case 'home':
-          Get.offAllNamed('/home');
-          break;
-        case 'profile':
-          Get.toNamed('/profile');
-          break;
-      // Add more cases as needed
-      }
+    const Set<String> navigableRoutes = <String>{
+      AppRoutes.alertHistory,
+      AppRoutes.mode,
+      AppRoutes.root,
+    };
+
+    final String? route = data['route'] as String?;
+    if (route != null && navigableRoutes.contains(route)) {
+      Get.toNamed(route);
     }
   }
 }

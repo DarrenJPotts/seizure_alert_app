@@ -20,7 +20,7 @@ The palette is strictly black and white with opacity variants for hierarchy. Col
 | Disabled / placeholder | `Colors.black26` |
 | Page background | `Colors.white` |
 | Inverted surfaces (hero cards, primary buttons) | `Colors.black` with `Colors.white` text |
-| Monitoring dot only | `Colors.greenAccent` |
+| Live status indicator | `LiveIndicator` — monochrome pulsing ring, **no colour** |
 
 Never introduce new colours without a clear functional reason approved in advance.
 

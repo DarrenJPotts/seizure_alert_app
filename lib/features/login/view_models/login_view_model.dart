@@ -5,6 +5,7 @@ import 'package:seizure_app/core/controllers/firebase_auth_controller/firebase_a
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
+import 'package:seizure_app/features/onboarding/view_models/onboarding_view_model.dart';
 
 class LoginBinding extends Bindings {
   @override
@@ -33,6 +34,8 @@ class LoginViewModel extends GetxController {
       final ResultDto<User> result = await _firebaseAuthController.signIn(emailController.text, passwordController.text);
 
       if (result.isSuccess) {
+        await OnboardingViewModel.discardDraft();
+
         screenState.value = GenericScreenStates.loaded;
         Get.offAllNamed(AppRoutes.root);
       } else {

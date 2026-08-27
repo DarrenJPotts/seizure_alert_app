@@ -12,6 +12,8 @@ class UserDto {
     this.seizureType,
     this.medications,
     this.emergencyNote,
+    this.privacyConsentAt,
+    this.privacyConsentVersion,
   });
 
   final String uid;
@@ -24,6 +26,9 @@ class UserDto {
   final String? seizureType;
   final List<String>? medications;
   final String? emergencyNote;
+
+  final DateTime? privacyConsentAt;
+  final String? privacyConsentVersion;
 
   /// E.164 form of [phone], written on every save so the Cloud Functions can
   /// match contacts to accounts by exact query. Never set directly — it is
@@ -42,6 +47,10 @@ class UserDto {
     medications:
         (map['medications'] as List?)?.map((e) => e.toString()).toList(),
     emergencyNote: map['emergencyNote'] as String?,
+    privacyConsentAt: map['privacyConsentAt'] != null
+        ? DateTime.tryParse(map['privacyConsentAt'] as String)
+        : null,
+    privacyConsentVersion: map['privacyConsentVersion'] as String?,
   );
 
   Map<String, dynamic> toMap() => {
@@ -56,6 +65,8 @@ class UserDto {
     'seizureType': seizureType,
     'medications': medications,
     'emergencyNote': emergencyNote,
+    'privacyConsentAt': privacyConsentAt?.toIso8601String(),
+    'privacyConsentVersion': privacyConsentVersion,
   };
 
   UserDto copyWith({
@@ -67,6 +78,8 @@ class UserDto {
     String? seizureType,
     List<String>? medications,
     String? emergencyNote,
+    DateTime? privacyConsentAt,
+    String? privacyConsentVersion,
   }) =>
       UserDto(
         uid: uid,
@@ -79,5 +92,7 @@ class UserDto {
         seizureType: seizureType ?? this.seizureType,
         medications: medications ?? this.medications,
         emergencyNote: emergencyNote ?? this.emergencyNote,
+        privacyConsentAt: privacyConsentAt ?? this.privacyConsentAt,
+        privacyConsentVersion: privacyConsentVersion ?? this.privacyConsentVersion,
       );
 }

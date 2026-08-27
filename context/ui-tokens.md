@@ -20,7 +20,7 @@ All colours come from `Colors.*` with opacity variants. There is no custom colou
 | `Colors.black.withValues(alpha: 0.08)` | — | Slightly stronger fill |
 | `Colors.black38` | `rgba(0,0,0,0.38)` | Disabled primary button background |
 | `Colors.white` | `#FFFFFF` | Page background, text on inverted surfaces |
-| `Colors.greenAccent` | `#69F0AE` | Monitoring dot (live status indicator only) |
+| ~~`Colors.greenAccent`~~ | ~~`#69F0AE`~~ | **Retired.** Live status is now `LiveIndicator`, a monochrome pulsing ring. Do not reintroduce. |
 | `Colors.red` | — | Error border, error state |
 | `Colors.red.shade50` | — | Swipe-to-delete background |
 | `Colors.red.shade400` | — | Swipe-to-delete icon |
@@ -104,9 +104,16 @@ boxShadow: [
 
 ---
 
-## Monitoring Indicator
+## Live Status Indicator
 
-The "Monitoring Active" badge in the AppBar:
-- Green dot: `Container` 8×8, `BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)`
-- Label: `"Monitoring Active"` in `textTheme.labelSmall`, `Colors.black54`
-- This is the **only** use of a non-black/white colour in the entire app.
+Every "this is happening right now" marker in the app — the AppBar monitoring badge, the SOS status
+board, the caregiver watch list, the incoming-SOS header, the respond screen — uses
+`LiveIndicator` / `LiveStatusLabel` from `lib/core/widgets/live_indicator.dart`.
+
+- Ring: 1px border in the current ink at 35%, scaling `.5` → `1.6` while fading `.9` → `0` over 1800ms
+- Dot: `size * 6/14` solid circle in the current ink
+- Ink: `Colors.black` on light surfaces, `Colors.white` on inverted ones
+- Reduce motion: ring held static at full extent — the state must stay visible when the animation cannot run
+
+The app now uses **no** non-black/white colour. The former `greenAccent` monitoring dot is retired;
+see the LiveIndicator entry in `ui-registry.md` for the reasoning and the call sites.

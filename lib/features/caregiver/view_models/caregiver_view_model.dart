@@ -9,6 +9,7 @@ class CaregiverViewModel extends GetxController {
   final CaregiverService _caregiverService;
 
   final RxList<WatchedPersonDto> people = <WatchedPersonDto>[].obs;
+  final RxList<WatchActivityDto> recentActivity = <WatchActivityDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
 
   @override
@@ -18,21 +19,30 @@ class CaregiverViewModel extends GetxController {
   }
 
   Future<void> loadPeopleIWatch({bool forceRefresh = false}) async {
-    screenState.value = GenericScreenStates.loading;
+    if (screenState.value != GenericScreenStates.loaded) {
+      screenState.value = GenericScreenStates.loading;
+    }
+
     final result = await _caregiverService.getPeopleIWatch(forceRefresh: forceRefresh);
     if (!result.isSuccess || result.data == null) {
-      screenState.value = GenericScreenStates.error;
+      if (people.isEmpty) screenState.value = GenericScreenStates.error;
       return;
     }
-    people.value = result.data!;
-    screenState.value =
-        people.isEmpty ? GenericScreenStates.empty : GenericScreenStates.loaded;
-  }
-}
 
-class CaregiverBinding extends Bindings {
-  @override
-  void dependencies() {
-    Get.lazyPut(() => CaregiverViewModel(CaregiverService.instance()));
+    people.value = result.data!.people;
+    recentActivity.value = result.data!.recentActivity;
+    screenState.value = people.isEmpty ? GenericScreenStates.empty : GenericScreenStates.loaded;
   }
+
+  List<WatchedPersonDto> get sortedPeople {
+    final List<WatchedPersonDto> sorted = people.toList();
+    sorted.sort((WatchedPersonDto a, WatchedPersonDto b) => _urgency(a).compareTo(_urgency(b)));
+    return sorted;
+  }
+
+  int _urgency(WatchedPersonDto person) => switch (person.status) {
+    WatchedPersonStatus.sos => 0,
+    WatchedPersonStatus.headsUp => 1,
+    WatchedPersonStatus.monitoring => 2,
+  };
 }

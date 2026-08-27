@@ -46,6 +46,6 @@ class AlertHistoryViewModel extends GetxController {
 class AlertHistoryBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut(() => AlertHistoryViewModel(FirestoreService.instance()));
+    Get.lazyPut(() => AlertHistoryViewModel(FirestoreService.instance()), fenix: true);
   }
 }

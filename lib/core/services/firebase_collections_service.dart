@@ -68,7 +68,10 @@ class FirestoreService {
 
   Future<ResultDto<void>> upsertContact(ContactDto contact) async {
     try {
-      await _db.collection(FirebaseCollectionKeys.contacts).doc(contact.id).set(contact.toMap());
+      await _db
+          .collection(FirebaseCollectionKeys.contacts)
+          .doc(contact.id)
+          .set(contact.toMap(), SetOptions(merge: true));
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
@@ -170,35 +173,9 @@ class FirestoreService {
 
   // ─── Account deletion ─────────────────────────────────────────────────────
 
-  Future<ResultDto<void>> deleteAllUserData(String uid) async {
-    try {
-      await Future.wait([
-        _deleteWhere(FirebaseCollectionKeys.contacts, uid),
-        _deleteWhere(FirebaseCollectionKeys.seizureLogs, uid),
-        _deleteWhere(FirebaseCollectionKeys.alerts, uid),
-        _deleteWhere(FirebaseCollectionKeys.headsUp, uid),
-      ]);
-      await _db.collection(FirebaseCollectionKeys.users).doc(uid).delete();
-      return ResultDto.success(null);
-    } catch (e) {
-      return ResultDto.failure(e.toString());
-    }
-  }
-
-  Future<void> _deleteWhere(String collection, String uid) async {
-    final snap = await _db
-        .collection(collection)
-        .where('userId', isEqualTo: uid)
-        .get();
-    for (final doc in snap.docs) {
-      await doc.reference.delete();
-    }
-  }
-
   // ─── Alert responses ──────────────────────────────────────────────────────
 
   /// Streams the circle's responses to one of the signed-in user's own alerts.
-  ///
   /// The `alertOwnerId` filter is not redundant with `alertId`. Firestore
   /// evaluates security rules against the *query* on a list operation, not
   /// against the documents it returns, so it will reject any query it cannot
@@ -214,18 +191,6 @@ class FirestoreService {
         .where('alertOwnerId', isEqualTo: uid)
         .snapshots()
         .map((s) => s.docs.map((d) => AlertResponseDto.fromMap(d.data())).toList());
-  }
-
-  Future<ResultDto<void>> upsertAlertResponse(AlertResponseDto response) async {
-    try {
-      await _db
-          .collection(FirebaseCollectionKeys.responses)
-          .doc(response.id)
-          .set(response.toMap(), SetOptions(merge: true));
-      return ResultDto.success(null);
-    } catch (e) {
-      return ResultDto.failure(e.toString());
-    }
   }
 
   // ─── Circle invites ───────────────────────────────────────────────────────
