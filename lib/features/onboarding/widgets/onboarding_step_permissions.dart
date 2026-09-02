@@ -36,8 +36,11 @@ class OnboardingStepPermissions extends StatelessWidget {
           Obx(() => PermissionRow(
                 icon: Icons.notifications_outlined,
                 label: 'Notifications',
-                description: 'Receive alerts from your circle and reminders.',
+                description: vm.notificationsBlocked.value
+                    ? 'Blocked. Without this you will not hear an alert from your circle.'
+                    : 'Receive alerts from your circle and reminders.',
                 granted: vm.notificationsGranted.value,
+                blocked: vm.notificationsBlocked.value,
                 onTap: vm.notificationsGranted.value
                     ? null
                     : vm.requestNotifications,
@@ -46,11 +49,19 @@ class OnboardingStepPermissions extends StatelessWidget {
           Obx(() => PermissionRow(
                 icon: Icons.location_on_outlined,
                 label: 'Location',
-                description:
-                    'Share your location with contacts when an alert is sent.',
+                description: vm.locationBlocked.value
+                    ? 'Blocked. Your alerts will be sent without a location.'
+                    : 'Share your location with contacts when an alert is sent.',
                 granted: vm.locationGranted.value,
+                blocked: vm.locationBlocked.value,
                 onTap: vm.locationGranted.value ? null : vm.requestLocation,
               )),
+          SizedBox(height: Dimensions.twentyFour),
+          Text(
+            'You can change these later in Profile. The app still works without them — '
+            'it just has fewer ways to reach people.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+          ),
         ],
       ),
     );

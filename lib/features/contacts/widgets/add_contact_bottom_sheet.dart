@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
@@ -144,6 +145,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
         'Invite sent',
         '${contact.name} will be notified in the app to accept.',
         snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
       );
       return;
     }

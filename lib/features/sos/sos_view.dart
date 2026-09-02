@@ -5,6 +5,7 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_response_dto.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
+import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/widgets/alert_map_widget.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
 import 'package:seizure_app/features/heads_up/view_models/heads_up_view_model.dart';
@@ -24,8 +25,6 @@ class SosView extends StatelessWidget {
 
   static const double _sheetMinSize = 0.10;
   static const double _sheetMaxSize = 0.55;
-
-  static const double _compactHeightBreakpoint = 700;
 
   void _handleSOS(BuildContext context, SosViewModel sosVm) {
     HapticFeedback.heavyImpact();
@@ -75,6 +74,8 @@ class SosView extends StatelessWidget {
             seenCount: seenCount,
             totalCount: totalCount,
             onCancel: sosVm.cancelSos,
+            delivery: sosVm.delivery.value,
+            onCallForHelp: () => _callFirstContact(contacts),
           ),
           Expanded(
             child: SingleChildScrollView(
@@ -155,6 +156,16 @@ class SosView extends StatelessWidget {
     });
   }
 
+  void _callFirstContact(List<ContactDto> contacts) {
+    HapticFeedback.heavyImpact();
+    if (contacts.isEmpty) {
+      CallService.call(null);
+      return;
+    }
+    final List<ContactDto> ordered = contacts.toList()..sort((a, b) => a.priority.compareTo(b.priority));
+    CallService.call(ordered.first.phone);
+  }
+
   Widget _buildIdleState(BuildContext context, SosViewModel sosVm) {
     final ContactsViewModel contactsVm = Get.find<ContactsViewModel>();
 
@@ -183,7 +194,7 @@ class SosView extends StatelessWidget {
         Text('Tap to alert your circle', style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
         SizedBox(height: Dimensions.eight),
         Text(
-          '5 seconds to cancel before anyone is notified',
+          '10 seconds to cancel before anyone is notified',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
           textAlign: TextAlign.center,
         ),
@@ -292,11 +303,32 @@ class _CompactIdleSheetState extends State<_CompactIdleSheet> {
                           child: Container(
                             width: Dimensions.thirtySix,
                             height: 4,
-                            margin: EdgeInsets.only(bottom: Dimensions.sixteen),
+                            margin: EdgeInsets.only(bottom: Dimensions.twelve),
                             decoration: BoxDecoration(
                               color: Colors.black12,
                               borderRadius: BorderRadius.circular(Dimensions.circular),
                             ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(bottom: Dimensions.twelve),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon(
+                                Icons.keyboard_arrow_up,
+                                size: 18,
+                                color: Colors.black.withValues(alpha: 0.45),
+                              ),
+                              SizedBox(width: Dimensions.six),
+                              Text(
+                                'Heads Up & your circle',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.black.withValues(alpha: 0.55),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         Container(width: double.infinity, height: 1, color: Colors.black12),

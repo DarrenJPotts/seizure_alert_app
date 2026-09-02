@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+
+// Tactile confirmation that a tap registered. Matters more than usual
+// here: a post-ictal user often cannot trust what they just read.
+VoidCallback? _tap(VoidCallback? onTap) => onTap == null
+    ? null
+    : () {
+        HapticFeedback.selectionClick();
+        onTap();
+      };
 
 class SettingsGroupHeader extends StatelessWidget {
   const SettingsGroupHeader(this.label, {super.key});
@@ -83,7 +93,7 @@ class SettingsValueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
+    onTap: _tap(onTap),
     child: Container(
       constraints: const BoxConstraints(minHeight: 64),
       padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.fourteen),
@@ -181,7 +191,7 @@ class SettingsTileRow extends StatelessWidget {
       ),
     );
 
-    final Widget tappable = onTap == null ? row : InkWell(onTap: onTap, child: row);
+    final Widget tappable = onTap == null ? row : InkWell(onTap: _tap(onTap), child: row);
     if (semanticLabel == null) return tappable;
     return Semantics(
       button: onTap != null,
@@ -213,7 +223,10 @@ class SettingsSwitchRow extends StatelessWidget {
     label: subtitle == null ? title : '$title. $subtitle',
     child: ExcludeSemantics(
       child: InkWell(
-        onTap: () => onChanged(!value),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onChanged(!value);
+        },
         child: Container(
           constraints: const BoxConstraints(minHeight: 72),
           padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.sixteen),
@@ -297,7 +310,7 @@ class SettingsNavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
+    onTap: _tap(onTap),
     child: SizedBox(
       height: 64,
       child: Padding(
@@ -337,7 +350,10 @@ class SettingsDestructiveRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
+    onTap: () {
+      HapticFeedback.heavyImpact();
+      onTap();
+    },
     child: SizedBox(
       height: 64,
       child: Padding(
@@ -372,7 +388,7 @@ class SettingsActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
+    onTap: _tap(onTap),
     child: SizedBox(
       height: 64,
       child: Padding(

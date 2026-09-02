@@ -10,6 +10,7 @@ import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/core/services/map_launcher_service.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
 
 class IncomingAlertViewModel extends GetxController {
   IncomingAlertViewModel(this._alertId, this._caregiverService);
@@ -143,6 +144,7 @@ class IncomingAlertViewModel extends GetxController {
         'Could not respond',
         'Your response was not recorded. Check your connection and try again.',
         snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
       );
       return;
     }

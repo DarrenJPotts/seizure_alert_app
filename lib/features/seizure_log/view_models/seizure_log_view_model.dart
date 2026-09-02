@@ -69,6 +69,11 @@ class SeizureLogViewModel extends GetxController {
     return result.isSuccess;
   }
 
+  Future<bool> deleteEntry(String logId) async {
+    final result = await _firestoreService.deleteSeizureLog(logId);
+    return result.isSuccess;
+  }
+
   Future<bool> updateEntry({
     required String id,
     required DateTime occurredAt,

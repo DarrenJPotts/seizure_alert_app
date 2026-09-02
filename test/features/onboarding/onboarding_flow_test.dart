@@ -76,13 +76,16 @@ void main() {
       expect(vm.canAdvance, isTrue);
     });
 
-    test('gates the contact step on both a name and a number', () {
+    test('lets the contact step be skipped', () {
+      // Requiring a contact here walled off anyone without a number to hand,
+      // and since onboarding now precedes sign-up that blocked account
+      // creation outright. `commitDraft` already treats it as optional.
       vm.step.value = 1;
-      vm.contactNameController.text = 'Naledi';
-      expect(vm.canAdvance, isFalse);
-
-      vm.contactPhoneController.text = '082 123 4567';
       expect(vm.canAdvance, isTrue);
+      expect(vm.nextLabel, 'Skip for now');
+
+      vm.contactNameController.text = 'Naledi';
+      expect(vm.nextLabel, 'Next', reason: 'stops offering to skip once they start');
     });
 
     test('lets the permissions step through either way', () {

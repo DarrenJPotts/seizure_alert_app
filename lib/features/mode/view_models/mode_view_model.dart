@@ -10,6 +10,7 @@ import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
 
 class ModeViewModel extends GetxController {
   ModeViewModel(this._appMode, this._caregiverService, this._firestoreService);
@@ -75,6 +76,7 @@ class ModeViewModel extends GetxController {
         'No invites waiting',
         'When someone adds you to their circle, the invite appears here.',
         snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
       );
       return;
     }

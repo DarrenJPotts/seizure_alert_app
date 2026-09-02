@@ -101,6 +101,15 @@ class FirestoreService {
         });
   }
 
+  Future<ResultDto<void>> deleteSeizureLog(String logId) async {
+    try {
+      await _db.collection(FirebaseCollectionKeys.seizureLogs).doc(logId).delete();
+      return ResultDto.success(null);
+    } catch (e) {
+      return ResultDto.failure(e.toString());
+    }
+  }
+
   Future<ResultDto<void>> addSeizureLog(SeizureLogDto log) async {
     try {
       await _db.collection(FirebaseCollectionKeys.seizureLogs).doc(log.id).set(log.toMap());

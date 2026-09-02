@@ -3,6 +3,7 @@ import 'package:seizure_app/core/dtos/invite_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
 
 class CircleInviteViewModel extends GetxController {
   CircleInviteViewModel(this._inviteId, this._circleInviteService, this._firestoreService);
@@ -55,12 +56,14 @@ class CircleInviteViewModel extends GetxController {
             ? "You'll now be notified if they send an SOS or Heads Up."
             : "You won't be added to their circle.",
         snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
       );
     } else {
       Get.snackbar(
         'Something went wrong',
         'Could not respond to the invite. Try again.',
         snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
       );
     }
   }

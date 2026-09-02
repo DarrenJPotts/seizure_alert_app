@@ -12,6 +12,10 @@ class CaregiverViewModel extends GetxController {
   final RxList<WatchActivityDto> recentActivity = <WatchActivityDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
 
+  /// When the list last came back from the server. A cached watch list can be
+  /// 30s old and a caregiver cannot otherwise tell.
+  final Rxn<DateTime> lastUpdatedAt = Rxn<DateTime>();
+
   @override
   void onInit() {
     super.onInit();
@@ -31,6 +35,7 @@ class CaregiverViewModel extends GetxController {
 
     people.value = result.data!.people;
     recentActivity.value = result.data!.recentActivity;
+    lastUpdatedAt.value = DateTime.now();
     screenState.value = people.isEmpty ? GenericScreenStates.empty : GenericScreenStates.loaded;
   }
 

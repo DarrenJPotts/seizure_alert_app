@@ -66,12 +66,14 @@ void main() {
       int confirmed = 0;
       await tester.pumpWidget(wrapBounded(CountdownAlertDialog(onConfirm: () => confirmed++, onCancel: () {})));
 
-      expect(find.text('5'), findsOneWidget);
+      // Ten seconds, not five. Five was not enough for someone mid-aura with
+      // impaired motor control to find and hit Cancel.
+      expect(find.text('10'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 1));
-      expect(find.text('4'), findsOneWidget);
+      expect(find.text('9'), findsOneWidget);
 
-      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 8));
       expect(find.text('1'), findsOneWidget);
       expect(confirmed, 0, reason: 'not yet — one second still to run');
 
@@ -83,7 +85,7 @@ void main() {
       int confirmed = 0;
       await tester.pumpWidget(wrapBounded(CountdownAlertDialog(onConfirm: () => confirmed++, onCancel: () {})));
 
-      await tester.pump(const Duration(seconds: 10));
+      await tester.pump(const Duration(seconds: 15));
 
       expect(confirmed, 1);
     });
@@ -106,9 +108,9 @@ void main() {
     testWidgets('pluralises the countdown copy correctly', (WidgetTester tester) async {
       await tester.pumpWidget(wrapBounded(CountdownAlertDialog(onConfirm: () {}, onCancel: () {})));
 
-      expect(find.text('Your circle is notified in 5 seconds.'), findsOneWidget);
+      expect(find.text('Your circle is notified in 10 seconds.'), findsOneWidget);
 
-      await tester.pump(const Duration(seconds: 4));
+      await tester.pump(const Duration(seconds: 9));
       expect(
         find.text('Your circle is notified in 1 second.'),
         findsOneWidget,
@@ -124,7 +126,7 @@ void main() {
 
       expect(find.text('Do nothing and help is on the way'), findsOneWidget);
 
-      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(seconds: 10));
     });
   });
 
