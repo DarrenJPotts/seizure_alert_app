@@ -7,7 +7,7 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 5 — Polish & Reliability
-**Last completed:** 31 POPIA groundwork (consent capture, complete erasure, PI out of logs)
+**Last completed:** 32 UX pass on the emergency path (delivery truth, cancel confirmation, countdown)
 **Next:** 21 Offline resilience, then stale-FCM-token cleanup and critical-alert delivery (see Known Gaps)
 
 > ## ⚠ Deploy order for Features 27 + 28 — read before shipping
@@ -76,6 +76,7 @@ Update this file after every completed feature. Any AI agent reading this should
 - [x] 20 Firestore security rules audit
 - [ ] 21 Offline resilience
 - [x] 22 Caregiver mode (SOS send-countdown + active-alert screen redesign, "People I watch" list, Incoming Alert detail screen)
+- [x] 32 UX pass — emergency-path honesty, haptics, permission recovery, log deletion
 - [ ] 31 POPIA groundwork — code side done; notice text, data residency and Information Officer registration outstanding
 - [x] 30 Onboarding before sign-up (draft held in the view model, five-step progress bar)
 - [x] 29 Grouped-card settings language (shared `core/widgets/settings/`, Profile + Seizure Log restyled)
@@ -86,6 +87,49 @@ Update this file after every completed feature. Any AI agent reading this should
 ---
 
 ## Notes
+
+- Feature 32 (UX pass): from an interaction review. The theme of the important half is that **the
+  emergency path did not tell the truth about its own state**.
+
+  **The alert now says whether it was actually sent.** `createAlert` does `await set(...)`, and
+  Firestore only completes that future once the *server* has the write — so offline it never completed.
+  The code sat on an unresolved await while the screen showed a live alert: the user believed their
+  circle had been told when nothing had left the phone, and neither the success nor the error branch
+  ever ran. New `SosDelivery` enum (`sending` / `delivered` / `queued` / `failed`) driven by racing the
+  write against an 8s grace; the write is no longer awaited on the SOS path. Only `delivered` gets the
+  pulsing live indicator. `queued`/`failed` replace the seen-indicator — which is meaningless when
+  nothing was sent — with "nobody has been notified yet" and a **Call a contact instead** button, the
+  one action that still works with no data connection. A queued write completing on reconnect clears it
+  by itself. Restoring an alert from disk re-issues the write (same deterministic id, idempotent) since
+  that is the only way to learn whether the original ever landed.
+
+  **Cancelling a live alert was a bare `Text` in a `GestureDetector`** — roughly 50x20, no confirmation,
+  no haptic. One mis-tap stood the whole circle down silently, while removing a *contact* asked for
+  confirmation. Now a 48px bordered button, `heavyImpact`, and a confirm dialog. The cancel write gets a
+  timeout too, and a failure now says "your circle may still think this alert is active — call them"
+  rather than the old, unconditional "your circle has been notified".
+
+  **The countdown was 5s and the back gesture was unguarded.** There was no `PopScope` anywhere in
+  `lib/`, and `barrierDismissible: false` does not cover Android back — so back dismissed the dialog
+  with the SOS neither sent nor cancelled, a silent no-op on the emergency path. Now 10s (as the design
+  specified), `PopScope` mapping back to an explicit cancel, and a haptic tick per second — the cue that
+  works when you cannot focus on the screen.
+
+  Smaller items from the same review: haptics on the shared settings rows and nav bar (there were five
+  call sites in the whole app against a `CLAUDE.md` rule requiring them); permission rows that became
+  dead buttons after a permanent OS denial now switch to "Open settings"; the emergency-contact step is
+  skippable, since requiring it blocked account creation outright now that onboarding precedes sign-up;
+  seizure log entries can finally be deleted (swipe + confirm — they never could be, despite
+  `ui-registry.md` documenting it); bottom snackbars lifted clear of the floating nav and SOS button;
+  the SOS drawer handle labelled "Heads Up & your circle", since Heads Up was a primary feature hidden
+  behind an unlabelled 36x4 handle; and the caregiver watch list shows how stale it is.
+
+  Also removed `_compactHeightBreakpoint`, dead since the responsive branch was abandoned — the
+  analyzer warning that had been standing all session. The tree is now warning-free.
+
+  Not addressed: accessibility is still patchy (the SOS button, activity grid, contact cards and
+  alert-history cards have no `Semantics`), hero numerals will still clip at large text scales, and
+  `RespondingView` has no freshness indicator. Listed for a follow-up.
 
 - Feature 31 (POPIA groundwork): **the code side only. This does not make the app POPIA compliant** —
   it makes compliance possible. The outstanding items are not code and are listed at the end.

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -88,8 +89,8 @@ class InviteService {
         style: TextStyle(color: Colors.white),
       ),
       snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
       backgroundColor: Colors.black,
-      margin: EdgeInsets.all(Dimensions.sixteen),
       borderRadius: Dimensions.eight,
       duration: const Duration(seconds: 3),
     );

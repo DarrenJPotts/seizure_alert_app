@@ -11,7 +11,7 @@ class AppColorsDark {
   static const Color secondaryLight = Color(0xFFD0D0D0); // Lighter gray
   static const Color secondaryDark = Color(0xFF8E8E8E); // Medium gray
 
-  // Background Colors
+  // Background Colors+
   static const Color background = Color(0xFF000000); // Pure Black (OLED)
   static const Color surface = Color(0xFF1A1A1A); // Elevated surface
   static const Color cardBackground = Color(0xFF1F1F1F); // Card background

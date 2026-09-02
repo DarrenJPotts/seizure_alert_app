@@ -121,6 +121,19 @@ class _Header extends StatelessWidget {
                   height: 1.1,
                 ),
               ),
+              Obx(() {
+                final DateTime? at = Get.find<CaregiverViewModel>().lastUpdatedAt.value;
+                if (at == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: EdgeInsets.only(top: Dimensions.four),
+                  child: Text(
+                    'Updated ${_relativeLong(at)}  ·  pull to refresh',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.black.withValues(alpha: 0.45)),
+                  ),
+                );
+              }),
             ],
           ),
         ),

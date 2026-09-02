@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 import 'package:seizure_app/core/constants/privacy_notice.dart';
@@ -42,6 +43,12 @@ class OnboardingViewModel extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool notificationsGranted = false.obs;
   final RxBool locationGranted = false.obs;
+
+  // Once the OS records a permanent denial, requesting again returns
+  // immediately and nothing happens — the row still looks tappable and is
+  // dead. These flip the row to "Open settings", which is the only route left.
+  final RxBool notificationsBlocked = false.obs;
+  final RxBool locationBlocked = false.obs;
   final Rx<OnboardingMode> mode = OnboardingMode.preSignup.obs;
 
   final RxBool privacyConsentGiven = false.obs;
@@ -91,14 +98,23 @@ class OnboardingViewModel extends GetxController {
 
   bool get canAdvance {
     if (step.value == 0) return nameController.text.trim().isNotEmpty;
-    if (step.value == 1) {
-      return contactNameController.text.trim().isNotEmpty && contactPhoneController.text.trim().isNotEmpty;
-    }
+    // The contact step is skippable. Blocking account creation on it walled
+    // off anyone without a number to hand, and `commitDraft` already treats
+    // the contact as optional — only the UI insisted. A partially set up
+    // account that nags is better than no account.
+    if (step.value == 1) return true;
     if (step.value == 3) return privacyConsentGiven.value;
     return true;
   }
 
   bool get isLastStep => step.value == totalSteps - 1;
+
+  /// "Skip for now" on the contact step when nothing has been entered, so the
+  /// step reads as optional rather than as a form the user is failing.
+  String get nextLabel {
+    if (step.value == 1 && contactNameController.text.trim().isEmpty) return 'Skip for now';
+    return 'Next';
+  }
 
   String get finishLabel => mode.value == OnboardingMode.completeProfile ? 'Finish setup' : 'Create account';
 
@@ -131,8 +147,13 @@ class OnboardingViewModel extends GetxController {
 
   Future<void> requestNotifications() async {
     try {
+      if (notificationsBlocked.value) {
+        await AppSettings.openAppSettings(type: AppSettingsType.notification);
+        return;
+      }
       final result = await Permission.notification.request();
       notificationsGranted.value = result.isGranted;
+      notificationsBlocked.value = result.isPermanentlyDenied;
     } catch (e) {
       debugPrint('[OnboardingVM] Error requesting notification permission: $e');
     }
@@ -140,7 +161,14 @@ class OnboardingViewModel extends GetxController {
 
   Future<void> requestLocation() async {
     try {
+      if (locationBlocked.value) {
+        await AppSettings.openAppSettings(type: AppSettingsType.location);
+        return;
+      }
       locationGranted.value = await LocationService.instance().requestPermission();
+      if (!locationGranted.value) {
+        locationBlocked.value = await Permission.locationWhenInUse.isPermanentlyDenied;
+      }
     } catch (e) {
       debugPrint('[OnboardingVM] Error requesting location permission: $e');
     }

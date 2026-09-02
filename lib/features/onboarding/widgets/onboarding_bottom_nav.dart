@@ -63,7 +63,7 @@ class OnboardingBottomNav extends StatelessWidget {
                             color: Colors.white, strokeWidth: 2),
                       )
                     : Text(
-                        isLast ? vm.finishLabel : 'Next',
+                        isLast ? vm.finishLabel : vm.nextLabel,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,

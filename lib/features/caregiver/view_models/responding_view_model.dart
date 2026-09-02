@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/alert_detail_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/call_service.dart';
@@ -173,8 +174,8 @@ class RespondingViewModel extends GetxController {
     ),
     messageText: Text(message, style: const TextStyle(color: Colors.white)),
     snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
     backgroundColor: Colors.black,
-    margin: EdgeInsets.all(Dimensions.sixteen),
     borderRadius: Dimensions.eight,
     duration: const Duration(seconds: 4),
   );

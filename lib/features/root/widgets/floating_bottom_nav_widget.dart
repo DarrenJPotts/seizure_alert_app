@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/features/root/root_view.dart';
@@ -182,7 +183,10 @@ class _FloatingNavItem extends StatelessWidget {
       selected: isActive,
       label: semanticLabel,
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         behavior: HitTestBehavior.opaque,
         child: Container(
           padding: EdgeInsets.all(Dimensions.twelve),

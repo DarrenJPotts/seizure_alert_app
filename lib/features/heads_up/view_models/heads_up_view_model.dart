@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
@@ -283,8 +284,8 @@ class HeadsUpViewModel extends GetxController {
       titleText: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       messageText: Text(message, style: const TextStyle(color: Colors.white)),
       snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
       backgroundColor: Colors.black,
-      margin: EdgeInsets.all(Dimensions.sixteen),
       borderRadius: Dimensions.eight,
       duration: const Duration(seconds: 3),
     );
@@ -297,8 +298,8 @@ class HeadsUpViewModel extends GetxController {
       titleText: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       messageText: Text(message, style: const TextStyle(color: Colors.white)),
       snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
       backgroundColor: Colors.red.shade700,
-      margin: EdgeInsets.all(Dimensions.sixteen),
       borderRadius: Dimensions.eight,
       duration: const Duration(seconds: 4),
     );
