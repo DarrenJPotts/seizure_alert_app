@@ -4,9 +4,6 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/widgets/live_indicator.dart';
 import 'package:seizure_app/features/sos/view_models/sos_view_model.dart';
 
-/// Black status-board header shown at the top of the active-SOS screen.
-/// Shows a live "SOS ACTIVE" indicator, elapsed time, a segmented
-/// seen-indicator, and an "X of Y contacts have seen this" caption.
 class SosStatusBoardHeader extends StatelessWidget {
   const SosStatusBoardHeader({
     super.key,
@@ -24,8 +21,7 @@ class SosStatusBoardHeader extends StatelessWidget {
   final VoidCallback onCancel;
   final SosDelivery delivery;
 
-  /// Escape hatch shown when the alert has not reached anyone.
-  final VoidCallback onCallForHelp;
+final VoidCallback onCallForHelp;
 
   bool get _undelivered => delivery == SosDelivery.queued || delivery == SosDelivery.failed;
 
@@ -81,7 +77,9 @@ class SosStatusBoardHeader extends StatelessWidget {
             ),
             SizedBox(height: Dimensions.twelve),
             Text(
-              totalCount == 0 ? 'No contacts to notify' : '$seenCount of $totalCount contacts have seen this',
+              totalCount == 0
+                  ? 'No contacts are set to receive alerts'
+                  : '$seenCount of $totalCount contacts have seen this',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.6)),
             ),
           ],
@@ -103,10 +101,8 @@ class _StatusLabel extends StatelessWidget {
     ).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w600, letterSpacing: 3);
 
     return switch (delivery) {
-      // Only a confirmed send gets the live indicator. Pulsing "live" at
-      // someone whose alert is stuck in a queue is the lie this screen used
-      // to tell.
-      SosDelivery.delivered => Row(
+
+SosDelivery.delivered => Row(
         children: <Widget>[
           const LiveIndicator(size: 12, color: Colors.white),
           SizedBox(width: Dimensions.eight),
@@ -135,12 +131,6 @@ class _StatusLabel extends StatelessWidget {
   }
 }
 
-/// The single most consequential control in the app.
-///
-/// Was a bare `Text` in a `GestureDetector` — roughly 50x20, no confirmation,
-/// no haptic. One mis-tap by a post-ictal user stood the whole circle down
-/// silently. Removing a *contact* asks for confirmation; calling off an
-/// emergency did not.
 class _CancelButton extends StatelessWidget {
   const _CancelButton({required this.onCancel});
 
@@ -155,7 +145,7 @@ class _CancelButton extends StatelessWidget {
         onPressed: () => _confirm(context),
         style: TextButton.styleFrom(
           foregroundColor: Colors.white,
-          // 48px minimum target.
+
           minimumSize: const Size(88, 48),
           padding: EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
           shape: RoundedRectangleBorder(
@@ -201,11 +191,6 @@ class _CancelButton extends StatelessWidget {
   }
 }
 
-/// Shown in place of the seen-indicator when nothing has reached the server.
-///
-/// The seen-indicator is meaningless here — nobody can have seen an alert that
-/// was never sent — so it is replaced rather than sitting alongside, and the
-/// only action offered is the one that still works without a network.
 class _UndeliveredNotice extends StatelessWidget {
   const _UndeliveredNotice({required this.delivery, required this.onCallForHelp});
 

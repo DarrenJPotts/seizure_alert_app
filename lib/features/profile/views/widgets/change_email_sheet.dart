@@ -127,7 +127,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
             ),
             SizedBox(height: Dimensions.eight),
           ] else ...[
-            // ── Title ───────────────────────────────────────────────────
+
             Text(
               'Change Email',
               style: Theme.of(context).textTheme.titleMedium,
@@ -141,8 +141,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── New email field ────────────────────────────────────────
-            Text(
+Text(
               'New email address',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -156,33 +155,11 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
               onChanged: (_) {
                 if (_error != null) setState(() => _error = null);
               },
-              decoration: InputDecoration(
-                hintText: 'you@example.com',
-                hintStyle: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.black26),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.black12),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.black12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
-                ),
-              ),
+              decoration: const InputDecoration(hintText: 'you@example.com'),
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Password field ───────────────────────────────────────────
-            Text(
+Text(
               'Confirm your password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -198,46 +175,26 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
               },
               decoration: InputDecoration(
                 hintText: 'Enter your password',
-                hintStyle: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.black26),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.black12),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: _error != null ? Colors.red : Colors.black12,
-                    width: _error != null ? 1.5 : 1,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: _error != null ? Colors.red : Colors.black,
-                    width: 1.5,
-                  ),
-                ),
+
+enabledBorder: _error == null
+                    ? null
+                    : Theme.of(context).inputDecorationTheme.errorBorder,
+                focusedBorder: _error == null
+                    ? null
+                    : Theme.of(context).inputDecorationTheme.focusedErrorBorder,
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => _obscure = !_obscure),
                   icon: Icon(
                     _obscure
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
-                    color: Colors.black38,
                     size: 20,
                   ),
                 ),
               ),
             ),
 
-            // ── Inline error ─────────────────────────────────────────────
-            if (_error != null) ...[
+if (_error != null) ...[
               SizedBox(height: Dimensions.eight),
               Text(
                 _error!,
@@ -248,8 +205,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
             ],
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Send button ────────────────────────────────────────────
-            SizedBox(
+SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isBusy ? null : _confirm,
@@ -276,8 +232,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
             ),
             SizedBox(height: Dimensions.eight),
 
-            // ── Cancel ───────────────────────────────────────────────────
-            SizedBox(
+SizedBox(
               width: double.infinity,
               child: TextButton(
                 onPressed: _isBusy ? null : () => Get.back(),

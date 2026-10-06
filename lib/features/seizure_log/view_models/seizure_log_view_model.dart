@@ -13,18 +13,14 @@ class SeizureLogViewModel extends GetxController {
 
   final FirestoreService _firestoreService;
 
-  // ─── State ────────────────────────────────────────────────────────────────
-
-  final RxList<SeizureLogDto> logs = <SeizureLogDto>[].obs;
+final RxList<SeizureLogDto> logs = <SeizureLogDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
 
   StreamSubscription<List<SeizureLogDto>>? _logsSub;
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  // ─── Lifecycle ────────────────────────────────────────────────────────────
-
-  @override
+@override
   void onInit() {
     super.onInit();
     _init();
@@ -45,9 +41,7 @@ class SeizureLogViewModel extends GetxController {
     );
   }
 
-  // ─── Actions ──────────────────────────────────────────────────────────────
-
-  Future<bool> addEntry({
+Future<bool> addEntry({
     required DateTime occurredAt,
     int? durationSeconds,
     String? location,

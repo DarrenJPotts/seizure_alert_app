@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:seizure_app/core/controllers/firebase_auth_controller/firebase_auth_controller.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
+import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/features/onboarding/view_models/onboarding_view_model.dart';
 
 class SignupBinding extends Bindings {
@@ -55,6 +56,21 @@ class SignupViewModel extends GetxController {
         emailController.text.trim(),
         passwordController.text,
       );
+
+      // An account now exists on this device, so onboarding must not be shown
+      // again. Setting it here rather than leaving it to the draft commit
+      // covers the paths that never reach one: arriving straight from the
+      // login screen's "Create account" link, or leaving the name blank so
+      // `hasDraft` is false. `commitDraft` sets the same flag, which then
+      // no-ops.
+      //
+      // This is only about whether the intro is shown. Whether the user
+      // actually has a profile is a separate, server-side question that
+      // `RootViewModel._checkOnboarding` answers on every launch, redirecting
+      // to `OnboardingMode.completeProfile` when the Firestore document is
+      // missing.
+      await AppModeService.instance().setOnboardingCompleted(true);
+
       await OnboardingViewModel.commitAndDisposeDraft();
 
       screenState.value = GenericScreenStates.loaded;

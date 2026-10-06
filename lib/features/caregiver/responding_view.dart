@@ -12,138 +12,152 @@ class RespondingView extends GetView<RespondingViewModel> {
   const RespondingView({super.key});
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFF1F1F1),
-    body: SafeArea(
-      bottom: false,
-      child: Obx(() {
-        final GenericScreenStates state = controller.screenState.value;
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
 
-        if (state == GenericScreenStates.loading || state == GenericScreenStates.initial) {
-          return const Center(child: CircularProgressIndicator(color: Colors.black));
-        }
+    return Scaffold(
 
-        if (state == GenericScreenStates.error || controller.detail.value == null) {
-          return Center(
-            child: Padding(
-              padding: EdgeInsets.all(Dimensions.twentyFour),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                spacing: Dimensions.twelve,
-                children: <Widget>[
-                  const Icon(Icons.error_outline, size: 48, color: Colors.black26),
-                  Text(
-                    'This alert is no longer available',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                  ),
-                  TextButton(
-                    onPressed: Get.back<void>,
-                    style: TextButton.styleFrom(foregroundColor: Colors.black),
-                    child: const Text('Go back'),
-                  ),
-                ],
+backgroundColor: scheme.surfaceDim,
+      body: SafeArea(
+        bottom: false,
+        child: Obx(() {
+          final GenericScreenStates state = controller.screenState.value;
+
+          if (state == GenericScreenStates.loading || state == GenericScreenStates.initial) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state == GenericScreenStates.error || controller.detail.value == null) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(Dimensions.twentyFour),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: Dimensions.twelve,
+                  children: <Widget>[
+                    Icon(Icons.error_outline, size: 48, color: scheme.outline),
+                    Text(
+                      'This alert is no longer available',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                    TextButton(
+                      onPressed: Get.back<void>,
+                      child: const Text('Go back'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        }
+            );
+          }
 
-        return const _Loaded();
-      }),
-    ),
-  );
+          return const _Loaded();
+        }),
+      ),
+    );
+  }
 }
 
 class _Loaded extends GetView<RespondingViewModel> {
   const _Loaded();
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      const _Header(),
-      Expanded(
-        child: RefreshIndicator(
-          color: Colors.black,
-          onRefresh: controller.reload,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.twenty, Dimensions.twenty, Dimensions.twelve),
-            children: <Widget>[
-              Text(
-                controller.ownerName,
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineLarge?.copyWith(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.4),
-              ),
-              SizedBox(height: Dimensions.six),
-              Obx(
-                () => Text(
-                  controller.subtitle,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.black.withValues(alpha: 0.5)),
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const _Header(),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: controller.reload,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.twenty, Dimensions.twenty, Dimensions.twelve),
+              children: <Widget>[
+                Text(
+                  controller.ownerName,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineLarge?.copyWith(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.4),
                 ),
-              ),
-              SizedBox(height: Dimensions.twentyFour),
-              const _RosterSection(),
-              SizedBox(height: Dimensions.twentyFour),
-              const _CarePlanSection(),
-            ],
+                SizedBox(height: Dimensions.six),
+                Obx(
+                  () => Text(
+                    controller.subtitle,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ),
+                SizedBox(height: Dimensions.twentyFour),
+                const _RosterSection(),
+                SizedBox(height: Dimensions.twentyFour),
+                const _CarePlanSection(),
+              ],
+            ),
           ),
         ),
-      ),
-      const _ActionBar(),
-    ],
-  );
+        const _ActionBar(),
+      ],
+    );
+  }
 }
 
 class _Header extends GetView<RespondingViewModel> {
   const _Header();
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.eight, Dimensions.twenty, 0),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: <Widget>[
-        GestureDetector(
-          onTap: Get.back,
-          behavior: HitTestBehavior.opaque,
-          child: Semantics(
-            button: true,
-            label: 'Back',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(Icons.arrow_back, size: 20, color: Colors.black.withValues(alpha: 0.55)),
-                SizedBox(width: Dimensions.six),
-                Text(
-                  'Alerts',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.black.withValues(alpha: 0.55)),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: Dimensions.twelve, vertical: Dimensions.six),
-          decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(Dimensions.circular)),
-          child: Obx(
-            () => LiveStatusLabel(
-              label: 'ACTIVE ${controller.elapsedClock}',
-              color: Colors.white,
-              indicatorSize: 10,
-              gap: Dimensions.six,
-              textStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
-                color: Colors.white,
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.eight, Dimensions.twenty, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          GestureDetector(
+            onTap: Get.back,
+            behavior: HitTestBehavior.opaque,
+            child: Semantics(
+              button: true,
+              label: 'Back',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(Icons.arrow_back, size: 20, color: scheme.onSurfaceVariant),
+                  SizedBox(width: Dimensions.six),
+                  Text(
+                    'Alerts',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: Dimensions.twelve, vertical: Dimensions.six),
+            decoration: BoxDecoration(
+              color: scheme.inverseSurface,
+              borderRadius: BorderRadius.circular(Dimensions.circular),
+            ),
+            child: Obx(
+              () => LiveStatusLabel(
+                label: 'ACTIVE ${controller.elapsedClock}',
+                color: scheme.onInverseSurface,
+                indicatorSize: 10,
+                gap: Dimensions.six,
+                textStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.4,
+                  color: scheme.onInverseSurface,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _RosterSection extends GetView<RespondingViewModel> {
@@ -175,7 +189,11 @@ class _ResponderRow extends GetView<RespondingViewModel> {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
     final String name = responder.isCaller ? 'You' : responder.contactName;
+    final TextStyle? statusStyle = Theme.of(
+      context,
+    ).textTheme.bodyLarge?.copyWith(fontSize: 13, color: scheme.onSurfaceVariant);
 
     return SizedBox(
       height: 68,
@@ -201,16 +219,12 @@ class _ResponderRow extends GetView<RespondingViewModel> {
                           label: controller.statusFor(responder),
                           indicatorSize: 10,
                           gap: Dimensions.six,
-                          textStyle: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(fontSize: 13, color: Colors.black.withValues(alpha: 0.5)),
+                          textStyle: statusStyle,
                         )
                       : Text(
                           controller.statusFor(responder),
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(fontSize: 13, color: Colors.black.withValues(alpha: 0.5)),
+                          style: statusStyle,
                         ),
                 ],
               ),
@@ -222,8 +236,7 @@ class _ResponderRow extends GetView<RespondingViewModel> {
                 return OutlinedButton(
                   onPressed: busy ? null : () => controller.nudge(responder),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    side: const BorderSide(color: Colors.black),
+                    side: BorderSide(color: scheme.onSurface),
                     padding: EdgeInsets.symmetric(horizontal: Dimensions.fourteen, vertical: Dimensions.six),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -281,9 +294,10 @@ class _CarePlanStep extends StatelessWidget {
           width: Dimensions.fourteen,
           child: Text(
             '$number',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.black.withValues(alpha: 0.35)),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         SizedBox(width: Dimensions.twelve),
@@ -297,48 +311,49 @@ class _ActionBar extends GetView<RespondingViewModel> {
   const _ActionBar();
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.twelve, Dimensions.twenty, Dimensions.twenty),
-    child: Row(
-      spacing: Dimensions.ten,
-      children: <Widget>[
-        Expanded(
-          child: SizedBox(
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.twelve, Dimensions.twenty, Dimensions.twenty),
+      child: Row(
+        spacing: Dimensions.ten,
+        children: <Widget>[
+          Expanded(
+            child: SizedBox(
+              height: 64,
+              child: ElevatedButton(
+                onPressed: () => _showLogSheet(context),
+
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text(
+                  'Log what happened',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: scheme.onPrimary),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 64,
             height: 64,
-            child: ElevatedButton(
-              onPressed: () => _showLogSheet(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                elevation: 0,
+            child: OutlinedButton(
+              onPressed: controller.callOwner,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: scheme.onSurface, width: 1.5),
+                padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: Text(
-                'Log what happened',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: Colors.white),
-              ),
+              child: const Icon(Icons.call, size: 24),
             ),
           ),
-        ),
-        SizedBox(
-          width: 64,
-          height: 64,
-          child: OutlinedButton(
-            onPressed: controller.callOwner,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black,
-              side: const BorderSide(color: Colors.black, width: 1.5),
-              padding: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            child: const Icon(Icons.call, size: 24),
-          ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
   void _showLogSheet(BuildContext context) {
     final TextEditingController field = TextEditingController(
@@ -356,7 +371,9 @@ class _ActionBar extends GetView<RespondingViewModel> {
             Text(
               'Recorded against your response so ${controller.ownerName.split(' ').first} can read it later. '
               'It does not replace their own seizure log.',
-              style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(color: Colors.black45),
+              style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
+                color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+              ),
             ),
             SizedBox(height: Dimensions.sixteen),
             TextField(
@@ -376,19 +393,11 @@ class _ActionBar extends GetView<RespondingViewModel> {
                         await controller.saveNote(field.text);
                         if (Get.isBottomSheetOpen ?? false) Get.back<void>();
                       },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.black38,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
                 child: Text(controller.isSavingNote.value ? 'Saving…' : 'Save'),
               ),
             ),
             TextButton(
               onPressed: Get.back<void>,
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
               child: const Text('Cancel'),
             ),
           ],
@@ -412,7 +421,7 @@ class _SectionLabel extends StatelessWidget {
         fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.6,
-        color: Colors.black.withValues(alpha: 0.4),
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     ),
   );
@@ -424,22 +433,26 @@ class _Card extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    clipBehavior: Clip.antiAlias,
-    child: Column(
-      children: <Widget>[
-        for (int i = 0; i < children.length; i++) ...<Widget>[
-          if (i > 0) Divider(height: 1, thickness: 1, color: Colors.black.withValues(alpha: 0.1)),
-          children[i],
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceBright,
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: <Widget>[
+          for (int i = 0; i < children.length; i++) ...<Widget>[
+            if (i > 0) const Divider(height: 1, thickness: 1),
+            children[i],
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _MessageRow extends StatelessWidget {
@@ -452,9 +465,11 @@ class _MessageRow extends StatelessWidget {
     padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.twenty),
     child: Text(
       message,
-      style: Theme.of(
-        context,
-      ).textTheme.bodyLarge?.copyWith(fontSize: 14, height: 1.5, color: Colors.black.withValues(alpha: 0.45)),
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+        fontSize: 14,
+        height: 1.5,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     ),
   );
 }

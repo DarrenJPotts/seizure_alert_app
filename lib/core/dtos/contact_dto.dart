@@ -13,8 +13,6 @@ class ContactDto {
   final bool notifyViaPush;
   final DateTime createdAt;
   final ContactStatus status;
-
-  /// E.164 form of [phone] — the field every cross-user lookup queries on.
   /// Derived rather than stored so no write path can forget to set it.
   String? get phoneNormalized => PhoneNumber.normalize(phone);
 

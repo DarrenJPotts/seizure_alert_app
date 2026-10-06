@@ -246,14 +246,14 @@ class _SettingsSection extends GetView<ProfileViewModel> {
               : Icons.notifications_off_outlined,
           label: 'Notifications',
           value: controller.notificationsLabel,
-          valueColor: controller.notificationsEnabled.value ? null : Colors.red.shade400,
+          valueColor: controller.notificationsEnabled.value ? null : Colors.black54,
           onTap: controller.requestNotifications,
         ),
         SettingsValueRow(
           icon: controller.locationEnabled.value ? Icons.location_on_outlined : Icons.location_off_outlined,
           label: 'Location',
           value: controller.locationLabel,
-          valueColor: controller.locationEnabled.value ? null : Colors.red.shade400,
+          valueColor: controller.locationEnabled.value ? null : Colors.black54,
           onTap: controller.requestLocation,
         ),
         SettingsNavRow(

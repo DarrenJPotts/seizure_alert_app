@@ -5,8 +5,7 @@ import 'package:seizure_app/core/widgets/live_indicator.dart';
 class StatusCardWidget extends StatelessWidget {
   const StatusCardWidget({super.key, required this.contactCount});
 
-  /// Live contact count streamed from Firestore.
-  final int contactCount;
+final int contactCount;
 
   @override
   Widget build(BuildContext context) => Container(

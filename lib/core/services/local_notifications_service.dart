@@ -3,17 +3,15 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 
 class LocalNotificationsService extends GetxService {
-  // Main plugin instance for handling notifications
+
   late FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
 
-  // Android-specific initialization settings using app launcher icon
-  final _androidInitializationSettings = const AndroidInitializationSettings('@mipmap/ic_launcher');
+final _androidInitializationSettings = const AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  // iOS-specific initialization settings with permission requests
-  final _iosInitializationSettings = const DarwinInitializationSettings(
-    requestAlertPermission: true,
-    requestBadgePermission: true,
-    requestSoundPermission: true,
+final _iosInitializationSettings = const DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
   );
 
   /// Android notification channel for alerts.
@@ -25,9 +23,6 @@ class LocalNotificationsService extends GetxService {
   /// which for an app whose whole purpose is waking someone up is the
   /// difference between working and not. Keep the two values in sync.
   static const String alertChannelId = 'seizure_alerts';
-
-  // The name and description are what the user sees in Android's notification
-  // settings, so they read as plain language rather than developer labels.
   final _androidChannel = const AndroidNotificationChannel(
     alertChannelId,
     'Emergency alerts',
@@ -36,46 +31,37 @@ class LocalNotificationsService extends GetxService {
     importance: Importance.max,
   );
 
-  // Flag to track initialization status
-  bool _isFlutterLocalNotificationInitialized = false;
+bool _isFlutterLocalNotificationInitialized = false;
 
-  // Counter for generating unique notification IDs
-  int _notificationIdCounter = 0;
+int _notificationIdCounter = 0;
 
-  // Reactive variables (optional - if you want to track notification state)
-  final notificationCount = 0.obs;
+final notificationCount = 0.obs;
   final lastNotificationPayload = Rxn<String>();
 
-  /// Initializes the local notifications plugin for Android and iOS.
-  Future<LocalNotificationsService> init() async {
-    // Check if already initialized to prevent redundant setup
+Future<LocalNotificationsService> init() async {
     if (_isFlutterLocalNotificationInitialized) {
       return this;
     }
 
     try {
-      // Create plugin instance
+
       _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-      // Combine platform-specific settings
-      final initializationSettings = InitializationSettings(
+final initializationSettings = InitializationSettings(
         android: _androidInitializationSettings,
         iOS: _iosInitializationSettings,
       );
 
-      // Initialize plugin with settings and callback for notification taps
-      await _flutterLocalNotificationsPlugin.initialize(
+await _flutterLocalNotificationsPlugin.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
       );
 
-      // Create Android notification channel
-      await _flutterLocalNotificationsPlugin
+await _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(_androidChannel);
 
-      // Mark initialization as complete
-      _isFlutterLocalNotificationInitialized = true;
+_isFlutterLocalNotificationInitialized = true;
     } catch (e) {
       debugPrint('[LocalNotificationsService] Error initializing: $e');
     }
@@ -83,35 +69,30 @@ class LocalNotificationsService extends GetxService {
     return this;
   }
 
-  /// Handle notification tap in foreground
-  void _onDidReceiveNotificationResponse(NotificationResponse response) {
+void _onDidReceiveNotificationResponse(NotificationResponse response) {
     debugPrint('[LocalNotificationsService] Foreground notification tapped: ${response.payload}');
     lastNotificationPayload.value = response.payload;
 
-    // Handle navigation with GetX
-    _handleNotificationNavigation(response.payload);
+_handleNotificationNavigation(response.payload);
   }
 
-  /// Handle navigation based on notification payload
-  void _handleNotificationNavigation(String? payload) {
+void _handleNotificationNavigation(String? payload) {
     if (payload == null || payload.isEmpty) return;
 
-    // Example: Parse payload and navigate
-    try {
-      // If payload is a route
+try {
+
       if (payload.startsWith('/')) {
         Get.toNamed(payload);
       }
-      // Add more navigation logic as needed
+
     } catch (e) {
       debugPrint('[LocalNotificationsService] Error handling notification navigation: $e');
     }
   }
 
-  /// Show a local notification with the given title, body, and payload.
-  Future<void> showNotification(String? title, String? body, String? payload) async {
+Future<void> showNotification(String? title, String? body, String? payload) async {
     try {
-      // Android-specific notification details
+
       AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
         _androidChannel.id,
         _androidChannel.name,
@@ -120,14 +101,11 @@ class LocalNotificationsService extends GetxService {
         priority: Priority.high,
       );
 
-      // iOS-specific notification details
-      const iosDetails = DarwinNotificationDetails();
+const iosDetails = DarwinNotificationDetails();
 
-      // Combine platform-specific details
-      final notificationDetails = NotificationDetails(android: androidDetails, iOS: iosDetails);
+final notificationDetails = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
-      // Display the notification
-      await _flutterLocalNotificationsPlugin.show(
+await _flutterLocalNotificationsPlugin.show(
         id: _notificationIdCounter++,
         title: title,
         body: body,
@@ -135,15 +113,13 @@ class LocalNotificationsService extends GetxService {
         payload: payload,
       );
 
-      // Update reactive counter
-      notificationCount.value++;
+notificationCount.value++;
     } catch (e) {
       debugPrint('[LocalNotificationsService] Error showing notification: $e');
     }
   }
 
-  /// Cancel a specific notification by ID
-  Future<void> cancelNotification(int id) async {
+Future<void> cancelNotification(int id) async {
     try {
       await _flutterLocalNotificationsPlugin.cancel(id: id);
     } catch (e) {
@@ -151,8 +127,7 @@ class LocalNotificationsService extends GetxService {
     }
   }
 
-  /// Cancel all notifications
-  Future<void> cancelAllNotifications() async {
+Future<void> cancelAllNotifications() async {
     try {
       await _flutterLocalNotificationsPlugin.cancelAll();
       notificationCount.value = 0;

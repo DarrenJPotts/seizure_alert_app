@@ -31,8 +31,6 @@ class HeadsUpDto {
       status: HeadsUpStatus.values.firstWhere((e) => e.name == map['status']),
     );
   }
-
-  /// Absolute expiry instant in epoch milliseconds.
   ///
   /// [expiresAt] is serialised with `toIso8601String()`, which for a local
   /// `DateTime` carries no timezone suffix — so the server cannot compare it

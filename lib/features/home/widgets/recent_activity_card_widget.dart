@@ -5,15 +5,11 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 class RecentActivityCard extends StatelessWidget {
   const RecentActivityCard({super.key, required this.label, required this.hasAlert, required this.onViewLog});
 
-  /// Human-readable timestamp of the most recent alert, e.g. "Today, 8:14 AM".
-  /// When [hasAlert] is false this shows a friendly empty-state message.
-  final String label;
+final String label;
 
-  /// Whether there is at least one historical alert to navigate to.
-  final bool hasAlert;
+final bool hasAlert;
 
-  /// Callback invoked when the user taps "View log".
-  final VoidCallback onViewLog;
+final VoidCallback onViewLog;
 
   @override
   Widget build(BuildContext context) {

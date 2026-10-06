@@ -2,14 +2,7 @@ class AlertResponseDto {
   final String id;
   final String alertId;
 
-  /// uid of the person the alert belongs to.
-  ///
-  /// Denormalised from the alert purely so `firestore.rules` can decide who
-  /// may read this document with a field comparison. The alternative — a
-  /// `get()` on the alert from inside the rule — costs a document read on
-  /// every evaluation and counts against the rules engine's access-call
-  /// budget, for information the writer already has to hand.
-  final String alertOwnerId;
+final String alertOwnerId;
 
   final String contactId;
   final String contactName;

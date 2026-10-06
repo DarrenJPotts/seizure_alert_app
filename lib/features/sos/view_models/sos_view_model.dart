@@ -17,7 +17,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Whether the alert has actually reached the server.
 ///
 /// Firestore's offline cache acknowledges a write locally and completes the
 /// `set()` future only once the *server* has it. Offline that future simply
@@ -26,28 +25,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// when nothing had left the phone. That is the worst failure this app has,
 /// and it was invisible.
 enum SosDelivery {
-  /// Written locally, waiting on the server.
+
   sending,
 
-  /// The server has it. `notifyContacts` has been triggered.
-  delivered,
+delivered,
 
-  /// No acknowledgement within [SosViewModel.deliveryGrace]. Almost always no
-  /// connection. The alert is queued and will send on reconnect, but nobody
-  /// has been told yet and the user needs to know that now.
-  queued,
+queued,
 
-  /// The write was rejected outright.
-  failed,
+failed,
 }
 
 class SosViewModel extends GetxController {
   static const _storageKey = 'active_sos';
 
-  /// How long to wait for a server acknowledgement before telling the user the
-  /// alert has not gone anywhere. Long enough to ride out a slow mobile
-  /// connection, short enough that they can still act on the truth.
-  static const Duration deliveryGrace = Duration(seconds: 8);
+static const Duration deliveryGrace = Duration(seconds: 8);
 
   final Rxn<AlertDto> activeSos = Rxn<AlertDto>();
   final Rx<Duration> elapsed = Duration.zero.obs;
@@ -77,9 +68,7 @@ class SosViewModel extends GetxController {
   /// True while the circle has *not* been told, for whatever reason.
   bool get isUndelivered => delivery.value == SosDelivery.queued || delivery.value == SosDelivery.failed;
 
-  // ─── Restore on app launch ─────────────────────────────────────────────────
-
-  Future<void> _restoreActiveSos() async {
+Future<void> _restoreActiveSos() async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final String? json = prefs.getString(_storageKey);
@@ -100,9 +89,7 @@ class SosViewModel extends GetxController {
     }
   }
 
-  // ─── Start SOS ─────────────────────────────────────────────────────────────
-
-  Future<void> startSos() async {
+Future<void> startSos() async {
     try {
       Get.find<SeizureLogViewModel>().addEntry(
         occurredAt: DateTime.now(),
@@ -122,10 +109,7 @@ class SosViewModel extends GetxController {
         createdAt: now,
       );
 
-      // Flip to the active screen and notify contacts immediately — do not
-      // wait on a GPS fix, which can take several seconds. Location is
-      // attached in the background once it resolves.
-      await _persist(alert);
+await _persist(alert);
       activeSos.value = alert;
       _startElapsed();
       _watchResponses(alert.id);
@@ -135,9 +119,8 @@ class SosViewModel extends GetxController {
       final Position? position =
           await LocationService.instance().getCurrentPosition();
       if (position == null) return;
-      // The alert may have been cancelled (or a newer one started) while we
-      // were waiting on the GPS fix — don't resurrect a stale one.
-      if (activeSos.value?.id != alert.id) return;
+
+if (activeSos.value?.id != alert.id) return;
 
       final AlertDto located = alert.copyWith(
         latitude: position.latitude,
@@ -157,12 +140,7 @@ class SosViewModel extends GetxController {
     }
   }
 
-  /// Watches one alert write and reports whether the server ever took it.
-  ///
-  /// Deliberately not awaited by the caller. Offline the future never
-  /// completes, so awaiting it would stall the whole SOS path behind a
-  /// network that is not there.
-  void _trackDelivery(String alertId, Future<ResultDto<void>> write) {
+void _trackDelivery(String alertId, Future<ResultDto<void>> write) {
     delivery.value = SosDelivery.sending;
 
     _deliveryWatchdog?.cancel();
@@ -178,9 +156,8 @@ class SosViewModel extends GetxController {
         _deliveryWatchdog?.cancel();
 
         if (result.isSuccess) {
-          // Covers the reconnect case too: a queued write completing later
-          // flips the banner away on its own.
-          delivery.value = SosDelivery.delivered;
+
+delivery.value = SosDelivery.delivered;
         } else {
           debugPrint('[SosVM] Alert write rejected: ${result.error}');
           delivery.value = SosDelivery.failed;
@@ -189,9 +166,7 @@ class SosViewModel extends GetxController {
     );
   }
 
-  // ─── Cancel SOS ────────────────────────────────────────────────────────────
-
-  Future<void> cancelSos() async {
+Future<void> cancelSos() async {
     final AlertDto? current = activeSos.value;
     if (current == null) return;
 
@@ -239,9 +214,7 @@ class SosViewModel extends GetxController {
     }
   }
 
-  // ─── Alert responses ───────────────────────────────────────────────────────
-
-  void _watchResponses(String alertId) {
+void _watchResponses(String alertId) {
     _responsesSub?.cancel();
     _responsesSub = FirestoreService.instance().watchAlertResponses(alertId).listen(
       (List<AlertResponseDto> list) => alertResponses.value = list,
@@ -249,9 +222,7 @@ class SosViewModel extends GetxController {
     );
   }
 
-  // ─── Elapsed timer ─────────────────────────────────────────────────────────
-
-  void _startElapsed() {
+void _startElapsed() {
     _elapsedTimer?.cancel();
     _tick();
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
@@ -272,9 +243,7 @@ class SosViewModel extends GetxController {
     return '${m}m ${s}s';
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  Future<void> _persist(AlertDto alert) async {
+Future<void> _persist(AlertDto alert) async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString(_storageKey, jsonEncode(alert.toMap()));

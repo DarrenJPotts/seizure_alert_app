@@ -1,29 +1,90 @@
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onMessagePublished } = require("firebase-functions/v2/pubsub");
+const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { normalizePhone } = require("./phone");
 const { daysSince, isEscalationStale } = require("./time");
+const { functionsEnabled } = require("./killswitch");
+
+setGlobalOptions({ maxInstances: 5 });
+
+// Callable endpoints reject requests without a valid Firebase App Check
+// attestation. The mobile client initializes App Check before any Firebase
+// services are used.
+const CALLABLE_OPTIONS = { enforceAppCheck: true };
+
+const BILLING_BUDGET_TOPIC = "seizure-alert-budget-alerts";
+const BILLING_ACCOUNT_ID = "017AAE-400AB6-98B366";
+const BILLING_BUDGET_ID = "2a77275e-d5c9-46dc-85e6-9c7a50113786";
 
 initializeApp();
 
 const db = getFirestore();
 const messaging = getMessaging();
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 /**
- * Finds the user account that owns `phone`.
- *
- * Matching runs on the normalised `phoneNormalized` field. Documents written
- * before that field existed are still matched by their raw `phone` value, so
- * a partially-backfilled database keeps working — remove the fallback once
- * `scripts/backfill-phone-normalized.js` has run against production.
+ * Stop function work when the $10 monthly budget's actual spend reaches 100%.
+ * The kill switch remains off until an operator manually re-enables it in
+ * Firestore. Billing notifications are delayed/estimated, so this is a safety
+ * brake, not a guaranteed hard spending ceiling.
  */
+exports.disableFunctionsAtBudget = onMessagePublished(
+  { topic: BILLING_BUDGET_TOPIC, retry: true },
+  async (event) => {
+    const message = event.data?.message;
+    const attributes = message?.attributes || {};
+    const alert = message?.json;
+
+    if (
+      attributes.schemaVersion !== "1.0" ||
+      attributes.billingAccountId !== BILLING_ACCOUNT_ID ||
+      attributes.budgetId !== BILLING_BUDGET_ID
+    ) {
+      console.info("Ignoring budget notification for an unrelated budget.");
+      return;
+    }
+
+    if (!alert || typeof alert !== "object") {
+      throw new Error("Budget notification did not contain a JSON payload.");
+    }
+
+    const thresholdExceeded = Number(alert.alertThresholdExceeded);
+    const costAmount = Number(alert.costAmount);
+    const budgetAmount = Number(alert.budgetAmount);
+    if (
+      !Number.isFinite(thresholdExceeded) ||
+      thresholdExceeded < 1 ||
+      !Number.isFinite(costAmount) ||
+      !Number.isFinite(budgetAmount) ||
+      costAmount < budgetAmount
+    ) {
+      console.info("Budget notification is below the actual-spend cap.");
+      return;
+    }
+
+    await db.collection("system").doc("functionsConfig").set(
+      {
+        enabled: false,
+        reason: "monthly_budget_reached",
+        budgetId: BILLING_BUDGET_ID,
+        costAmount,
+        budgetAmount,
+        currencyCode: alert.currencyCode || null,
+        triggeredAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    console.error(
+      `Function kill switch enabled: budget reached ${costAmount} ${alert.currencyCode || ""} / ${budgetAmount}.`
+    );
+  }
+);
+
 async function findUserByPhone(phone) {
   const normalized = normalizePhone(phone);
 
@@ -46,22 +107,6 @@ async function findUserByPhone(phone) {
   return legacySnap.empty ? null : legacySnap.docs[0];
 }
 
-/**
- * Contacts that `uid` has *accepted* an invite to watch.
- *
- * This is the authorization primitive for every cross-user read. It matches
- * on `linkedUid`, which is written only by respondToInvite under the Admin
- * SDK after the recipient authenticated and tapped accept, and which
- * firestore.rules forbids clients from touching.
- *
- * It replaces matching on the caller's `users/{uid}.phone`. That field is
- * self-asserted — signup is email/password and no phone verification exists
- * anywhere in this app — and users may write their own document, so anyone
- * could set their phone to a number they knew was on somebody's contact list
- * and read that person's live SOS location, medical ID and emergency note.
- * Phone matching is still fine for *discovery* (finding who to invite); it
- * must never again be the thing that grants read access.
- */
 async function findLinkedContacts(uid, extraWhere = []) {
   if (!uid) return [];
   let query = db.collection("contacts").where("linkedUid", "==", uid);
@@ -70,13 +115,6 @@ async function findLinkedContacts(uid, extraWhere = []) {
   return snap.docs.filter((doc) => doc.data().status !== "pending");
 }
 
-/**
- * Fixed-window per-user rate limit.
- *
- * Counters live in `rate_limits`, which firestore.rules denies to all
- * clients — a limit a user can reset is not a limit. Throws
- * `resource-exhausted`, which surfaces as a normal failure on the client.
- */
 async function enforceRateLimit(uid, action, max, windowMs) {
   const ref = db.collection("rate_limits").doc(`${uid}_${action}`);
   await db.runTransaction(async (tx) => {
@@ -99,17 +137,17 @@ function getCreatedCopy(alertType, userName) {
   switch (alertType) {
     case "sos":
       return {
-        title: "🚨 SOS Alert",
+        title: "SOS Alert",
         body: `${userName} has sent an emergency SOS. Check on them immediately.`,
       };
     case "headsUp":
       return {
-        title: "⚠️ Heads Up",
+        title: "Heads Up",
         body: `${userName} is feeling off and will check in soon. Keep an eye out.`,
       };
     case "headsUpExpired":
       return {
-        title: "⚠️ Check-in Missed",
+        title: "Check-in Missed",
         body: `${userName} missed their check-in window. Please reach out.`,
       };
     default:
@@ -190,21 +228,15 @@ async function notifyContacts(alertUserId, alert, copy) {
 
   const sendPromises = contactsSnap.docs.map(async (contactDoc) => {
     const contact = contactDoc.data();
-    const phone = contact.phone;
+    const linkedUid = contact.linkedUid;
 
-    if (contact.status === "pending") {
-      console.log(`Contact ${contactDoc.id} has a pending invite; skipping push.`);
+if (contact.status === "pending" || typeof linkedUid !== "string" || !linkedUid) {
+      console.log(`Contact ${contactDoc.id} is not linked; skipping push.`);
       return;
     }
 
-    if (!phone) {
-      console.log(`Contact ${contactDoc.id} has no phone field.`);
-      return;
-    }
-
-    const userDoc = await findUserByPhone(phone);
-
-    if (!userDoc) {
+    const userDoc = await db.collection("users").doc(linkedUid).get();
+    if (!userDoc.exists) {
       console.log(`Contact ${contactDoc.id} has no matching account.`);
       return;
     }
@@ -237,11 +269,12 @@ async function notifyContacts(alertUserId, alert, copy) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// onAlertCreated — notify contacts when a new alert is sent
-// ---------------------------------------------------------------------------
-
 exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => {
+  if (!(await functionsEnabled(db))) {
+    console.warn("Kill switch is on; skipping onAlertCreated.");
+    return;
+  }
+
   const alert = event.data?.data();
   if (!alert || alert.status !== "sent") return;
 
@@ -257,11 +290,12 @@ exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => 
   await notifyContacts(alertUserId, alert, copy);
 });
 
-// ---------------------------------------------------------------------------
-// onAlertUpdated — notify contacts when an alert is cancelled
-// ---------------------------------------------------------------------------
-
 exports.onAlertUpdated = onDocumentUpdated("alerts/{alertId}", async (event) => {
+  if (!(await functionsEnabled(db))) {
+    console.warn("Kill switch is on; skipping onAlertUpdated.");
+    return;
+  }
+
   const before = event.data?.before?.data();
   const after = event.data?.after?.data();
 
@@ -281,7 +315,6 @@ exports.onAlertUpdated = onDocumentUpdated("alerts/{alertId}", async (event) => 
 });
 
 // ---------------------------------------------------------------------------
-// expireHeadsUpWindows — escalate check-in windows the user never closed.
 //
 // The client also counts down and escalates locally, but only while the app
 // is alive. A Heads Up exists precisely for the case where the user goes
@@ -318,6 +351,11 @@ const HEADS_UP_ESCALATION_GRACE_MS = 60 * 60 * 1000;
 exports.expireHeadsUpWindows = onSchedule(
   { schedule: "every 1 minutes", timeoutSeconds: 120 },
   async () => {
+    if (!(await functionsEnabled(db))) {
+      console.warn("Kill switch is on; skipping expireHeadsUpWindows.");
+      return;
+    }
+
     const nowMs = Date.now();
 
     const dueSnap = await db
@@ -386,24 +424,19 @@ async function expireOneHeadsUp(doc, nowMs) {
   const origin = originAlert.exists ? originAlert.data() : {};
   const hasPosition = origin.latitude != null && origin.longitude != null;
 
-  // Flip the window and claim the alert in one transaction, so a concurrent
-  // client-side expiry can't produce a second notification.
-  await db.runTransaction(async (tx) => {
+await db.runTransaction(async (tx) => {
     const [freshHeadsUp, existingAlert] = await Promise.all([
       tx.get(doc.ref),
       tx.get(alertRef),
     ]);
 
-    // The user may have checked in or cancelled between the query and here.
-    if (!freshHeadsUp.exists || freshHeadsUp.data().status !== "active") {
+if (!freshHeadsUp.exists || freshHeadsUp.data().status !== "active") {
       return;
     }
 
     tx.update(doc.ref, { status: "expired" });
 
-    // Already escalated by the client's local countdown — flip the window but
-    // don't create a second alert.
-    if (existingAlert.exists) return;
+if (existingAlert.exists) return;
 
     tx.set(alertRef, {
       id: alertId,
@@ -422,7 +455,6 @@ async function expireOneHeadsUp(doc, nowMs) {
   return { suppressed: false, lateBy };
 }
 
-/** Most recent seizure log for `ownerId`, or null. */
 async function latestSeizureLog(ownerId) {
   const snap = await db
     .collection("seizureLogs")
@@ -434,7 +466,6 @@ async function latestSeizureLog(ownerId) {
 }
 
 // ---------------------------------------------------------------------------
-// getPeopleIWatch — for the caller, find everyone who lists the caller's
 // phone number as an emergency contact, and report their current status.
 //
 // This and getAlertDetail previously ran with `minInstances: 1` to avoid cold
@@ -448,11 +479,17 @@ async function latestSeizureLog(ownerId) {
 // they cut the warm-path latency that the cold start now adds to.
 // ---------------------------------------------------------------------------
 
-exports.getPeopleIWatch = onCall(async (request) => {
+exports.getPeopleIWatch = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+
   const callerUid = request.auth?.uid;
   if (!callerUid) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
+
+  await enforceRateLimit(callerUid, "watchList", 30, 60 * 1000);
 
   const contactDocs = await findLinkedContacts(callerUid);
   if (contactDocs.length === 0) {
@@ -521,9 +558,7 @@ exports.getPeopleIWatch = onCall(async (request) => {
         ? null
         : recentAlertsSnap.docs[0].data();
 
-      // Flattened into one feed by the caller, which is the only place that
-      // can interleave events from different people in time order.
-      const activity = recentAlertsSnap.docs.map((doc) => {
+const activity = recentAlertsSnap.docs.map((doc) => {
         const alert = doc.data();
         return {
           personName: ownerName,
@@ -551,37 +586,28 @@ exports.getPeopleIWatch = onCall(async (request) => {
 
   const found = people.filter(Boolean);
 
-  // One merged, time-ordered feed across everyone being watched — "Kabelo ·
-  // Heads Up 14:20", "Thandi · SOS 08:00". Sorting on the raw ISO strings is
-  // safe: they all come from the same serialiser, so lexicographic order and
-  // chronological order agree.
-  const recentActivity = found
+const recentActivity = found
     .flatMap((person) => person.activity)
     .filter((event) => event.at)
     .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
     .slice(0, 10);
 
-  // `activity` was only ever a transport detail for the merge above.
-  found.forEach((person) => delete person.activity);
+found.forEach((person) => delete person.activity);
 
   return { people: found, recentActivity };
 });
 
-// ---------------------------------------------------------------------------
-// getAlertDetail — fetch an alert and its owner's profile, authorizing the
-// caller by confirming they are listed as one of the owner's contacts.
-//
-// Scales to zero, per the cost note on getPeopleIWatch. This is the one path
-// where the cold start is actually felt — a caregiver opening an incoming SOS
-// notification — so if the budget ever allows, this is the function to give
-// `minInstances: 1` back to first.
-// ---------------------------------------------------------------------------
+exports.getAlertDetail = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
 
-exports.getAlertDetail = onCall(async (request) => {
   const callerUid = request.auth?.uid;
   if (!callerUid) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
+
+  await enforceRateLimit(callerUid, "alertDetail", 30, 60 * 1000);
 
   const alertId = request.data?.alertId;
   if (!alertId) {
@@ -594,8 +620,7 @@ exports.getAlertDetail = onCall(async (request) => {
   }
   const alertUserId = alertDoc.data().userId;
 
-  // Neither read depends on the other's result.
-  const [ownerDoc, contactDocs] = await Promise.all([
+const [ownerDoc, contactDocs] = await Promise.all([
     db.collection("users").doc(alertUserId).get(),
     findLinkedContacts(callerUid, [["userId", "==", alertUserId]]),
   ]);
@@ -643,14 +668,14 @@ exports.getAlertDetail = onCall(async (request) => {
         note: response.note || null,
       };
     })
-    // Whoever is actually on their way first, then who has at least looked.
+
     .sort((a, b) => Number(b.responding) - Number(a.responding) || Number(b.seen) - Number(a.seen));
 
   // Who the alert actually went out to — pending invites are skipped by
   // notifyContacts, so they are skipped here too or the count would overstate
   // how many people know.
   const notifiedCount = circleSnap.docs.filter(
-    (doc) => doc.data().status !== "pending"
+    (doc) => doc.data().status !== "pending" && typeof doc.data().linkedUid === "string"
   ).length;
 
   return {
@@ -672,17 +697,22 @@ exports.getAlertDetail = onCall(async (request) => {
 });
 
 // ---------------------------------------------------------------------------
-// sendCircleInvite — when adding a contact whose phone belongs to a
 // registered user, send them an in-app invite instead of relying on the
 // SMS/WhatsApp share link. The contact is gated to `status: "pending"` until
 // the recipient accepts, so they aren't notified of anything before consenting.
 // ---------------------------------------------------------------------------
 
-exports.sendCircleInvite = onCall(async (request) => {
+exports.sendCircleInvite = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+
   const callerUid = request.auth?.uid;
   if (!callerUid) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
+
+  await enforceRateLimit(callerUid, "invite", 10, 60 * 60 * 1000);
 
   const contactId = request.data?.contactId;
   const phone = request.data?.phone;
@@ -695,12 +725,7 @@ exports.sendCircleInvite = onCall(async (request) => {
     throw new HttpsError("permission-denied", "Not your contact.");
   }
 
-  // `phone` used to be a free parameter: only `contactId` was checked against
-  // the caller, so one owned contact could be replayed with any number. That
-  // made this both an account-enumeration oracle ("does this number have an
-  // account on an epilepsy app") and a push-spam relay to arbitrary users.
-  // The invite may only ever go to the number saved on that contact.
-  const contactPhone = contactDoc.data().phone;
+const contactPhone = contactDoc.data().phone;
   if (
     !contactPhone ||
     normalizePhone(contactPhone) !== normalizePhone(phone)
@@ -710,9 +735,6 @@ exports.sendCircleInvite = onCall(async (request) => {
       "That phone number does not match the contact."
     );
   }
-
-  // Narrows what is left of the enumeration surface.
-  await enforceRateLimit(callerUid, "invite", 10, 60 * 60 * 1000);
 
   const recipientDoc = await findUserByPhone(contactPhone);
 
@@ -778,17 +800,21 @@ exports.sendCircleInvite = onCall(async (request) => {
 });
 
 // ---------------------------------------------------------------------------
-// respondToInvite — the recipient accepts or declines a circle invite.
-// Accepting flips the sender's contact doc to `status: "active"`; declining
 // deletes it. Both mutate a contact doc owned by a different uid, which is
 // only safe because this runs under the Admin SDK.
 // ---------------------------------------------------------------------------
 
-exports.respondToInvite = onCall(async (request) => {
+exports.respondToInvite = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+
   const callerUid = request.auth?.uid;
   if (!callerUid) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
+
+  await enforceRateLimit(callerUid, "inviteResponse", 20, 60 * 60 * 1000);
 
   const inviteId = request.data?.inviteId;
   const accept = request.data?.accept;
@@ -816,11 +842,8 @@ exports.respondToInvite = onCall(async (request) => {
 
   const contactRef = db.collection("contacts").doc(invite.contactId);
   if (accept) {
-    // `linkedUid` is the authorization key for every cross-user read (see
-    // findLinkedContacts). It is written here and only here: at this point
-    // the recipient has authenticated as callerUid *and* consented. Clients
-    // cannot write this field — firestore.rules pins it on contact updates.
-    await contactRef
+
+await contactRef
       .update({ status: "active", linkedUid: callerUid })
       .catch(() => null);
   } else {
@@ -855,7 +878,6 @@ exports.respondToInvite = onCall(async (request) => {
 });
 
 // ---------------------------------------------------------------------------
-// nudgeResponder — one caregiver pings another who has not answered yet.
 //
 // Exists because the respond screen shows the whole roster: seeing "Sipho V.
 // — called, no answer" is only useful if you can do something about it. The
@@ -867,7 +889,11 @@ exports.respondToInvite = onCall(async (request) => {
 // endpoint keyed on a guessable alert id.
 // ---------------------------------------------------------------------------
 
-exports.nudgeResponder = onCall(async (request) => {
+exports.nudgeResponder = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+
   const callerUid = request.auth?.uid;
   if (!callerUid) {
     throw new HttpsError("unauthenticated", "Sign in required.");
@@ -897,9 +923,8 @@ exports.nudgeResponder = onCall(async (request) => {
       db.collection("users").doc(alertUserId).get(),
       db.collection("users").doc(targetResponderId).get(),
       findLinkedContacts(callerUid, [["userId", "==", alertUserId]]),
-      // Nudging is only ever caregiver-to-caregiver inside one person's
-      // circle, never a way to push to an arbitrary uid.
-      findLinkedContacts(targetResponderId, [["userId", "==", alertUserId]]),
+
+findLinkedContacts(targetResponderId, [["userId", "==", alertUserId]]),
     ]);
 
   if (!callerContacts[0]) {
@@ -936,7 +961,7 @@ exports.nudgeResponder = onCall(async (request) => {
   await messaging.send(
     buildMessage({
       token: fcmToken,
-      title: "🚨 Still waiting on you",
+      title: "Response needed",
       body: `${callerName} is asking you to respond to ${ownerName}'s SOS.`,
       alertId,
       alertType: alert.type || "sos",
@@ -949,28 +974,26 @@ exports.nudgeResponder = onCall(async (request) => {
 });
 
 // ---------------------------------------------------------------------------
-// submitAlertResponse — a caregiver marks an alert seen, commits to
 // responding, or records what happened afterwards.
 //
-// Clients used to write /alert_responses directly. The rules could prove the
 // writer was not impersonating another *responder*, but not that they had
 // anything to do with the alert: `alertId` and `alertOwnerId` were both
 // attacker-supplied strings, and alert ids were wall-clock milliseconds and
 // therefore guessable. Anyone who knew a victim's uid could forge
-// "<name> is responding" onto their live SOS — and a false "help is on the
-// way" during a seizure is worse than no information at all.
-//
-// Everything identifying is now derived server-side from the authorized
-// contact, so contactId/contactName cannot be spoofed either.
-// ---------------------------------------------------------------------------
 
 const MAX_RESPONSE_NOTE = 2000;
 
-exports.submitAlertResponse = onCall(async (request) => {
+exports.submitAlertResponse = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+
   const callerUid = request.auth?.uid;
   if (!callerUid) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
+
+  await enforceRateLimit(callerUid, "alertResponse", 60, 60 * 1000);
 
   const { alertId, responding, note } = request.data || {};
   if (!alertId || typeof alertId !== "string") {
@@ -1031,28 +1054,8 @@ exports.submitAlertResponse = onCall(async (request) => {
   return { ok: true };
 });
 
-// ---------------------------------------------------------------------------
-// deleteMyData — erase everything this account owns, then let the client
-// delete the Firebase Auth user.
-//
-// Replaces FirestoreService.deleteAllUserData, which only removed documents
-// matching `userId == uid`. That left behind every record that identifies a
-// user by some other field:
-//
-//   - alert_responses, keyed on responderId / alertOwnerId — including the
-//     responder's name and their free-text account of what happened
-//   - invites, keyed on senderUid / recipientUid
-//   - rate_limits, keyed `${uid}_${action}`
-//
-// None of those are reachable from the client under firestore.rules, which is
-// why this has to run under the Admin SDK. POPIA s24 gives a data subject the
-// right to have their information deleted; a partial delete does not satisfy
-// it, and until now nothing in the app could have.
-// ---------------------------------------------------------------------------
-
 const DELETE_BATCH_LIMIT = 400;
 
-/** Deletes every document in `docs`, in batches. */
 async function deleteDocs(docs) {
   for (let i = 0; i < docs.length; i += DELETE_BATCH_LIMIT) {
     const batch = db.batch();
@@ -1062,7 +1065,6 @@ async function deleteDocs(docs) {
   return docs.length;
 }
 
-/** Documents matching any of `[field, value]`, deduped by id. */
 async function docsMatchingAny(collection, clauses) {
   const byId = new Map();
   await Promise.all(
@@ -1074,16 +1076,17 @@ async function docsMatchingAny(collection, clauses) {
   return [...byId.values()];
 }
 
-exports.deleteMyData = onCall(async (request) => {
+exports.deleteMyData = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+
   const callerUid = request.auth?.uid;
   if (!callerUid) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
 
-  // Only ever the caller's own data. There is deliberately no uid parameter —
-  // an erasure endpoint that took one would be a way to delete other people's
-  // records.
-  const [own, responses, invites, rateLimits, linkedContacts] = await Promise.all([
+const [own, responses, invites, rateLimits, linkedContacts] = await Promise.all([
     Promise.all(
       ["contacts", "seizureLogs", "alerts", "headsUp"].map((collection) =>
         db.collection(collection).where("userId", "==", callerUid).get()
@@ -1098,7 +1101,7 @@ exports.deleteMyData = onCall(async (request) => {
       ["recipientUid", callerUid],
     ]),
     db.collection("rate_limits").where("__name__", ">=", `${callerUid}_`).where("__name__", "<", `${callerUid}_\uf8ff`).get(),
-    // Contacts belonging to *other* people that point at this account.
+
     db.collection("contacts").where("linkedUid", "==", callerUid).get(),
   ]);
 
@@ -1109,19 +1112,7 @@ exports.deleteMyData = onCall(async (request) => {
   deleted.invites = await deleteDocs(invites);
   deleted.rateLimits = await deleteDocs(rateLimits.docs);
 
-  // Deliberately *not* deleted: the contact rows other users hold for this
-  // person. Those are somebody else's emergency contact list — a name and
-  // number that person typed in themselves — and silently removing an
-  // emergency contact from a patient's circle is a safety change, not a
-  // privacy one.
-  //
-  // What is removed is `linkedUid`, so no cross-user read access survives the
-  // account. With the account gone, findUserByPhone no longer resolves either,
-  // so no further notification reaches them.
-  //
-  // Whether the residual name/number must also go is a policy question for the
-  // responsible party and their legal advice, not something to decide here.
-  const unlinked = linkedContacts.docs;
+const unlinked = linkedContacts.docs;
   for (let i = 0; i < unlinked.length; i += DELETE_BATCH_LIMIT) {
     const batch = db.batch();
     unlinked.slice(i, i + DELETE_BATCH_LIMIT).forEach((doc) => {
@@ -1133,8 +1124,7 @@ exports.deleteMyData = onCall(async (request) => {
 
   await db.collection("users").doc(callerUid).delete();
 
-  // Ids only — never the contents of what was erased.
-  console.log(`Erased data for ${callerUid}:`, deleted);
+console.log(`Erased data for ${callerUid}:`, deleted);
 
   return { ok: true, ...deleted };
 });

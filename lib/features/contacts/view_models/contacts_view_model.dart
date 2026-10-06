@@ -17,16 +17,14 @@ class ContactsViewModel extends GetxController {
   final FirestoreService _firestoreService;
   final CircleInviteService _circleInviteService;
 
-  /// `State`
-  final RxList<ContactDto> contacts = <ContactDto>[].obs;
+final RxList<ContactDto> contacts = <ContactDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
 
   StreamSubscription<List<ContactDto>>? _contactsSub;
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  /// `Lifecycle`
-  @override
+@override
   void onInit() {
     super.onInit();
     _init();
@@ -45,8 +43,7 @@ class ContactsViewModel extends GetxController {
     }, onError: (_) => screenState.value = GenericScreenStates.error);
   }
 
-  /// `UI Logic`
-  Future<ContactDto?> addContact({
+Future<ContactDto?> addContact({
     required String name,
     required String phone,
     String? relation,
@@ -60,7 +57,7 @@ class ContactsViewModel extends GetxController {
       phone: phone.trim(),
       relation: relation.trimNullable(),
       priority: contacts.length,
-      // append at end of priority order
+
       notifyViaSms: notifyViaSms,
       notifyViaPush: notifyViaPush,
       createdAt: DateTime.now(),

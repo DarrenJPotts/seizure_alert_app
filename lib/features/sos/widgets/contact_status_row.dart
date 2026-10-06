@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/services/call_service.dart';
 
-/// One row in the active-SOS status board's contact list.
-/// Shows an initials avatar (filled once seen/responding), the contact's
-/// name, their current status, and a call button.
 class ContactStatusRow extends StatelessWidget {
   const ContactStatusRow({
     super.key,

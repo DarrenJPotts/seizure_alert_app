@@ -9,26 +9,24 @@ import 'firebase_collections_service.dart';
 import 'local_notifications_service.dart';
 
 class FirebaseMessagingService extends GetxService {
-  // Reference to local notifications service
+
   LocalNotificationsService? _localNotificationsService;
 
-  // Reactive FCM token
-  final fcmToken = Rxn<String>();
+final fcmToken = Rxn<String>();
 
-  // Reactive notification data
-  final lastNotification = Rxn<RemoteMessage>();
+final lastNotification = Rxn<RemoteMessage>();
 
   StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<String>? _tokenRefreshSubscription;
+  RemoteMessage? _initialMessage;
 
-  /// Initialize Firebase Messaging
-  Future<FirebaseMessagingService> init({
+Future<FirebaseMessagingService> init({
     required LocalNotificationsService localNotificationsService,
   }) async {
     _localNotificationsService = localNotificationsService;
 
     try {
       await _handlePushNotificationsToken();
-      await _requestPermission();
 
       // getToken() may resolve before a user has signed in this session
       // (e.g. right after a fresh install, before signup/login), so
@@ -42,19 +40,16 @@ class FirebaseMessagingService extends GetxService {
         }
       });
 
-      // Register background handler
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-      // Foreground messages
-      FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+FirebaseMessaging.onMessage.listen(_onForegroundMessage);
 
-      // Background/terminated tap handling
-      FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpenedApp);
+FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpenedApp);
 
-      // Check initial message
-      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
       if (initialMessage != null) {
-        _onMessageOpenedApp(initialMessage);
+
+_initialMessage = initialMessage;
       }
     } catch (e) {
       debugPrint('[FirebaseMessagingService] Error initializing: $e');
@@ -66,21 +61,25 @@ class FirebaseMessagingService extends GetxService {
   @override
   void onClose() {
     _authSubscription?.cancel();
+    _tokenRefreshSubscription?.cancel();
     super.onClose();
   }
 
   Future<void> _handlePushNotificationsToken() async {
+    _tokenRefreshSubscription ??= FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      fcmToken.value = newToken;
+      _persistToken(newToken);
+    });
+    await refreshToken();
+  }
+
+Future<void> refreshToken() async {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null) {
         fcmToken.value = token;
         await _persistToken(token);
       }
-
-      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-        fcmToken.value = newToken;
-        _persistToken(newToken);
-      });
     } catch (e) {
       debugPrint('[FirebaseMessagingService] Error fetching FCM token: $e');
     }
@@ -95,17 +94,25 @@ class FirebaseMessagingService extends GetxService {
     }
   }
 
-  Future<void> _requestPermission() async {
-    try {
-      final result = await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      debugPrint('[FirebaseMessagingService] User granted permission: ${result.authorizationStatus}');
-    } catch (e) {
-      debugPrint('[FirebaseMessagingService] Error requesting permission: $e');
+  String? takeInitialNotificationRoute() {
+    final RemoteMessage? message = _initialMessage;
+    _initialMessage = null;
+    return message == null ? null : _notificationRoute(message.data);
+  }
+
+  String? _notificationRoute(Map<String, dynamic> data) {
+    if (data['type'] == 'circle_invite' && data['inviteId'] != null) {
+      return '${AppRoutes.circleInvite}?inviteId=${Uri.encodeQueryComponent(data['inviteId'].toString())}';
     }
+
+    final alertId = data['alertId'];
+    if (alertId != null && alertId.isNotEmpty && data['alertType'] == 'sos' && data['alertStatus'] == 'sent') {
+      return '${AppRoutes.incomingAlert}?alertId=${Uri.encodeQueryComponent(alertId.toString())}';
+    }
+
+    final String? route = data['route'] as String?;
+    const Set<String> navigableRoutes = <String>{AppRoutes.alertHistory, AppRoutes.mode, AppRoutes.root};
+    return route != null && navigableRoutes.contains(route) ? route : null;
   }
 
   void _onForegroundMessage(RemoteMessage message) {
@@ -122,18 +129,14 @@ class FirebaseMessagingService extends GetxService {
     }
   }
 
-  /// Builds a bare route (with query params) the foreground tap handler
-  /// (`LocalNotificationsService`) can act on — it only navigates when the
-  /// payload literally starts with `/`. Other notification types fall back
-  /// to the pre-existing stringified data map, which is not actionable.
-  String _foregroundPayload(Map<String, dynamic> data) {
+String _foregroundPayload(Map<String, dynamic> data) {
     if (data['type'] == 'circle_invite' && data['inviteId'] != null) {
-      return '${AppRoutes.circleInvite}?inviteId=${data['inviteId']}';
+      return '${AppRoutes.circleInvite}?inviteId=${Uri.encodeQueryComponent(data['inviteId'].toString())}';
     }
     if (data['alertType'] == 'sos' &&
         data['alertStatus'] == 'sent' &&
         data['alertId'] != null) {
-      return '${AppRoutes.incomingAlert}?alertId=${data['alertId']}';
+      return '${AppRoutes.incomingAlert}?alertId=${Uri.encodeQueryComponent(data['alertId'].toString())}';
     }
     return data.toString();
   }
@@ -142,43 +145,15 @@ class FirebaseMessagingService extends GetxService {
     debugPrint('[FirebaseMessagingService] Notification caused app to open: ${message.data}');
     lastNotification.value = message;
 
-    // Navigation with GetX
-    _handleNotificationNavigation(message);
+_handleNotificationNavigation(message);
   }
 
   void _handleNotificationNavigation(RemoteMessage message) {
-    final data = message.data;
-
-    if (data['type'] == 'circle_invite' && data['inviteId'] != null) {
-      Get.toNamed(AppRoutes.circleInvite, arguments: {'inviteId': data['inviteId']});
-      return;
-    }
-
-    final alertId = data['alertId'];
-    final alertType = data['alertType'];
-    final alertStatus = data['alertStatus'];
-    if (alertId != null &&
-        alertId.isNotEmpty &&
-        alertType == 'sos' &&
-        alertStatus == 'sent') {
-      Get.toNamed(AppRoutes.incomingAlert, arguments: {'alertId': alertId});
-      return;
-    }
-
-    const Set<String> navigableRoutes = <String>{
-      AppRoutes.alertHistory,
-      AppRoutes.mode,
-      AppRoutes.root,
-    };
-
-    final String? route = data['route'] as String?;
-    if (route != null && navigableRoutes.contains(route)) {
-      Get.toNamed(route);
-    }
+    final String? route = _notificationRoute(message.data);
+    if (route != null) Get.toNamed(route);
   }
 }
 
-// Background handler (must be top-level)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('[FirebaseMessagingService] Background message received: ${message.data}');

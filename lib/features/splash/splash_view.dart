@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/services/app_mode_service.dart';
+import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/features/splash/widgets/splash_body.dart';
 
 class SplashViewModel extends GetxController {
@@ -23,9 +24,20 @@ class SplashViewModel extends GetxController {
     ]);
 
     final User? user = settled.first as User?;
+    final String? notificationRoute = Get.isRegistered<FirebaseMessagingService>()
+        ? Get.find<FirebaseMessagingService>().takeInitialNotificationRoute()
+        : null;
 
     if (user != null) {
-      Get.offAllNamed(AppRoutes.root);
+      Get.offAllNamed(notificationRoute ?? AppRoutes.root);
+      return;
+    }
+
+    if (notificationRoute != null) {
+      Get.offAllNamed(
+        AppRoutes.login,
+        arguments: <String, String>{AppRoutes.redirectArgument: notificationRoute},
+      );
       return;
     }
 

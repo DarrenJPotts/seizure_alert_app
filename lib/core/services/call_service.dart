@@ -28,7 +28,7 @@ class CallService {
     try {
       if (await canLaunchUrl(uri) && await launchUrl(uri)) return;
     } catch (_) {
-      // Fall through to the clipboard fallback below.
+
     }
 
     await Clipboard.setData(ClipboardData(text: normalized));

@@ -122,11 +122,6 @@ class _LogMonth {
   final List<SeizureLogDto> entries = <SeizureLogDto>[];
 }
 
-/// Swipe-to-delete over a log row.
-///
-/// A log entry is part of a medical record, so removal is confirmed rather
-/// than immediate, and there was previously no way to remove a mis-logged
-/// entry at all.
 class _DismissibleLogRow extends StatelessWidget {
   const _DismissibleLogRow({required this.log, required this.onTap, required this.onDelete});
 

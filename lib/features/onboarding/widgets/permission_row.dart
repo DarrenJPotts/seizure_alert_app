@@ -17,9 +17,7 @@ class PermissionRow extends StatelessWidget {
   final String description;
   final bool granted;
 
-  /// Permanently denied at OS level. Requesting again is a no-op, so the only
-  /// route left is the system settings pane.
-  final bool blocked;
+final bool blocked;
 
   final VoidCallback? onTap;
 
@@ -55,7 +53,7 @@ class PermissionRow extends StatelessWidget {
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
-                      ?.copyWith(color: blocked ? Colors.red.shade400 : Colors.black45),
+                      ?.copyWith(color: Colors.black54),
                 ),
               ],
             ),
@@ -69,12 +67,11 @@ class PermissionRow extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.black,
                 side: const BorderSide(color: Colors.black26),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: Dimensions.twelve, vertical: Dimensions.eight),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    borderRadius: BorderRadius.circular(10)),
+                minimumSize: const Size(48, 48),
+                tapTargetSize: MaterialTapTargetSize.padded,
               ),
               child: Text(
                 blocked ? 'Open settings' : 'Enable',

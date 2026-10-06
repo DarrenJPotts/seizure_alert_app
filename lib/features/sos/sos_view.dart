@@ -26,12 +26,13 @@ class SosView extends StatelessWidget {
   static const double _sheetMinSize = 0.10;
   static const double _sheetMaxSize = 0.55;
 
-  void _handleSOS(BuildContext context, SosViewModel sosVm) {
+  void _handleSOS(BuildContext context, SosViewModel sosVm, {required bool hasRecipients}) {
     HapticFeedback.heavyImpact();
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => CountdownAlertDialog(
+        hasRecipients: hasRecipients,
         onConfirm: () {
           Navigator.pop(context);
           sosVm.startSos();
@@ -59,8 +60,11 @@ class SosView extends StatelessWidget {
     return Obx(() {
       final RxList<ContactDto> contacts = contactsVm.contacts;
       final RxList<AlertResponseDto> responses = sosVm.alertResponses;
-      final int totalCount = contacts.length;
-      final int seenCount = contacts
+      final List<ContactDto> recipients = contacts
+          .where((ContactDto c) => c.notifyViaPush || c.notifyViaSms)
+          .toList();
+      final int totalCount = recipients.length;
+      final int seenCount = recipients
           .where(
             (ContactDto c) => responses.any((AlertResponseDto r) => r.contactId == c.id && (r.seen || r.responding)),
           )
@@ -92,25 +96,27 @@ class SosView extends StatelessWidget {
                     child: Text(
                       'YOUR CIRCLE',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.black45,
+                        color: Colors.black54,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 2,
                       ),
                     ),
                   ),
-                  if (contacts.isEmpty)
+                  if (recipients.isEmpty)
                     Padding(
                       padding: EdgeInsets.fromLTRB(Dimensions.twentyFour, Dimensions.twelve, Dimensions.twentyFour, 0),
                       child: Text(
-                        'You have no contacts to notify yet.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                        contacts.isEmpty
+                            ? 'No contacts are set up to receive this SOS.'
+                            : 'No alert method is enabled for your contacts.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
                       ),
                     )
                   else
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
                       child: Column(
-                        children: contacts.map((ContactDto contact) {
+                        children: recipients.map((ContactDto contact) {
                           AlertResponseDto? response;
                           for (final AlertResponseDto r in responses) {
                             if (r.contactId == contact.id) {
@@ -193,16 +199,32 @@ class SosView extends StatelessWidget {
       children: [
         Text('Tap to alert your circle', style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
         SizedBox(height: Dimensions.eight),
-        Text(
-          '10 seconds to cancel before anyone is notified',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
-          textAlign: TextAlign.center,
-        ),
+        Obx(() {
+          final bool hasRecipients = contactsVm.contacts.any((c) => c.notifyViaPush || c.notifyViaSms);
+          return Text(
+            hasRecipients
+                ? '10 seconds to cancel before your circle is notified'
+                : 'No one is set to receive this SOS. Add or enable an alert contact below.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            textAlign: TextAlign.center,
+          );
+        }),
         SizedBox(height: Dimensions.twentyFour),
-        SOSButton(onPressed: () => _handleSOS(context, sosVm)),
+        Obx(() {
+          final bool hasRecipients = contactsVm.contacts.any((c) => c.notifyViaPush || c.notifyViaSms);
+          return SOSButton(
+            hasRecipients: hasRecipients,
+            onPressed: () => _handleSOS(context, sosVm, hasRecipients: hasRecipients),
+          );
+        }),
         SizedBox(height: Dimensions.thirtyTwo),
 
-        Obx(() => SosContactsSummary(contacts: contactsVm.contacts.toList())),
+        Obx(
+          () => SosContactsSummary(
+            contacts: contactsVm.contacts.toList(),
+            onAddContact: () => viewModel.changePage(3),
+          ),
+        ),
       ],
     );
   }
@@ -283,7 +305,7 @@ class _CompactIdleSheetState extends State<_CompactIdleSheet> {
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 16,
                         offset: const Offset(0, -4),
                       ),

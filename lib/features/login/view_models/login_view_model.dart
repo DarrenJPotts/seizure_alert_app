@@ -5,6 +5,7 @@ import 'package:seizure_app/core/controllers/firebase_auth_controller/firebase_a
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
+import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/features/onboarding/view_models/onboarding_view_model.dart';
 
 class LoginBinding extends Bindings {
@@ -17,11 +18,9 @@ class LoginBinding extends Bindings {
 class LoginViewModel extends GetxController {
   LoginViewModel(this._firebaseAuthController);
 
-  /// `Providers`
-  final FirebaseAuthController _firebaseAuthController;
+final FirebaseAuthController _firebaseAuthController;
 
-  /// `Controllers`
-  final TextEditingController emailController = TextEditingController();
+final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   final Rxn<String> errorMessage = Rxn<String>();
@@ -34,10 +33,17 @@ class LoginViewModel extends GetxController {
       final ResultDto<User> result = await _firebaseAuthController.signIn(emailController.text, passwordController.text);
 
       if (result.isSuccess) {
+        // Signing in successfully means the account already exists, so this
+        // person has been through onboarding — just not on this device. The
+        // completion flag lives in SharedPreferences, which a new phone starts
+        // empty, so without this the splash screen keeps routing returning
+        // users to onboarding instead of login every time they sign out.
+        await AppModeService.instance().setOnboardingCompleted(true);
         await OnboardingViewModel.discardDraft();
 
         screenState.value = GenericScreenStates.loaded;
-        Get.offAllNamed(AppRoutes.root);
+        final String? redirectRoute = _safeRedirectRoute;
+        Get.offAllNamed(redirectRoute ?? AppRoutes.root);
       } else {
         screenState.value = GenericScreenStates.error;
         errorMessage.value = result.error ?? 'Invalid username or password. Please try again.';
@@ -46,6 +52,23 @@ class LoginViewModel extends GetxController {
       screenState.value = GenericScreenStates.error;
       errorMessage.value = e.toString();
     }
+  }
+
+  String? get _safeRedirectRoute {
+    final args = Get.arguments;
+    if (args is! Map) return null;
+
+    final String? route = args[AppRoutes.redirectArgument] as String?;
+    if (route == null) return null;
+
+    if (route == AppRoutes.alertHistory ||
+        route == AppRoutes.mode ||
+        route.startsWith('${AppRoutes.incomingAlert}?alertId=') ||
+        route.startsWith('${AppRoutes.circleInvite}?inviteId=') ||
+        route.startsWith('${AppRoutes.responding}?alertId=')) {
+      return route;
+    }
+    return null;
   }
 
   @override

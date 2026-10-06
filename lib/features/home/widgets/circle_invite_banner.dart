@@ -4,8 +4,6 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/invite_dto.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 
-/// Surfaces a pending circle invite on Home so it isn't lost if the
-/// recipient dismisses or misses the push notification.
 class CircleInviteBanner extends StatelessWidget {
   const CircleInviteBanner({super.key, required this.invite});
 

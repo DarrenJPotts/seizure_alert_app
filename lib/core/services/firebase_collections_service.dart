@@ -9,6 +9,7 @@ import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/dtos/invite_dto.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
+import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/dtos/heads_up_dto.dart';
 
@@ -21,9 +22,9 @@ class FirestoreService {
 
   final FirebaseFirestore _db;
 
-  // ─── Users ────────────────────────────────────────────────────────────────
-
-  Future<ResultDto<void>> upsertUser(UserDto user) async {
+Future<ResultDto<void>> upsertUser(UserDto user) async {
+    final String? phoneError = PhoneNumber.validationError(user.phone);
+    if (phoneError != null) return ResultDto.failure(phoneError);
     try {
       await _db.collection(FirebaseCollectionKeys.users).doc(user.uid).set(user.toMap(), SetOptions(merge: true));
       return ResultDto.success(null);
@@ -55,9 +56,7 @@ class FirestoreService {
     }
   }
 
-  // ─── Contacts ─────────────────────────────────────────────────────────────
-
-  Stream<List<ContactDto>> watchContacts(String userId) {
+Stream<List<ContactDto>> watchContacts(String userId) {
     return _db
         .collection(FirebaseCollectionKeys.contacts)
         .where('userId', isEqualTo: userId)
@@ -67,6 +66,11 @@ class FirestoreService {
   }
 
   Future<ResultDto<void>> upsertContact(ContactDto contact) async {
+    final String? phoneError = PhoneNumber.validationError(
+      contact.phone,
+      required: true,
+    );
+    if (phoneError != null) return ResultDto.failure(phoneError);
     try {
       await _db
           .collection(FirebaseCollectionKeys.contacts)
@@ -87,9 +91,7 @@ class FirestoreService {
     }
   }
 
-  // ─── Seizure logs ─────────────────────────────────────────────────────────
-
-  Stream<List<SeizureLogDto>> watchSeizureLogs(String userId) {
+Stream<List<SeizureLogDto>> watchSeizureLogs(String userId) {
     return _db
         .collection(FirebaseCollectionKeys.seizureLogs)
         .where('userId', isEqualTo: userId)
@@ -119,9 +121,7 @@ class FirestoreService {
     }
   }
 
-  // ─── Alerts ───────────────────────────────────────────────────────────────
-
-  Future<ResultDto<void>> createAlert(AlertDto alert) async {
+Future<ResultDto<void>> createAlert(AlertDto alert) async {
     try {
       await _db.collection(FirebaseCollectionKeys.alerts).doc(alert.id).set(alert.toMap());
       return ResultDto.success(null);
@@ -152,9 +152,7 @@ class FirestoreService {
         .map((s) => s.docs.map((d) => AlertDto.fromMap(d.data())).toList());
   }
 
-  // ─── Heads Up ─────────────────────────────────────────────────────────────
-
-  Future<ResultDto<void>> upsertHeadsUp(HeadsUpDto headsUp) async {
+Future<ResultDto<void>> upsertHeadsUp(HeadsUpDto headsUp) async {
     try {
       await _db.collection(FirebaseCollectionKeys.headsUp).doc(headsUp.id).set(headsUp.toMap());
       return ResultDto.success(null);
@@ -179,12 +177,6 @@ class FirestoreService {
       return ResultDto.failure(e.toString());
     }
   }
-
-  // ─── Account deletion ─────────────────────────────────────────────────────
-
-  // ─── Alert responses ──────────────────────────────────────────────────────
-
-  /// Streams the circle's responses to one of the signed-in user's own alerts.
   /// The `alertOwnerId` filter is not redundant with `alertId`. Firestore
   /// evaluates security rules against the *query* on a list operation, not
   /// against the documents it returns, so it will reject any query it cannot
@@ -202,11 +194,7 @@ class FirestoreService {
         .map((s) => s.docs.map((d) => AlertResponseDto.fromMap(d.data())).toList());
   }
 
-  // ─── Circle invites ───────────────────────────────────────────────────────
-  // Writes (create/accept/decline) only ever happen via the sendCircleInvite
-  // / respondToInvite Cloud Functions — these are read-only client methods.
-
-  Future<ResultDto<InviteDto?>> getInvite(String inviteId) async {
+Future<ResultDto<InviteDto?>> getInvite(String inviteId) async {
     try {
       final doc = await _db.collection(FirebaseCollectionKeys.invites).doc(inviteId).get();
       if (!doc.exists) return ResultDto.success(null);

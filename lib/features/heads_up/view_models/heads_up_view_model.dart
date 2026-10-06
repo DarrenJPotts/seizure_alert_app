@@ -1,4 +1,4 @@
-// lib/features/heads_up/view_models/heads_up_view_model.dart
+
 
 import 'dart:async';
 import 'dart:convert';
@@ -50,9 +50,7 @@ class HeadsUpViewModel extends GetxController {
     super.onClose();
   }
 
-  // ─── Restore on app launch ─────────────────────────────────────────────────
-
-  Future<void> _restoreActiveHeadsUp() async {
+Future<void> _restoreActiveHeadsUp() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final json = prefs.getString(_storageKey);
@@ -64,7 +62,7 @@ class HeadsUpViewModel extends GetxController {
         activeHeadsUp.value = dto;
         _startCountdown();
       } else if (dto.status == HeadsUpStatus.active) {
-        // Timer expired while app was closed
+
         await _onExpired(dto);
       }
     } catch (e) {
@@ -72,9 +70,7 @@ class HeadsUpViewModel extends GetxController {
     }
   }
 
-  // ─── Create ────────────────────────────────────────────────────────────────
-
-  Future<void> startHeadsUp() async {
+Future<void> startHeadsUp() async {
     isLoading.value = true;
 
     try {
@@ -98,12 +94,11 @@ class HeadsUpViewModel extends GetxController {
 
       final position = await LocationService.instance().getCurrentPosition();
 
-      // Save to Firestore so contacts can be notified
-      final firestoreService = FirestoreService.instance();
+final firestoreService = FirestoreService.instance();
       final headsUpResult = await firestoreService.upsertHeadsUp(dto);
 
       var alertOk = true;
-      // Create an alert record for contact notification tracking
+
       if (_uid.isNotEmpty) {
         final alert = AlertDto(
           id: '${id}_alert',
@@ -120,7 +115,7 @@ class HeadsUpViewModel extends GetxController {
         if (!alertOk) debugPrint('[HeadsUpVM] Error creating alert: ${alertResult.error}');
       }
 
-      Get.back(); // close bottom sheet
+      Get.back();
       if (headsUpResult.isSuccess && alertOk) {
         _showSnackbar('Heads Up sent', 'Your circle knows to check in on you');
       } else {
@@ -137,9 +132,7 @@ class HeadsUpViewModel extends GetxController {
     }
   }
 
-  // ─── Cancel ────────────────────────────────────────────────────────────────
-
-  Future<void> cancelHeadsUp() async {
+Future<void> cancelHeadsUp() async {
     final current = activeHeadsUp.value;
     if (current == null) return;
 
@@ -174,9 +167,7 @@ class HeadsUpViewModel extends GetxController {
     }
   }
 
-  // ─── Check in ─────────────────────────────────────────────────────────────
-
-  Future<void> checkIn() async {
+Future<void> checkIn() async {
     final current = activeHeadsUp.value;
     if (current == null) return;
 
@@ -210,10 +201,6 @@ class HeadsUpViewModel extends GetxController {
       _showErrorSnackbar('Not Updated', 'Your circle may still think this is active.');
     }
   }
-
-  // ─── Expiry ────────────────────────────────────────────────────────────────
-
-  /// Clears the local countdown once the window has run out.
   /// Escalation itself — flipping the Firestore `headsUp` document to
   /// `expired` and creating the `headsUpExpired` alert that notifies the
   /// contact circle — is deliberately *not* done here. It belongs to the
@@ -235,9 +222,7 @@ class HeadsUpViewModel extends GetxController {
     }
   }
 
-  // ─── Countdown ────────────────────────────────────────────────────────────
-
-  void _startCountdown() {
+void _startCountdown() {
     _countdownTimer?.cancel();
     _tick();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
@@ -257,9 +242,7 @@ class HeadsUpViewModel extends GetxController {
     }
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  Future<void> _persist(HeadsUpDto dto) async {
+Future<void> _persist(HeadsUpDto dto) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_storageKey, jsonEncode(dto.toMap()));

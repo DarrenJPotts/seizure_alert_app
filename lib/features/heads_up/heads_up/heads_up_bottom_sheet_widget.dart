@@ -22,7 +22,7 @@ class HeadsUpBottomSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Dimensions.twentyFour,
         children: [
-          /// Header
+
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.eight,
@@ -37,8 +37,7 @@ class HeadsUpBottomSheet extends StatelessWidget {
             ],
           ),
 
-          /// Check-in window
-          Column(
+Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.twelve,
             children: [
@@ -87,8 +86,7 @@ class HeadsUpBottomSheet extends StatelessWidget {
             ],
           ),
 
-          /// Optional note
-          Column(
+Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.twelve,
             children: [
@@ -100,31 +98,14 @@ class HeadsUpBottomSheet extends StatelessWidget {
                 controller: vm.noteController,
                 maxLines: 3,
                 maxLength: 120,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'e.g. Feeling an aura, heading home...',
-                  hintStyle: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.black38),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.black12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.black12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.black, width: 1.5),
-                  ),
-                  contentPadding: EdgeInsets.all(Dimensions.sixteen),
                 ),
               ),
             ],
           ),
 
-          /// What happens next
-          Container(
+Container(
             padding: EdgeInsets.all(Dimensions.sixteen),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.04),
@@ -160,8 +141,7 @@ class HeadsUpBottomSheet extends StatelessWidget {
             ),
           ),
 
-          /// Send button
-          Obx(
+Obx(
             () => SizedBox(
               width: double.infinity,
               child: ElevatedButton(

@@ -3,17 +3,6 @@ const assert = require("node:assert/strict");
 
 const { normalizePhone, DEFAULT_DIAL_CODE } = require("../phone");
 
-/**
- * This must stay behaviourally identical to PhoneNumber.normalize in
- * lib/core/helpers/phone_number.dart. The client writes phoneNormalized and
- * the functions query on it, so any divergence means a contact is written
- * under one key and looked up under another — and receives no alerts, with
- * nothing in either UI to say so.
- *
- * The cases below are deliberately the same ones as
- * test/core/helpers/phone_number_test.dart. Change one, change both.
- */
-
 test("collapses every local and international form of one number", () => {
   const expected = "+27821234567";
   const inputs = [
@@ -63,12 +52,8 @@ test("strips punctuation without altering the digits", () => {
 });
 
 test("treats a leading 00 as the international prefix, not a trunk zero", () => {
-  // "00" is the international access code, so "00821234567" is +82 (South
-  // Korea) and NOT the local South African "0821234567". This is a real trap:
-  // the two strings differ by one character and resolve to different
-  // countries. Both implementations must agree, or a contact saved on one side
-  // is looked up under a different key on the other.
-  assert.equal(normalizePhone("00821234567"), "+821234567");
+
+assert.equal(normalizePhone("00821234567"), "+821234567");
   assert.equal(normalizePhone("0821234567"), "+27821234567");
   assert.notEqual(
     normalizePhone("00821234567"),

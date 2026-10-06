@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
-// Tactile confirmation that a tap registered. Matters more than usual
-// here: a post-ictal user often cannot trust what they just read.
 VoidCallback? _tap(VoidCallback? onTap) => onTap == null
     ? null
     : () {
