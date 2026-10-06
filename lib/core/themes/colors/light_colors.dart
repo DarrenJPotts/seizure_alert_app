@@ -1,44 +1,51 @@
 import 'dart:ui';
 
 class AppColorsLight {
-  // Primary Colors
-  static const Color primary = Color(0xFF1A1A1A); // Deep Black
-  static const Color primaryLight = Color(0xFF2D2D2D); // Lighter Black
-  static const Color primaryDark = Color(0xFF000000); // Pure Black
 
-  // Secondary Colors
-  static const Color secondary = Color(0xFF6B6B6B); // Medium Gray
-  static const Color secondaryLight = Color(0xFF9E9E9E); // Light Gray
-  static const Color secondaryDark = Color(0xFF424242); // Dark Gray
+  static const Color primary = Color(0xFF1A1A1A);
+  static const Color primaryLight = Color(0xFF2D2D2D);
+  static const Color primaryDark = Color(0xFF000000);
 
-  // Background Colors
-  static const Color background = Color(0xFFF1F1F1); // Off-White
-  static const Color surface = Color(0xFFFFFFFF); // Pure White
-  static const Color cardBackground = Color(0xFFFAFAFA); // Card White
+static const Color secondary = Color(0xFF6B6B6B);
+  static const Color secondaryLight = Color(0xFF9E9E9E);
+  static const Color secondaryDark = Color(0xFF424242);
 
-  // Text Colors
-  static const Color textPrimary = Color(0xFF1A1A1A); // Primary Text
-  static const Color textSecondary = Color(0xFF757575); // Secondary Text
-  static const Color textDisabled = Color(0xFFBDBDBD); // Disabled Text
-  static const Color textHint = Color(0xFF9E9E9E); // Hint Text
+static const Color background = Color(0xFFF1F1F1);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color cardBackground = Color(0xFFFAFAFA);
 
-  // Accent Colors (minimal usage)
-  static const Color accent = Color(0xFF2196F3); // Subtle Blue (for links/actions)
-  static const Color accentRed = Color(0xFFE53935); // Error/Delete
-  static const Color accentGreen = Color(0xFF43A047); // Success
-  static const Color accentOrange = Color(0xFFFF9800); // Warning
+static const Color textPrimary = Color(0xFF1A1A1A);
+  static const Color textSecondary = Color(0xFF757575);
+  static const Color textDisabled = Color(0xFFBDBDBD);
+  static const Color textHint = Color(0xFF9E9E9E);
 
-  // UI Elements
-  static const Color divider = Color(0xFFE0E0E0); // Dividers
-  static const Color border = Color(0xFFEEEEEE); // Borders
-  static const Color shadow = Color(0x1A000000); // Shadows (10% opacity)
-  static const Color overlay = Color(0x80000000); // Overlay (50% opacity)
+static const Color accent = Color(0xFF2196F3);
+  static const Color accentRed = Color(0xFFE53935);
+  static const Color accentGreen = Color(0xFF43A047);
+  static const Color accentOrange = Color(0xFFFF9800);
 
-  // Progress/Indicators
-  static const Color progressActive = Color(0xFF1A1A1A); // Active dots
-  static const Color progressInactive = Color(0xFFE0E0E0); // Inactive dots
+static const Color divider = Color(0xFFE0E0E0);
+  static const Color border = Color(0xFFEEEEEE);
+  static const Color shadow = Color(0x1A000000);
+  static const Color overlay = Color(0x80000000);
 
-  // Floating Action Button
-  static const Color fabBackground = Color(0xFF1A1A1A); // FAB background
-  static const Color fabIcon = Color(0xFFFFFFFF); // FAB icon
+static const Color progressActive = Color(0xFF1A1A1A);
+  static const Color progressInactive = Color(0xFFE0E0E0);
+
+static const Color fabBackground = Color(0xFF1A1A1A);
+  static const Color fabIcon = Color(0xFFFFFFFF);
+
+static const Color surfaceContainerLowest = Color(0xFFFFFFFF);
+  static const Color surfaceContainerLow = Color(0xFFFAFAFA);
+  static const Color surfaceContainer = Color(0xFFF5F5F5);
+  static const Color surfaceContainerHigh = Color(0xFFF0F0F0);
+  static const Color surfaceContainerHighest = Color(0xFFEBEBEB);
+  static const Color surfaceDim = Color(0xFFF0F0F0);
+  static const Color surfaceBright = Color(0xFFFFFFFF);
+
+static const Color outline = Color(0xFFBDBDBD);
+  static const Color outlineVariant = Color(0xFFE0E0E0);
+
+static const Color errorContainer = Color(0xFFFFEBEE);
+  static const Color onErrorContainer = Color(0xFFB71C1C);
 }

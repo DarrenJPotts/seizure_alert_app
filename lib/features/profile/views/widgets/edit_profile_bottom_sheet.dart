@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/formatters/south_african_phone_input_formatter.dart';
+import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 
@@ -130,8 +133,14 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
               child: TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
+                inputFormatters: const <TextInputFormatter>[
+                  SouthAfricanPhoneInputFormatter(),
+                ],
+                maxLength: SouthAfricanPhoneInputFormatter.maxLength,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 style: Theme.of(context).textTheme.bodyMedium,
-                decoration: _inputDeco(hint: 'Your phone number'),
+                validator: (value) => PhoneNumber.validationError(value),
+                decoration: _inputDeco(hint: 'Your phone number', counterText: ''),
               ),
             ),
 
@@ -244,29 +253,8 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
     );
   }
 
-  InputDecoration _inputDeco({String? hint, String? helper}) => InputDecoration(
-    hintText: hint,
-    helperText: helper,
-    hintStyle: Theme.of(
-      context,
-    ).textTheme.bodyMedium?.copyWith(color: Colors.black38),
-    helperStyle: Theme.of(
-      context,
-    ).textTheme.bodySmall?.copyWith(color: Colors.black45),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Colors.black12),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Colors.black12),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Colors.black, width: 1.5),
-    ),
-  );
+  InputDecoration _inputDeco({String? hint, String? helper, String? counterText}) =>
+      InputDecoration(hintText: hint, helperText: helper, counterText: counterText);
 }
 
 class _LabeledField extends StatelessWidget {

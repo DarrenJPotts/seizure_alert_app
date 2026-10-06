@@ -8,7 +8,6 @@ import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
-import 'package:seizure_app/core/widgets/live_indicator.dart';
 import 'package:seizure_app/features/alert_history/alert_history_view.dart';
 import 'package:seizure_app/features/alert_history/view_models/alert_history_view_model.dart';
 import 'package:seizure_app/features/caregiver/caregiver_view.dart';
@@ -121,7 +120,13 @@ class RootView extends GetView<RootViewModel> {
     appBar: AppBar(
       elevation: 0,
       foregroundColor: Colors.black,
-      title: const _MonitoringBadge(),
+      title: Text(
+        'SOS is manual',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Colors.black.withValues(alpha: 0.7),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
       centerTitle: false,
       actionsPadding: EdgeInsets.only(right: Dimensions.twelve),
       actions: [
@@ -169,18 +174,4 @@ class RootView extends GetView<RootViewModel> {
       await FirebaseAuthController.instance().signOut();
     }
   }
-}
-
-class _MonitoringBadge extends StatelessWidget {
-  const _MonitoringBadge();
-
-  @override
-  Widget build(BuildContext context) => LiveStatusLabel(
-    label: 'Monitoring active',
-    indicatorSize: 14,
-    gap: Dimensions.eight,
-    textStyle: Theme.of(
-      context,
-    ).textTheme.bodySmall?.copyWith(color: Colors.black.withValues(alpha: 0.7), fontWeight: FontWeight.w500),
-  );
 }

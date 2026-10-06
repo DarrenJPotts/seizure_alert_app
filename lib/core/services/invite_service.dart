@@ -20,15 +20,10 @@ class InviteService {
   static String _senderName() =>
       FirebaseAuth.instance.currentUser?.displayName?.trim() ?? 'Your contact';
 
-  // wa.me wants a full international number as bare digits, no plus. The old
-  // implementation only stripped punctuation, so a locally-written number
-  // like "082 123 4567" produced a wa.me link to a nonexistent subscriber.
-  static String? _waMeDigits(String phone) =>
+static String? _waMeDigits(String phone) =>
       PhoneNumber.normalize(phone)?.substring(1);
 
-  // ─── SMS ──────────────────────────────────────────────────────────────────
-
-  static Future<void> sendSmsInvite({required String phone}) async {
+static Future<void> sendSmsInvite({required String phone}) async {
     final sender = _senderName();
     final uri = Uri(
       scheme: 'sms',
@@ -47,9 +42,7 @@ class InviteService {
     }
   }
 
-  // ─── WhatsApp ─────────────────────────────────────────────────────────────
-
-  static Future<void> sendWhatsAppInvite({required String phone}) async {
+static Future<void> sendWhatsAppInvite({required String phone}) async {
     final sender = _senderName();
     final digits = _waMeDigits(phone);
 
@@ -72,9 +65,7 @@ class InviteService {
     }
   }
 
-  // ─── Clipboard fallback ───────────────────────────────────────────────────
-
-  static Future<void> _fallbackCopy(String senderName) async {
+static Future<void> _fallbackCopy(String senderName) async {
     await Clipboard.setData(ClipboardData(text: _buildMessage(senderName)));
     Get.snackbar(
       '',

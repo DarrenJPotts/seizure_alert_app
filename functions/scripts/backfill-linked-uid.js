@@ -51,8 +51,7 @@ async function main() {
     db.collection("users").get(),
   ]);
 
-  // contactId -> recipientUid, from explicit accepted invites.
-  const inviteLinks = new Map();
+const inviteLinks = new Map();
   invitesSnap.docs.forEach((doc) => {
     const invite = doc.data();
     if (invite.contactId && invite.recipientUid) {
@@ -60,8 +59,7 @@ async function main() {
     }
   });
 
-  // normalised phone -> uid, for the legacy fallback.
-  const usersByPhone = new Map();
+const usersByPhone = new Map();
   usersSnap.docs.forEach((doc) => {
     const normalized =
       doc.data().phoneNormalized || normalizePhone(doc.data().phone);
@@ -87,7 +85,7 @@ async function main() {
       continue;
     }
     if (contact.status === "pending") {
-      // No consent yet; respondToInvite will stamp it on accept.
+
       stats.pending += 1;
       continue;
     }
@@ -101,9 +99,7 @@ async function main() {
       source = "phone";
     }
 
-    // A contact pointing at the owner's own account would let someone watch
-    // themselves and pollute their own watch list.
-    if (linkedUid && linkedUid === contact.userId) linkedUid = undefined;
+if (linkedUid && linkedUid === contact.userId) linkedUid = undefined;
 
     if (!linkedUid) {
       // Expected and fine: most contacts are people with no account at all.

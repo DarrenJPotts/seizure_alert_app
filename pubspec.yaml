@@ -1,6 +1,6 @@
 name: seizure_app
 description: "A new Flutter project."
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
@@ -12,6 +12,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   firebase_core: ^4.4.0
+  firebase_app_check: ^0.4.8
   firebase_messaging: ^16.1.1
   flutter_local_notifications: ^20.0.0
   get: ^4.7.3
@@ -26,20 +27,14 @@ dependencies:
   latlong2: ^0.9.0
   url_launcher: ^6.3.0
   cloud_functions: ^6.3.5
+  phone_numbers_parser: 9.0.28
   flutter_native_splash: ^2.4.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # In-memory Firestore so the service layer and its queries can be tested
-  # without an emulator or a network round trip.
   fake_cloud_firestore: ^4.0.0
   flutter_lints: ^6.0.0
-
-# Generates the native launch screens so the app does not flash white before
-# Flutter paints. Black matches `SplashBody`; re-run `dart run
-# flutter_native_splash:create` after changing anything here.
 flutter_native_splash:
   color: "#000000"
   android: true
@@ -56,46 +51,38 @@ flutter:
   fonts:
     - family: RedHatDisplay
       fonts:
-        # Thin weights (100)
         - asset: assets/fonts/RedHatDisplay-Light.ttf
           weight: 300
         - asset: assets/fonts/RedHatDisplay-LightItalic.ttf
           weight: 300
           style: italic
-        # Regular weight (400)
         - asset: assets/fonts/RedHatDisplay-Regular.ttf
           weight: 400
         - asset: assets/fonts/RedHatDisplay-Italic.ttf
           weight: 400
           style: italic
-        # Medium weight (500)
         - asset: assets/fonts/RedHatDisplay-Medium.ttf
           weight: 500
         - asset: assets/fonts/RedHatDisplay-MediumItalic.ttf
           weight: 500
           style: italic
-        # Semi-Bold weight (600)
         - asset: assets/fonts/RedHatDisplay-SemiBold.ttf
           weight: 600
         - asset: assets/fonts/RedHatDisplay-SemiBoldItalic.ttf
           weight: 600
           style: italic
-        # Bold weight (700)
         - asset: assets/fonts/RedHatDisplay-Bold.ttf
           weight: 700
         - asset: assets/fonts/RedHatDisplay-BoldItalic.ttf
           weight: 700
           style: italic
-        # Extra-Bold weight (800)
         - asset: assets/fonts/RedHatDisplay-ExtraBold.ttf
           weight: 800
         - asset: assets/fonts/RedHatDisplay-ExtraBoldItalic.ttf
           weight: 800
           style: italic
-        # Black weight (900)
         - asset: assets/fonts/RedHatDisplay-Black.ttf
           weight: 900
         - asset: assets/fonts/RedHatDisplay-BlackItalic.ttf
           weight: 900
           style: italic
-  # see https://flutter.dev/to/font-from-package

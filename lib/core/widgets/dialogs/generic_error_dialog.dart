@@ -50,7 +50,7 @@ class GenericErrorDialog extends StatelessWidget {
     actions: [
       AppButton(
         onTap: () {
-          // context.pop();
+
           primaryCallback?.call();
         },
         buttonStyle: BaseButtonStyle.primaryButton(context: context),

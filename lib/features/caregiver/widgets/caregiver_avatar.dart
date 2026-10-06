@@ -6,30 +6,35 @@ class CaregiverAvatar extends StatelessWidget {
     super.key,
     required this.name,
     this.size = 34,
-    this.background = Colors.black,
-    this.foreground = Colors.white,
+    this.background,
+    this.foreground,
   });
 
   final String? name;
   final double size;
-  final Color background;
-  final Color foreground;
+
+final Color? background;
+  final Color? foreground;
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
     final String resolved = name ?? FirebaseAuth.instance.currentUser?.displayName ?? '';
 
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: background),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: background ?? scheme.inverseSurface,
+      ),
       alignment: Alignment.center,
       child: Text(
         initialsOf(resolved),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           fontSize: size * (11 / 34),
           fontWeight: FontWeight.w700,
-          color: foreground,
+          color: foreground ?? scheme.onInverseSurface,
         ),
       ),
     );

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get_utils/src/extensions/context_extensions.dart';
-import 'package:seizure_app/core/constants/dimensions.dart';
-
 
 class AppDropdownField<T> extends StatefulWidget {
   const AppDropdownField({
@@ -21,35 +19,25 @@ class AppDropdownField<T> extends StatefulWidget {
          "If T is not String or num, both displayText and valueAccessor must be provided",
        );
 
-  /// List of items to display in dropdown
-  final List<T> items;
+final List<T> items;
 
-  /// Callback when selection changes
-  final void Function(T? value) onChangeCallback;
+final void Function(T? value) onChangeCallback;
 
-  /// Current selected value
-  final T? value;
+final T? value;
 
-  /// Function to get unique identifier from complex objects
-  final dynamic Function(T value)? valueAccessor;
+final dynamic Function(T value)? valueAccessor;
 
-  /// Function to display text for complex objects
-  final String Function(T value)? displayText;
+final String Function(T value)? displayText;
 
-  /// Label for the dropdown
-  final String? label;
+final String? label;
 
-  /// Hint text when nothing is selected
-  final String? hintText;
+final String? hintText;
 
-  /// Validation function
-  final String? Function(T? value)? validatorCallback;
+final String? Function(T? value)? validatorCallback;
 
-  /// Whether the dropdown is enabled
-  final bool enabled;
+final bool enabled;
 
-  /// Whether the dropdown is enabled
-  final bool loading;
+final bool loading;
 
   @override
   State<AppDropdownField<T>> createState() => _AppDropdownFieldState<T>();
@@ -130,13 +118,12 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hintText,
-        hintStyle: context.textTheme.bodyMedium!.copyWith(
-          color: widget.enabled ? Colors.black45 : Colors.black26,
-        ),
-        border: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.black12),
-          borderRadius: BorderRadius.circular(Dimensions.eight),
-        ),
+        // Borders, padding and radius come from `inputDecorationTheme`. Only
+        // the disabled hint is overridden, because the theme cannot express a
+        // hint colour that depends on the field being enabled.
+        hintStyle: widget.enabled
+            ? null
+            : context.textTheme.bodyMedium!.copyWith(color: Colors.black26),
         suffixIcon: widget.loading ? CircularProgressIndicator() : null,
         enabled: widget.enabled,
       ),

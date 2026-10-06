@@ -99,9 +99,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
     super.dispose();
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  Future<void> _pickDateTime() async {
+Future<void> _pickDateTime() async {
     final date = await showDatePicker(
       context: context,
       initialDate: _occurredAt,
@@ -191,9 +189,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $h:$m $period';
   }
 
-  // ─── Build ────────────────────────────────────────────────────────────────
-
-  @override
+@override
   Widget build(BuildContext context) {
     return AppBottomSheetContent(
       child: Form(
@@ -208,8 +204,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Date / Time ─────────────────────────────────────────────
-            _SectionLabel(label: 'Date & Time'),
+_SectionLabel(label: 'Date & Time'),
             SizedBox(height: Dimensions.eight),
             InkWell(
               onTap: _pickDateTime,
@@ -248,8 +243,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
             ),
             SizedBox(height: Dimensions.sixteen),
 
-            // ── Duration ────────────────────────────────────────────────
-            _SectionLabel(label: 'Duration (optional)'),
+_SectionLabel(label: 'Duration (optional)'),
             SizedBox(height: Dimensions.eight),
             Row(
               children: [
@@ -272,8 +266,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
             ),
             SizedBox(height: Dimensions.sixteen),
 
-            // ── Location ────────────────────────────────────────────────
-            _SectionLabel(label: 'Location (optional)'),
+_SectionLabel(label: 'Location (optional)'),
             SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _locationController,
@@ -282,8 +275,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
             ),
             SizedBox(height: Dimensions.sixteen),
 
-            // ── Trigger ─────────────────────────────────────────────────
-            _SectionLabel(label: 'Trigger (optional)'),
+_SectionLabel(label: 'Trigger (optional)'),
             SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _triggerController,
@@ -292,8 +284,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
             ),
             SizedBox(height: Dimensions.sixteen),
 
-            // ── Notes ───────────────────────────────────────────────────
-            _SectionLabel(label: 'Notes (optional)'),
+_SectionLabel(label: 'Notes (optional)'),
             SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _notesController,
@@ -303,8 +294,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Save ────────────────────────────────────────────────────
-            SizedBox(
+SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,
@@ -335,8 +325,6 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
     );
   }
 }
-
-// ─── Helper sub-widgets ───────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.label});
@@ -370,7 +358,7 @@ class _OutlinedTextField extends StatelessWidget {
     controller: controller,
     maxLines: maxLines,
     textCapitalization: textCapitalization,
-    decoration: _inputDecoration(hintText: hintText),
+    decoration: InputDecoration(hintText: hintText),
   );
 }
 
@@ -393,28 +381,9 @@ class _NumberField extends StatelessWidget {
       FilteringTextInputFormatter.digitsOnly,
       _MaxValueFormatter(max),
     ],
-    decoration: _inputDecoration(labelText: label),
+    decoration: InputDecoration(labelText: label),
   );
 }
-
-InputDecoration _inputDecoration({String? labelText, String? hintText}) =>
-    InputDecoration(
-      labelText: labelText,
-      hintText: hintText,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.black12),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.black12),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.black, width: 1.5),
-      ),
-    );
 
 class _MaxValueFormatter extends TextInputFormatter {
   const _MaxValueFormatter(this.max);

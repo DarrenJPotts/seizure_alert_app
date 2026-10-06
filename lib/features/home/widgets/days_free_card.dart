@@ -37,12 +37,12 @@ class DaysFreeCard extends StatelessWidget {
         spacing: Dimensions.eight,
         children: [
           Text(
-            'LAST SEIZURE',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white38,
-                  letterSpacing: 1.5,
-                  fontWeight: FontWeight.w600,
-                ),
+            'Last seizure',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Colors.white70,
+              letterSpacing: 0.3,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           Text(
             headline,

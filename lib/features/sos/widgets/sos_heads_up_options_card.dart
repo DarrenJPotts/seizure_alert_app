@@ -3,9 +3,6 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/features/heads_up/heads_up/heads_up_bottom_sheet_widget.dart';
 import 'package:seizure_app/features/heads_up/view_models/heads_up_view_model.dart';
 
-/// Bordered card on the SOS idle screen offering the lower-stakes Heads Up
-/// route alongside SOS. Tapping a duration pre-selects it and opens the
-/// Heads Up sheet to confirm and send.
 class SosHeadsUpOptionsCard extends StatelessWidget {
   const SosHeadsUpOptionsCard({super.key});
 

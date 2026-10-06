@@ -15,9 +15,7 @@ class HomeViewModel extends GetxController {
 
   final FirestoreService _firestoreService;
 
-  // ─── State ────────────────────────────────────────────────────────────────
-
-  final Rxn<UserDto> user = Rxn<UserDto>();
+final Rxn<UserDto> user = Rxn<UserDto>();
   final RxList<SeizureLogDto> seizureLogs = <SeizureLogDto>[].obs;
   final RxList<InviteDto> pendingInvites = <InviteDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
@@ -27,9 +25,7 @@ class HomeViewModel extends GetxController {
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  // ─── Lifecycle ────────────────────────────────────────────────────────────
-
-  @override
+@override
   void onInit() {
     super.onInit();
     _init();
@@ -59,9 +55,7 @@ class HomeViewModel extends GetxController {
     );
   }
 
-  // ─── Greeting ─────────────────────────────────────────────────────────────
-
-  String get greeting {
+String get greeting {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
@@ -75,10 +69,7 @@ class HomeViewModel extends GetxController {
     return name.trim().split(' ').first;
   }
 
-  // ─── Stats ────────────────────────────────────────────────────────────────
-
-  /// Whole days since the most recent seizure, or null if no logs exist.
-  int? get daysSinceLastSeizure {
+int? get daysSinceLastSeizure {
     if (seizureLogs.isEmpty) return null;
     final today = _today;
     final last = seizureLogs.first.occurredAt;
@@ -97,10 +88,7 @@ class HomeViewModel extends GetxController {
     return seizureLogs.where((l) => !l.occurredAt.isBefore(monthStart)).length;
   }
 
-  // ─── Activity grid ────────────────────────────────────────────────────────
-
-  /// 28 cells — Monday 3 weeks ago through next Sunday (or today if mid-week).
-  List<GridCell> get gridData {
+List<GridCell> get gridData {
     final today = _today;
     final start = _gridStart;
     return List.generate(28, (i) {
@@ -115,15 +103,12 @@ class HomeViewModel extends GetxController {
     });
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  DateTime get _today {
+DateTime get _today {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
   }
 
-  /// The Monday that starts the 4-week grid (3 full weeks before this week's Monday).
-  DateTime get _gridStart {
+DateTime get _gridStart {
     final daysFromMonday = _today.weekday - 1;
     final thisMonday = _today.subtract(Duration(days: daysFromMonday));
     return thisMonday.subtract(const Duration(days: 21));

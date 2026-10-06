@@ -165,20 +165,27 @@ class RespondingViewModel extends GetxController {
     unawaited(_load());
   }
 
-  void _notify(String title, String message) => Get.snackbar(
-    '',
-    '',
-    titleText: Text(
-      title,
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-    ),
-    messageText: Text(message, style: const TextStyle(color: Colors.white)),
-    snackPosition: SnackPosition.BOTTOM,
+  /// No BuildContext here, so the scheme comes from `Get.theme`. A snackbar is
+  /// an inverted surface in Material 3 — the same pair `snackBarTheme` uses for
+  /// the framework's own snackbars, which `Get.snackbar` bypasses.
+  void _notify(String title, String message) {
+    final ColorScheme scheme = Get.theme.colorScheme;
+
+    Get.snackbar(
+      '',
+      '',
+      titleText: Text(
+        title,
+        style: TextStyle(color: scheme.onInverseSurface, fontWeight: FontWeight.bold, fontSize: 16),
+      ),
+      messageText: Text(message, style: TextStyle(color: scheme.onInverseSurface)),
+      snackPosition: SnackPosition.BOTTOM,
       margin: snackbarMargin,
-    backgroundColor: Colors.black,
-    borderRadius: Dimensions.eight,
-    duration: const Duration(seconds: 4),
-  );
+      backgroundColor: scheme.inverseSurface,
+      borderRadius: Dimensions.eight,
+      duration: const Duration(seconds: 4),
+    );
+  }
 }
 
 class RespondingBinding extends Bindings {

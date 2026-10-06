@@ -42,9 +42,8 @@ async function backfill(collection) {
     const normalized = normalizePhone(data.phone);
 
     if (!normalized) {
-      // No number, or nothing that resolves to one. Left alone deliberately:
-      // writing null would be indistinguishable from "not yet backfilled".
-      if (data.phone) {
+
+if (data.phone) {
         unparseable++;
         console.warn(`  ${collection}/${doc.id}: cannot parse "${data.phone}"`);
       }
@@ -87,8 +86,7 @@ async function backfill(collection) {
 async function backfillResponseOwners() {
   const snap = await db.collection("alert_responses").get();
 
-  // Responses cluster onto a handful of alerts, so resolve each alert once.
-  const ownerByAlertId = new Map();
+const ownerByAlertId = new Map();
   let updated = 0;
   let skipped = 0;
   let orphaned = 0;

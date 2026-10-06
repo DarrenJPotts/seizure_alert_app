@@ -38,9 +38,6 @@ class _AppButtonState extends State<AppButton> {
   void _onHover(bool value) => setState(() {
     _isHovering = value;
   });
-
-  /// `NOTE`: We want to remove the border width from the hover padding,
-  /// so that the button does not change its size when hovered.
   EdgeInsetsGeometry get _calculateHoverBorderWidth {
     try {
       double horizontalPadding = widget.buttonStyle.padding.horizontal == 0
@@ -56,7 +53,6 @@ class _AppButtonState extends State<AppButton> {
               widget.buttonStyle.borderHoverWidth &&
           widget.buttonStyle.padding.vertical >=
               widget.buttonStyle.borderHoverWidth) {
-        // Ensure that the padding does not go negative
         if (horizontalPadding < 0) {
           horizontalPadding = 0;
         }

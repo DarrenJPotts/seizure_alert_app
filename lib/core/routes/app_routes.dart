@@ -31,6 +31,7 @@ abstract class AppRoutes {
   static const String circleInvite = '/circle-invite';
   static const String mode = '/mode';
   static const String responding = '/responding';
+  static const String redirectArgument = 'redirectRoute';
 }
 
 final String initialRoute = AppRoutes.splash;
@@ -50,9 +51,29 @@ final List<GetPage> routes = [
     page: () => const OnboardingView(),
     binding: OnboardingBinding(),
   ),
-  GetPage(name: AppRoutes.alertHistory, page: () => const AlertHistoryView(), binding: AlertHistoryBinding()),
-  GetPage(name: AppRoutes.incomingAlert, page: () => const IncomingAlertView(), binding: IncomingAlertBinding()),
-  GetPage(name: AppRoutes.circleInvite, page: () => const CircleInviteView(), binding: CircleInviteBinding()),
+  GetPage(
+    name: AppRoutes.alertHistory,
+    page: () => const AlertHistoryView(),
+    binding: AlertHistoryBinding(),
+    middlewares: [AuthMiddleware()],
+  ),
+  GetPage(
+    name: AppRoutes.incomingAlert,
+    page: () => const IncomingAlertView(),
+    binding: IncomingAlertBinding(),
+    middlewares: [AuthMiddleware()],
+  ),
+  GetPage(
+    name: AppRoutes.circleInvite,
+    page: () => const CircleInviteView(),
+    binding: CircleInviteBinding(),
+    middlewares: [AuthMiddleware()],
+  ),
   GetPage(name: AppRoutes.mode, page: () => const ModeView(), binding: ModeBinding(), middlewares: [AuthMiddleware()]),
-  GetPage(name: AppRoutes.responding, page: () => const RespondingView(), binding: RespondingBinding()),
+  GetPage(
+    name: AppRoutes.responding,
+    page: () => const RespondingView(),
+    binding: RespondingBinding(),
+    middlewares: [AuthMiddleware()],
+  ),
 ];

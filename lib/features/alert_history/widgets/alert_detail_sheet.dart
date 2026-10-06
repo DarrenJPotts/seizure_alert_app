@@ -135,8 +135,6 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-// ─── Shared helpers ───────────────────────────────────────────────────────────
-
 IconData alertIconForType(AlertType type) {
   switch (type) {
     case AlertType.sos:

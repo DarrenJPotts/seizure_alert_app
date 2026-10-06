@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/formatters/south_african_phone_input_formatter.dart';
+import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
@@ -150,9 +153,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
       return;
     }
 
-    // Not a registered user (or the check failed) — fall back to the
-    // SMS/WhatsApp share link rather than stranding the user.
-    AppBottomSheet.show(
+AppBottomSheet.show(
       context: Get.context!,
       builder: (_) => InvitePickerSheet(phone: contact.phone, contactName: contact.name),
     );
@@ -170,8 +171,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
             Text(_isEditing ? 'Edit Contact' : 'Add Contact', style: context.theme.textTheme.titleMedium),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Name ────────────────────────────────────────────────────
-            _OutlinedFormField(
+_OutlinedFormField(
               controller: _nameController,
               label: 'Full Name',
               hintText: 'e.g. Sarah Johnson',
@@ -181,19 +181,21 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
             ),
             SizedBox(height: Dimensions.sixteen),
 
-            // ── Phone ───────────────────────────────────────────────────
-            _OutlinedFormField(
+_OutlinedFormField(
               controller: _phoneController,
               label: 'Phone Number',
               hintText: 'e.g. +27 82 123 4567',
               keyboardType: TextInputType.phone,
+              inputFormatters: const <TextInputFormatter>[
+                SouthAfricanPhoneInputFormatter(),
+              ],
               textInputAction: TextInputAction.next,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Phone number is required' : null,
+              maxLength: SouthAfricanPhoneInputFormatter.maxLength,
+              validator: (v) => PhoneNumber.validationError(v, required: true),
             ),
             SizedBox(height: Dimensions.sixteen),
 
-            // ── Relation ────────────────────────────────────────────────
-            _OutlinedFormField(
+_OutlinedFormField(
               controller: _relationController,
               label: 'Relationship (optional)',
               hintText: 'e.g. Sister, Neurologist, Partner',
@@ -202,8 +204,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Notifications ───────────────────────────────────────────
-            Text(
+Text(
               'Alert Notifications',
               style: context.theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: Colors.black54),
             ),
@@ -221,8 +222,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Invite (new contacts only) ───────────────────────────────
-            if (!_isEditing) ...[
+if (!_isEditing) ...[
               Text(
                 'App Invite',
                 style: context.theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: Colors.black54),
@@ -242,8 +242,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
               SizedBox(height: Dimensions.twentyFour),
             ],
 
-            // ── Save ────────────────────────────────────────────────────
-            SizedBox(
+SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,
@@ -270,14 +269,14 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
   }
 }
 
-// ─── Helper sub-widgets ───────────────────────────────────────────────────────
-
 class _OutlinedFormField extends StatelessWidget {
   const _OutlinedFormField({
     required this.controller,
     required this.label,
     this.hintText,
     this.keyboardType,
+    this.inputFormatters,
+    this.maxLength,
     this.textCapitalization = TextCapitalization.none,
     this.textInputAction,
     this.validator,
@@ -287,6 +286,8 @@ class _OutlinedFormField extends StatelessWidget {
   final String label;
   final String? hintText;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
   final TextCapitalization textCapitalization;
   final TextInputAction? textInputAction;
   final String? Function(String?)? validator;
@@ -295,33 +296,16 @@ class _OutlinedFormField extends StatelessWidget {
   Widget build(BuildContext context) => TextFormField(
     controller: controller,
     keyboardType: keyboardType,
+    inputFormatters: inputFormatters,
+    maxLength: maxLength,
+    maxLengthEnforcement: MaxLengthEnforcement.enforced,
     textCapitalization: textCapitalization,
     textInputAction: textInputAction,
     validator: validator,
     decoration: InputDecoration(
       labelText: label,
       hintText: hintText,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.black12),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.black12),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.black, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
-      ),
+      counterText: maxLength == null ? null : '',
     ),
   );
 }

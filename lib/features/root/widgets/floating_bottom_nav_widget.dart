@@ -21,7 +21,7 @@ class FloatingBottomNavWidget extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(35),
       border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: Offset(0, 10))],
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: Offset(0, 6))],
     ),
     child: Obx(
       () => Row(
@@ -66,13 +66,13 @@ class FloatingBottomNavWidget extends StatelessWidget {
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
       children: [
-        // Main navigation bar
+
         Container(
           height: 70,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(35),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: Offset(0, 10))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: Offset(0, 6))],
           ),
           child: Obx(
             () => Row(
@@ -92,7 +92,7 @@ class FloatingBottomNavWidget extends StatelessWidget {
                   onTap: () => controller.changePage(1),
                   semanticLabel: 'Seizure log',
                 ),
-                const SizedBox(width: 56), // Space for elevated button
+                const SizedBox(width: 56),
                 _FloatingNavItem(
                   icon: Icons.people_outline,
                   activeIcon: Icons.people,
@@ -112,8 +112,7 @@ class FloatingBottomNavWidget extends StatelessWidget {
           ),
         ),
 
-        // Elevated SOS button
-        Positioned(
+Positioned(
           top: -25,
           child: Semantics(
             button: true,
@@ -127,7 +126,7 @@ class FloatingBottomNavWidget extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: Colors.black,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 15, offset: Offset(0, 8)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: Offset(0, 4)),
                   ],
                 ),
                 child: Icon(Icons.emergency, color: Colors.white, size: 32),
@@ -136,11 +135,10 @@ class FloatingBottomNavWidget extends StatelessWidget {
           ),
         ),
 
-        // Active indicator dot
-        Obx(() {
+Obx(() {
           double? dotPosition;
           if (controller.currentIndex.value == 2) {
-            dotPosition = null; // Center (elevated button)
+            dotPosition = null;
           }
 
           if (dotPosition == null && controller.currentIndex.value == 2) {
@@ -160,7 +158,6 @@ class FloatingBottomNavWidget extends StatelessWidget {
   );
 }
 
-/// Floating Navigation Item
 class _FloatingNavItem extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;

@@ -20,9 +20,8 @@ test("counts whole days elapsed", () => {
 });
 
 test("floors a partial day rather than rounding up", () => {
-  // 23h 59m is still "0 days ago". Rounding up would report a seizure that
-  // happened this morning as having been yesterday.
-  assert.equal(daysSince("2026-03-13T12:00:01.000Z", NOW), 0);
+
+assert.equal(daysSince("2026-03-13T12:00:01.000Z", NOW), 0);
   assert.equal(daysSince("2026-03-13T11:59:59.000Z", NOW), 1);
 });
 
@@ -40,7 +39,6 @@ test("returns null for anything unmeasurable", () => {
 });
 
 test("never returns a negative count for a future timestamp", () => {
-  // Clock skew between a phone and the server is real. "-2 days since last
-  // seizure" on an emergency screen is worse than showing 0.
-  assert.equal(daysSince("2026-03-20T12:00:00.000Z", NOW), 0);
+
+assert.equal(daysSince("2026-03-20T12:00:00.000Z", NOW), 0);
 });

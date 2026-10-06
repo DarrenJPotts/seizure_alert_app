@@ -6,9 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
 class SOSButton extends StatefulWidget {
-  const SOSButton({super.key, required this.onPressed});
+  const SOSButton({super.key, required this.onPressed, this.hasRecipients = true});
 
   final VoidCallback onPressed;
+  final bool hasRecipients;
 
   @override
   State<SOSButton> createState() => _SOSButtonState();
@@ -19,53 +20,66 @@ class _SOSButtonState extends State<SOSButton> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        setState(() => _isPressed = true);
+    return Semantics(
+      button: true,
+      label: 'Send SOS alert',
+      hint: widget.hasRecipients
+          ? 'Starts a 10-second countdown before notifying your emergency contacts.'
+          : 'No contacts are set to receive alerts. SOS will be recorded only.',
+      onTap: () {
         HapticFeedback.heavyImpact();
-      },
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
         widget.onPressed();
       },
-      onTapCancel: () => setState(() => _isPressed = false),
-      // Outer focus ring
-      child: Container(
-        width: 264,
-        height: 264,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.black.withValues(alpha: 0.1), width: 1),
-        ),
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeInOut,
-            width: 208,
-            height: 208,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          onTapDown: (_) {
+            setState(() => _isPressed = true);
+            HapticFeedback.heavyImpact();
+          },
+          onTapUp: (_) {
+            setState(() => _isPressed = false);
+            widget.onPressed();
+          },
+          onTapCancel: () => setState(() => _isPressed = false),
+
+          child: Container(
+            width: 264,
+            height: 264,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _isPressed ? Colors.black : Colors.white,
-              border: Border.all(color: Colors.black, width: 2.5),
-              boxShadow: _isPressed
-                  ? []
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 32,
-                        offset: const Offset(0, 16),
-                      ),
-                    ],
+              border: Border.all(color: Colors.black.withValues(alpha: 0.1), width: 1),
             ),
             child: Center(
-              child: Text(
-                'SOS',
-                style: TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 8,
-                  color: _isPressed ? Colors.white : Colors.black,
-                  height: 1,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                curve: Curves.easeInOut,
+                width: 208,
+                height: 208,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _isPressed ? Colors.black : Colors.white,
+                  border: Border.all(color: Colors.black, width: 2.5),
+                  boxShadow: _isPressed
+                      ? []
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                ),
+                child: Center(
+                  child: Text(
+                    'SOS',
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 8,
+                      color: _isPressed ? Colors.white : Colors.black,
+                      height: 1,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -76,12 +90,12 @@ class _SOSButtonState extends State<SOSButton> {
   }
 }
 
-/// Countdown dialog — auto-sends after 5 seconds unless cancelled.
 class CountdownAlertDialog extends StatefulWidget {
-  const CountdownAlertDialog({required this.onConfirm, required this.onCancel, super.key});
+  const CountdownAlertDialog({required this.onConfirm, required this.onCancel, this.hasRecipients = true, super.key});
 
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
+  final bool hasRecipients;
 
   @override
   State<CountdownAlertDialog> createState() => _CountdownAlertDialogState();
@@ -106,9 +120,8 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
         HapticFeedback.heavyImpact();
         widget.onConfirm();
       } else {
-        // A tick per second is the cue that works when you cannot focus on
-        // the screen, which is the whole point of this window.
-        HapticFeedback.selectionClick();
+
+HapticFeedback.selectionClick();
         setState(() => _remaining--);
       }
     });
@@ -167,7 +180,9 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                         ),
                         SizedBox(height: Dimensions.twentyFour),
                         Text(
-                          'Your circle is notified in $_remaining second${_remaining == 1 ? '' : 's'}.',
+                          widget.hasRecipients
+                              ? 'Your circle will be notified in $_remaining second${_remaining == 1 ? '' : 's'}.'
+                              : 'No one will be notified. SOS will be recorded only.',
                           style: Theme.of(
                             context,
                           ).textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.7)),
@@ -195,7 +210,7 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                     ),
                     SizedBox(height: Dimensions.twelve),
                     Text(
-                      'Do nothing and help is on the way',
+                      widget.hasRecipients ? 'Do nothing and help is on the way' : 'Cancel and review My Circle',
                       style: Theme.of(
                         context,
                       ).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.4)),
@@ -260,8 +275,6 @@ class _DialogButtonState extends State<_DialogButton> {
   }
 }
 
-/// Pulsing SOS circle shown while an SOS alert is active.
-/// Two offset ripple rings expand outward from the inner circle and fade.
 class PulsingSOSCircle extends StatefulWidget {
   const PulsingSOSCircle({super.key});
 

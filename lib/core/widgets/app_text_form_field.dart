@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:seizure_app/core/themes/app_colors.dart';
-
 class AppTextFormField extends StatelessWidget {
   const AppTextFormField({
     super.key,
@@ -27,12 +25,6 @@ class AppTextFormField extends StatelessWidget {
     this.suffixIcon,
     this.prefixText,
     this.suffixText,
-    this.fillColor,
-    this.focusedBorderColor,
-    this.enabledBorderColor,
-    this.errorBorderColor,
-    this.borderRadius = 12.0,
-    this.contentPadding,
     this.onChanged,
     this.onFieldSubmitted,
     this.onTap,
@@ -41,20 +33,16 @@ class AppTextFormField extends StatelessWidget {
     this.focusNode,
   });
 
-  /// Controller
-  final TextEditingController controller;
+final TextEditingController controller;
 
-  /// Labels and hints
-  final String labelText;
+final String labelText;
   final String? hintText;
   final String? helperText;
 
-  /// Validation
-  final String? Function(String?)? validator;
+final String? Function(String?)? validator;
   final bool isRequired;
 
-  /// Input configuration
-  final TextInputType? keyboardType;
+final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
@@ -62,36 +50,23 @@ class AppTextFormField extends StatelessWidget {
   final int? maxLines;
   final int? minLines;
 
-  /// Obscure text (for passwords)
-  final bool obscureText;
+final bool obscureText;
   final bool enableObscureToggle;
 
-  /// Enabled/Readonly
-  final bool enabled;
+final bool enabled;
   final bool readOnly;
 
-  /// Prefix and Suffix
-  final Widget? prefixIcon;
+final Widget? prefixIcon;
   final Widget? suffixIcon;
   final String? prefixText;
   final String? suffixText;
 
-  /// Styling
-  final Color? fillColor;
-  final Color? focusedBorderColor;
-  final Color? enabledBorderColor;
-  final Color? errorBorderColor;
-  final double borderRadius;
-  final EdgeInsetsGeometry? contentPadding;
-
-  /// Callbacks
-  final void Function(String)? onChanged;
+final void Function(String)? onChanged;
   final void Function(String)? onFieldSubmitted;
   final void Function()? onTap;
   final void Function()? onEditingComplete;
 
-  /// Auto-focus
-  final bool autofocus;
+final bool autofocus;
   final FocusNode? focusNode;
 
   @override
@@ -126,33 +101,6 @@ class AppTextFormField extends StatelessWidget {
           suffixIcon: _buildSuffixIcon(isObscured),
           prefixText: prefixText,
           suffixText: suffixText,
-          filled: fillColor != null,
-          fillColor: fillColor ?? Colors.black.withValues(alpha: 0.06),
-          contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(color: enabledBorderColor ?? Get.theme.primaryColor, width: 1.5),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(color: enabledBorderColor ?? Get.theme.primaryColor, width: 1.5),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(color: focusedBorderColor ?? Get.theme.primaryColor, width: 2.0),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(color: errorBorderColor ?? AppColors.error, width: 1.5),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(color: errorBorderColor ?? AppColors.error, width: 2.0),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: const BorderSide(color: Colors.black12),
-          ),
         ),
       ),
     );
@@ -161,7 +109,8 @@ class AppTextFormField extends StatelessWidget {
   Widget? _buildSuffixIcon(RxBool isObscured) {
     if (enableObscureToggle) {
       return IconButton(
-        icon: Icon(isObscured.value ? Icons.visibility_off : Icons.visibility, color: Colors.black45),
+        icon: Icon(isObscured.value ? Icons.visibility_off : Icons.visibility),
+        tooltip: isObscured.value ? 'Show password' : 'Hide password',
         onPressed: () => isObscured.value = !isObscured.value,
       );
     }

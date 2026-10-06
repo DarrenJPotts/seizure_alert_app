@@ -5,14 +5,6 @@ import 'package:seizure_app/core/widgets/buttons/button_styles/secondary_text_bu
 import 'primary_button_style.dart';
 import 'secondary_button_style.dart';
 
-/// `BaseButtonStyle` is the base class for all button styles.
-/// It provides a common structure and properties that can be extended by specific button styles.
-/// It should be used as followed:
-/// ```dart
-/// BaseButtonStyle.primaryButton(context: context);
-/// BaseButtonStyle.outlineButton(context: context);
-/// BaseButtonStyle.secondaryButton(context: context);
-/// ```
 class BaseButtonStyle {
   const BaseButtonStyle({
     required this.buttonColor,
@@ -39,41 +31,30 @@ class BaseButtonStyle {
     required this.borderHoverWidth,
   });
 
-  /// `Style Factories`
-  /// These factories create instances of specific button styles based on the context provided.
-  /// They should be used as follows:
-  /// ```dart
-  /// BaseButtonStyle.primaryButton(context: context);
-  /// BaseButtonStyle.secondaryButton(context: context);
-  /// ```
-  factory BaseButtonStyle.primaryButton({required BuildContext context}) => PrimaryButtonStyle(context: context);
+factory BaseButtonStyle.primaryButton({required BuildContext context}) => PrimaryButtonStyle(context: context);
 
   factory BaseButtonStyle.secondaryButton({required BuildContext context}) => SecondaryButtonStyle(context: context);
 
   factory BaseButtonStyle.secondaryOutlineButtonStyle({required BuildContext context}) => SecondaryOutlineButtonStyle(context: context);
   factory BaseButtonStyle.secondaryTextButtonStyle({required BuildContext context}) => SecondaryTextButtonStyle(context: context);
 
-  /// `Colors - Enabled`
-  final Color buttonColor;
+final Color buttonColor;
   final Color textColor;
   final Color borderColor;
   final Color loaderColor;
   final Color loaderBackgroundColor;
   final Color hoverColor;
 
-  /// `Colors - Disabled`
-  final Color disabledBorderColor;
+final Color disabledBorderColor;
   final Color disabledColor;
   final Color disabledLoaderColor;
   final Color disabledLoaderBackgroundColor;
   final Color disabledHoverColor;
 
-  /// `TextStyle`
-  final TextStyle textStyle;
+final TextStyle textStyle;
   final TextStyle disabledTextStyle;
 
-  /// `Decoration`
-  final BorderRadius borderRadius;
+final BorderRadius borderRadius;
   final EdgeInsetsGeometry padding;
   final double borderWidth;
   final double borderHoverWidth;
@@ -83,16 +64,7 @@ class BaseButtonStyle {
   final int maxLines;
   final TextOverflow textOverflow;
 
-  /// `Copy with`
-  /// This method allows you to create a copy of the current style with some properties modified.
-  /// It should be used as follows:
-  /// ```dart
-  /// BaseButtonStyle modifiedButtonStyle = baseButtonStyle.primary(context: context).copyWith(
-  ///   buttonColor: Colors.red,
-  ///   textColor: Colors.white,
-  /// );
-  /// ```
-  BaseButtonStyle copyWith({
+BaseButtonStyle copyWith({
     Color? buttonColor,
     Color? textColor,
     Color? borderColor,

@@ -56,9 +56,8 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
         _error = result.error;
       });
     }
-    // On success the auth controller navigates to login automatically —
-    // no need to pop the sheet manually.
-  }
+
+}
 
   @override
   Widget build(BuildContext context) {
@@ -67,15 +66,14 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Title ───────────────────────────────────────────────────
+
           Text(
             'Delete Account',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           SizedBox(height: Dimensions.twelve),
 
-          // ── Warning ─────────────────────────────────────────────────
-          Container(
+Container(
             padding: EdgeInsets.all(Dimensions.sixteen),
             decoration: BoxDecoration(
               color: Colors.red.shade50,
@@ -91,8 +89,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
           ),
           SizedBox(height: Dimensions.twentyFour),
 
-          // ── Password field ───────────────────────────────────────────
-          Text(
+Text(
             'Confirm your password',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w600,
@@ -108,31 +105,13 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
             },
             decoration: InputDecoration(
               hintText: 'Enter your password',
-              hintStyle: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.black26),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.black12),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: _error != null ? Colors.red : Colors.black12,
-                  width: _error != null ? 1.5 : 1,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: _error != null ? Colors.red : Colors.black,
-                  width: 1.5,
-                ),
-              ),
+
+enabledBorder: _error == null
+                  ? null
+                  : Theme.of(context).inputDecorationTheme.errorBorder,
+              focusedBorder: _error == null
+                  ? null
+                  : Theme.of(context).inputDecorationTheme.focusedErrorBorder,
               suffixIcon: IconButton(
                 onPressed: () => setState(() => _obscure = !_obscure),
                 icon: Icon(
@@ -146,8 +125,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
             ),
           ),
 
-          // ── Inline error ─────────────────────────────────────────────
-          if (_error != null) ...[
+if (_error != null) ...[
             SizedBox(height: Dimensions.eight),
             Text(
               _error!,
@@ -158,8 +136,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
           ],
           SizedBox(height: Dimensions.twentyFour),
 
-          // ── Delete button ────────────────────────────────────────────
-          SizedBox(
+SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _isBusy ? null : _confirm,
@@ -186,8 +163,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
           ),
           SizedBox(height: Dimensions.eight),
 
-          // ── Cancel ───────────────────────────────────────────────────
-          SizedBox(
+SizedBox(
             width: double.infinity,
             child: TextButton(
               onPressed: _isBusy ? null : () => Get.back(),

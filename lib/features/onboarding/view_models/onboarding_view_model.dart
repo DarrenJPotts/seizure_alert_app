@@ -9,9 +9,11 @@ import 'package:seizure_app/core/constants/privacy_notice.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
+import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/core/widgets/onboarding_progress.dart';
 
@@ -24,8 +26,13 @@ enum OnboardingMode {
 class OnboardingBinding extends Bindings {
   @override
   void dependencies() {
-    if (Get.isRegistered<OnboardingViewModel>()) return;
-    Get.put(OnboardingViewModel(), permanent: true);
+    final OnboardingMode requestedMode =
+        (Get.arguments as Map?)?['mode'] as OnboardingMode? ?? OnboardingMode.preSignup;
+    if (Get.isRegistered<OnboardingViewModel>()) {
+      Get.find<OnboardingViewModel>().setMode(requestedMode);
+      return;
+    }
+    Get.put(OnboardingViewModel()..setMode(requestedMode), permanent: true);
   }
 }
 
@@ -39,15 +46,16 @@ class OnboardingViewModel extends GetxController {
   final PageController pageController = PageController();
 
   final RxInt step = 0.obs;
+  final RxBool hasEmergencyContactDetails = false.obs;
+  final RxnString phoneNumberError = RxnString();
+  final RxnString contactNameError = RxnString();
+  final RxnString contactPhoneError = RxnString();
 
   final RxBool isLoading = false.obs;
   final RxBool notificationsGranted = false.obs;
   final RxBool locationGranted = false.obs;
 
-  // Once the OS records a permanent denial, requesting again returns
-  // immediately and nothing happens — the row still looks tappable and is
-  // dead. These flip the row to "Open settings", which is the only route left.
-  final RxBool notificationsBlocked = false.obs;
+final RxBool notificationsBlocked = false.obs;
   final RxBool locationBlocked = false.obs;
   final Rx<OnboardingMode> mode = OnboardingMode.preSignup.obs;
 
@@ -94,9 +102,7 @@ class OnboardingViewModel extends GetxController {
     _ => OnboardingStep.consent,
   };
 
-  // ─── Navigation ────────────────────────────────────────────────────────────
-
-  bool get canAdvance {
+bool get canAdvance {
     if (step.value == 0) return nameController.text.trim().isNotEmpty;
     // The contact step is skippable. Blocking account creation on it walled
     // off anyone without a number to hand, and `commitDraft` already treats
@@ -112,18 +118,45 @@ class OnboardingViewModel extends GetxController {
   /// "Skip for now" on the contact step when nothing has been entered, so the
   /// step reads as optional rather than as a form the user is failing.
   String get nextLabel {
-    if (step.value == 1 && contactNameController.text.trim().isEmpty) return 'Skip for now';
+    if (step.value == 1 && !hasEmergencyContactDetails.value) return 'Skip for now';
     return 'Next';
+  }
+
+  void onEmergencyContactChanged(String _) {
+    hasEmergencyContactDetails.value =
+        contactNameController.text.trim().isNotEmpty ||
+        contactPhoneController.text.trim().isNotEmpty;
   }
 
   String get finishLabel => mode.value == OnboardingMode.completeProfile ? 'Finish setup' : 'Create account';
 
   void next() {
+    if (!_validateCurrentStep()) return;
     if (!canAdvance) return;
     if (step.value < totalSteps - 1) {
       step.value++;
       _animateToStep();
     }
+  }
+
+  bool _validateCurrentStep() {
+    if (step.value == 0) {
+      phoneNumberError.value = PhoneNumber.validationError(phoneController.text);
+      return phoneNumberError.value == null;
+    }
+    if (step.value == 1) {
+      final String name = contactNameController.text.trim();
+      final String phone = contactPhoneController.text.trim();
+      if (name.isEmpty && phone.isEmpty) {
+        contactNameError.value = null;
+        contactPhoneError.value = null;
+        return true;
+      }
+      contactNameError.value = name.isEmpty ? 'Name is required' : null;
+      contactPhoneError.value = PhoneNumber.validationError(phone, required: true);
+      return contactNameError.value == null && contactPhoneError.value == null;
+    }
+    return true;
   }
 
   void back() {
@@ -143,9 +176,7 @@ class OnboardingViewModel extends GetxController {
 
   void setPrivacyConsent(bool value) => privacyConsentGiven.value = value;
 
-  // ─── Permissions ───────────────────────────────────────────────────────────
-
-  Future<void> requestNotifications() async {
+Future<void> requestNotifications() async {
     try {
       if (notificationsBlocked.value) {
         await AppSettings.openAppSettings(type: AppSettingsType.notification);
@@ -154,6 +185,9 @@ class OnboardingViewModel extends GetxController {
       final result = await Permission.notification.request();
       notificationsGranted.value = result.isGranted;
       notificationsBlocked.value = result.isPermanentlyDenied;
+      if (result.isGranted && Get.isRegistered<FirebaseMessagingService>()) {
+        await Get.find<FirebaseMessagingService>().refreshToken();
+      }
     } catch (e) {
       debugPrint('[OnboardingVM] Error requesting notification permission: $e');
     }
@@ -264,4 +298,6 @@ class OnboardingViewModel extends GetxController {
 
     await Get.delete<OnboardingViewModel>(force: true);
   }
+
+  void setMode(OnboardingMode value) => mode.value = value;
 }

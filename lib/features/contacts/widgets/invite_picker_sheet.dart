@@ -21,7 +21,7 @@ class InvitePickerSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ────────────────────────────────────────────────────
+
           Text(
             'Invite $contactName',
             style: Theme.of(context).textTheme.titleMedium,
@@ -35,8 +35,7 @@ class InvitePickerSheet extends StatelessWidget {
           ),
           SizedBox(height: Dimensions.twentyFour),
 
-          // ── SMS ───────────────────────────────────────────────────────
-          _ChannelRow(
+_ChannelRow(
             icon: Icons.sms_outlined,
             label: 'Via SMS',
             onTap: () {
@@ -46,8 +45,7 @@ class InvitePickerSheet extends StatelessWidget {
           ),
           SizedBox(height: Dimensions.twelve),
 
-          // ── WhatsApp ──────────────────────────────────────────────────
-          _ChannelRow(
+_ChannelRow(
             icon: Icons.chat_bubble_outline_rounded,
             label: 'Via WhatsApp',
             onTap: () {
@@ -57,8 +55,7 @@ class InvitePickerSheet extends StatelessWidget {
           ),
           SizedBox(height: Dimensions.sixteen),
 
-          // ── Skip ──────────────────────────────────────────────────────
-          SizedBox(
+SizedBox(
             width: double.infinity,
             child: TextButton(
               onPressed: () => Get.back(),

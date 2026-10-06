@@ -25,7 +25,7 @@ class CaregiverView extends GetView<CaregiverViewModel> {
           final GenericScreenStates state = controller.screenState.value;
 
           if (state == GenericScreenStates.loading || state == GenericScreenStates.initial) {
-            return const Center(child: CircularProgressIndicator(color: Colors.black));
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (state == GenericScreenStates.error) {
@@ -34,7 +34,6 @@ class CaregiverView extends GetView<CaregiverViewModel> {
               message: 'Could not load your watch list',
               action: TextButton(
                 onPressed: () => controller.loadPeopleIWatch(forceRefresh: true),
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
                 child: const Text('Try again'),
               ),
             );
@@ -49,7 +48,6 @@ class CaregiverView extends GetView<CaregiverViewModel> {
           }
 
           return RefreshIndicator(
-            color: Colors.black,
             onRefresh: () => controller.loadPeopleIWatch(forceRefresh: true),
             child: ListView(
               padding: EdgeInsets.fromLTRB(
@@ -79,72 +77,76 @@ class _Header extends StatelessWidget {
   final VoidCallback? onOpenProfile;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.eight, Dimensions.twenty, 0),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: Dimensions.ten, vertical: Dimensions.four),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.2)),
-                  borderRadius: BorderRadius.circular(Dimensions.circular),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(Icons.shield_outlined, size: 14, color: Colors.black),
-                    SizedBox(width: Dimensions.six),
-                    Text(
-                      'CAREGIVER',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.black,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: Dimensions.six),
-              Text(
-                'Watching',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.4,
-                  height: 1.1,
-                ),
-              ),
-              Obx(() {
-                final DateTime? at = Get.find<CaregiverViewModel>().lastUpdatedAt.value;
-                if (at == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: EdgeInsets.only(top: Dimensions.four),
-                  child: Text(
-                    'Updated ${_relativeLong(at)}  ·  pull to refresh',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.black.withValues(alpha: 0.45)),
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.eight, Dimensions.twenty, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: Dimensions.ten, vertical: Dimensions.four),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: scheme.outline),
+                    borderRadius: BorderRadius.circular(Dimensions.circular),
                   ),
-                );
-              }),
-            ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(Icons.shield_outlined, size: 14, color: scheme.onSurface),
+                      SizedBox(width: Dimensions.six),
+                      Text(
+                        'CAREGIVER',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurface,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: Dimensions.six),
+                Text(
+                  'Watching',
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    height: 1.1,
+                  ),
+                ),
+                Obx(() {
+                  final DateTime? at = Get.find<CaregiverViewModel>().lastUpdatedAt.value;
+                  if (at == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: EdgeInsets.only(top: Dimensions.four),
+                    child: Text(
+                      'Updated ${_relativeLong(at)}  ·  pull to refresh',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                  );
+                }),
+              ],
+            ),
           ),
-        ),
-        if (onOpenProfile != null)
-          GestureDetector(
-            onTap: onOpenProfile,
-            child: Semantics(button: true, label: 'Open profile', child: const CaregiverAvatar(name: null, size: 34)),
-          ),
-      ],
-    ),
-  );
+          if (onOpenProfile != null)
+            GestureDetector(
+              onTap: onOpenProfile,
+              child: Semantics(button: true, label: 'Open profile', child: const CaregiverAvatar(name: null, size: 34)),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PersonCard extends StatelessWidget {
@@ -156,14 +158,15 @@ class _PersonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
     final bool inverted = _isSos;
-    final Color ink = inverted ? Colors.white : Colors.black;
+    final Color ink = inverted ? scheme.onInverseSurface : scheme.onSurface;
 
     return Container(
       padding: EdgeInsets.all(Dimensions.eighteen),
       decoration: BoxDecoration(
-        color: inverted ? Colors.black : Colors.white,
-        border: inverted ? null : Border.all(color: Colors.black.withValues(alpha: 0.1)),
+        color: inverted ? scheme.inverseSurface : scheme.surface,
+        border: inverted ? null : Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -174,8 +177,8 @@ class _PersonCard extends StatelessWidget {
               CaregiverAvatar(
                 name: person.ownerName,
                 size: 44,
-                background: inverted ? Colors.white : Colors.black,
-                foreground: inverted ? Colors.black : Colors.white,
+                background: inverted ? scheme.onInverseSurface : scheme.inverseSurface,
+                foreground: inverted ? scheme.inverseSurface : scheme.onInverseSurface,
               ),
               SizedBox(width: Dimensions.twelve),
               Expanded(
@@ -208,10 +211,12 @@ class _PersonCard extends StatelessWidget {
                         AppRoutes.incomingAlert,
                         arguments: <String, String?>{'alertId': person.activeAlertId},
                       ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.white24,
-                  foregroundColor: Colors.black,
+
+style: ElevatedButton.styleFrom(
+                  backgroundColor: scheme.onInverseSurface,
+                  disabledBackgroundColor: scheme.onInverseSurface.withValues(alpha: 0.24),
+                  foregroundColor: scheme.inverseSurface,
+                  disabledForegroundColor: scheme.inverseSurface,
                   padding: EdgeInsets.symmetric(vertical: Dimensions.fourteen),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -224,8 +229,8 @@ class _PersonCard extends StatelessWidget {
               width: double.infinity,
               padding: EdgeInsets.symmetric(horizontal: Dimensions.fourteen, vertical: Dimensions.twelve),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F1F1),
-                border: const Border(left: BorderSide(color: Colors.black, width: 2)),
+                color: scheme.surfaceContainerHigh,
+                border: Border(left: BorderSide(color: scheme.onSurface, width: 2)),
                 borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
               ),
               child: Text(
@@ -332,72 +337,83 @@ class _StatChip extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: EdgeInsets.all(Dimensions.twelve),
-      decoration: BoxDecoration(color: const Color(0xFFF1F1F1), borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontSize: 11, color: Colors.black.withValues(alpha: 0.45)),
-          ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.all(Dimensions.twelve),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              label,
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+              ).textTheme.labelSmall?.copyWith(fontSize: 11, color: scheme.onSurfaceVariant),
             ),
-          ),
-        ],
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _RecentActivitySection extends GetView<CaregiverViewModel> {
   const _RecentActivitySection();
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      Padding(
-        padding: EdgeInsets.only(left: Dimensions.two, bottom: Dimensions.ten),
-        child: Text(
-          'RECENT ACTIVITY',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.6,
-            color: Colors.black.withValues(alpha: 0.4),
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: EdgeInsets.only(left: Dimensions.two, bottom: Dimensions.ten),
+          child: Text(
+            'RECENT ACTIVITY',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ),
-      ),
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: <Widget>[
-            for (int i = 0; i < controller.recentActivity.length; i++) ...<Widget>[
-              if (i > 0) Divider(height: 1, thickness: 1, color: Colors.black.withValues(alpha: 0.1)),
-              _ActivityRow(event: controller.recentActivity[i]),
+        Container(
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            border: Border.all(color: scheme.outlineVariant),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: <Widget>[
+              for (int i = 0; i < controller.recentActivity.length; i++) ...<Widget>[
+                if (i > 0) const Divider(height: 1, thickness: 1),
+                _ActivityRow(event: controller.recentActivity[i]),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 class _ActivityRow extends StatelessWidget {
@@ -406,35 +422,39 @@ class _ActivityRow extends StatelessWidget {
   final WatchActivityDto event;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 58,
-    child: Padding(
-      padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen),
-      child: Row(
-        children: <Widget>[
-          Icon(
-            event.kind == 'sos' ? Icons.emergency_outlined : Icons.warning_amber_rounded,
-            size: 20,
-            color: Colors.black,
-          ),
-          SizedBox(width: Dimensions.fourteen),
-          Expanded(
-            child: Text(
-              '${event.personName.split(' ').first} · ${event.label}',
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w500),
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      height: 58,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              event.kind == 'sos' ? Icons.emergency_outlined : Icons.warning_amber_rounded,
+              size: 20,
+              color: scheme.onSurface,
             ),
-          ),
-          Text(
-            _clockOrDate(event.at),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(fontSize: 13, color: Colors.black.withValues(alpha: 0.45)),
-          ),
-        ],
+            SizedBox(width: Dimensions.fourteen),
+            Expanded(
+              child: Text(
+                '${event.personName.split(' ').first} · ${event.label}',
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w500),
+              ),
+            ),
+            Text(
+              _clockOrDate(event.at),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(fontSize: 13, color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _EmptyState extends StatelessWidget {
@@ -446,30 +466,34 @@ class _EmptyState extends StatelessWidget {
   final Widget? action;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: EdgeInsets.all(Dimensions.twentyFour),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        spacing: Dimensions.twelve,
-        children: <Widget>[
-          Icon(icon, size: 48, color: Colors.black26),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-          ),
-          if (detail != null)
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(Dimensions.twentyFour),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          spacing: Dimensions.twelve,
+          children: <Widget>[
+            Icon(icon, size: 48, color: scheme.outline),
             Text(
-              detail!,
+              message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
-          ?action,
-        ],
+            if (detail != null)
+              Text(
+                detail!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ?action,
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 String _relativeLong(DateTime at) {

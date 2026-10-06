@@ -4,24 +4,42 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 
 class SosContactsSummary extends StatelessWidget {
-  const SosContactsSummary({super.key, required this.contacts});
+  const SosContactsSummary({super.key, required this.contacts, this.onAddContact});
 
   final List<ContactDto> contacts;
+  final VoidCallback? onAddContact;
 
-  int get pushCount => contacts.where((ContactDto c) => c.notifyViaPush).length;
+  List<ContactDto> get recipients => contacts.where((ContactDto c) => c.notifyViaPush || c.notifyViaSms).toList();
 
-  int get smsCount => contacts.where((ContactDto c) => c.notifyViaSms).length;
+  int get pushCount => recipients.where((ContactDto c) => c.notifyViaPush).length;
 
-  List<ContactDto> get visible => contacts.take(3).toList();
+  int get smsCount => recipients.where((ContactDto c) => c.notifyViaSms).length;
 
-  int get overflow => contacts.length - visible.length;
+  List<ContactDto> get visible => recipients.take(3).toList();
+
+  int get overflow => recipients.length - visible.length;
 
   @override
   Widget build(BuildContext context) {
-    if (contacts.isEmpty) {
-      return Text(
-        'You have no contacts to notify yet.',
-        style: context.theme.textTheme.bodySmall?.copyWith(color: Colors.black45),
+    if (recipients.isEmpty) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            contacts.isEmpty
+                ? 'No one will receive an SOS until you add an emergency contact.'
+                : 'No alert method is enabled for your contacts. Review your circle before sending SOS.',
+            textAlign: TextAlign.center,
+            style: context.theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+          ),
+          if (onAddContact != null)
+            TextButton.icon(
+              onPressed: onAddContact,
+              icon: const Icon(Icons.person_add_outlined, size: 18),
+              label: Text(contacts.isEmpty ? 'Add emergency contact' : 'Review My Circle'),
+              style: TextButton.styleFrom(foregroundColor: Colors.black),
+            ),
+        ],
       );
     }
 
@@ -47,11 +65,11 @@ class SosContactsSummary extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${contacts.length} contact${contacts.length == 1 ? '' : 's'} will be notified',
+              '${recipients.length} contact${recipients.length == 1 ? '' : 's'} set to receive alerts',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             Text(
-              '$pushCount by push · $smsCount by SMS · location included',
+              '$pushCount by push · $smsCount by SMS',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
             ),
           ],
@@ -71,7 +89,7 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool muted = contact != null && !contact!.notifyViaPush;
+    final bool muted = contact != null && !contact!.notifyViaPush && !contact!.notifyViaSms;
     return Container(
       width: 34,
       height: 34,

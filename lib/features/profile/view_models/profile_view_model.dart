@@ -8,6 +8,7 @@ import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 
 class ProfileBinding extends Bindings {
   @override
@@ -19,17 +20,14 @@ class ProfileBinding extends Bindings {
 class ProfileViewModel extends GetxController {
   ProfileViewModel(this._firestoreService);
 
-  /// `Providers`
-  final FirestoreService _firestoreService;
+final FirestoreService _firestoreService;
 
-  /// `State`
-  final Rxn<UserDto> user = Rxn<UserDto>();
+final Rxn<UserDto> user = Rxn<UserDto>();
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
   final Rxn<String> errorMessage = Rxn<String>();
   final RxBool isDeleting = false.obs;
 
-  /// `Permissions`
-  final RxBool notificationsEnabled = false.obs;
+final RxBool notificationsEnabled = false.obs;
   final RxBool locationEnabled = false.obs;
 
   @override
@@ -41,9 +39,7 @@ class ProfileViewModel extends GetxController {
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  // ─── Profile ──────────────────────────────────────────────────────────────
-
-  Future<void> fetchProfile() async {
+Future<void> fetchProfile() async {
     if (_uid.isEmpty) {
       errorMessage.value = 'No authenticated user found.';
       screenState.value = GenericScreenStates.error;
@@ -120,8 +116,6 @@ class ProfileViewModel extends GetxController {
     return result.isSuccess;
   }
 
-  // ─── Permissions ──────────────────────────────────────────────────────────
-
   // permission_handler doesn't implement the OS-level location/notification
   // permission APIs on web (throws UnimplementedError) — the browser handles
   // those prompts itself via the underlying JS APIs instead, so there's
@@ -139,12 +133,13 @@ class ProfileViewModel extends GetxController {
     if (kIsWeb) return;
 
     final status = await Permission.notification.request();
-
-    await AppSettings.openAppSettings(type: AppSettingsType.notification);
     await checkPermissions();
 
     if (status.isGranted) {
       notificationsEnabled.value = true;
+      if (Get.isRegistered<FirebaseMessagingService>()) {
+        await Get.find<FirebaseMessagingService>().refreshToken();
+      }
     } else if (status.isPermanentlyDenied) {
       await AppSettings.openAppSettings(type: AppSettingsType.notification);
       await checkPermissions();
@@ -154,11 +149,10 @@ class ProfileViewModel extends GetxController {
   Future<void> requestLocation() async {
     if (kIsWeb) return;
 
-    // Ask for whenInUse first — iOS requires this before always
-    final whenInUse = await Permission.locationWhenInUse.request();
+final whenInUse = await Permission.locationWhenInUse.request();
 
     if (whenInUse.isGranted) {
-      // Then ask for always (needed for background alert detection)
+
       final always = await Permission.locationAlways.request();
       locationEnabled.value = always.isGranted || whenInUse.isGranted;
     } else {
@@ -167,22 +161,16 @@ class ProfileViewModel extends GetxController {
     }
   }
 
-  // ─── Email ────────────────────────────────────────────────────────────────
-
-  Future<ResultDto<void>> changeEmail({required String newEmail, required String password}) {
+Future<ResultDto<void>> changeEmail({required String newEmail, required String password}) {
     return FirebaseAuthController.instance().changeEmail(newEmail: newEmail, password: password);
   }
 
-  // ─── Password ─────────────────────────────────────────────────────────────
-
-  Future<ResultDto<void>> changePassword({required String currentPassword, required String newPassword}) {
+Future<ResultDto<void>> changePassword({required String currentPassword, required String newPassword}) {
     return FirebaseAuthController.instance()
         .changePassword(currentPassword: currentPassword, newPassword: newPassword);
   }
 
-  // ─── Account deletion ─────────────────────────────────────────────────────
-
-  Future<ResultDto<void>> deleteAccount(String password) async {
+Future<ResultDto<void>> deleteAccount(String password) async {
     isDeleting.value = true;
     final result = await FirebaseAuthController.instance().deleteAccount(password);
     isDeleting.value = false;

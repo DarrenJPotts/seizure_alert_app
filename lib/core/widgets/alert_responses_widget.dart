@@ -77,8 +77,6 @@ class _AlertResponsesWidgetState extends State<AlertResponsesWidget> {
   }
 }
 
-// ─── Response row ─────────────────────────────────────────────────────────────
-
 class _ResponseRow extends StatelessWidget {
   const _ResponseRow({required this.response});
 
@@ -88,7 +86,7 @@ class _ResponseRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // ── Avatar ──────────────────────────────────────────────────────
+
         Container(
           width: 36,
           height: 36,
@@ -108,16 +106,14 @@ class _ResponseRow extends StatelessWidget {
         ),
         SizedBox(width: Dimensions.twelve),
 
-        // ── Name ────────────────────────────────────────────────────────
-        Expanded(
+Expanded(
           child: Text(
             response.contactName,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
 
-        // ── Status badge ────────────────────────────────────────────────
-        if (response.responding)
+if (response.responding)
           _Badge(label: 'Responding', filled: true)
         else if (response.seen)
           _Badge(label: 'Seen', filled: false),
@@ -132,8 +128,6 @@ class _ResponseRow extends StatelessWidget {
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 }
-
-// ─── Badge ────────────────────────────────────────────────────────────────────
 
 class _Badge extends StatelessWidget {
   const _Badge({required this.label, required this.filled});

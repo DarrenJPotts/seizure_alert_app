@@ -29,7 +29,7 @@ class LoginView extends GetView<LoginViewModel> {
                   spacing: Dimensions.thirtySix,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    /// Logo + tagline
+
                     Column(
                       spacing: Dimensions.sixteen,
                       children: [
@@ -42,8 +42,7 @@ class LoginView extends GetView<LoginViewModel> {
                       ],
                     ),
 
-                    /// Input fields
-                    Column(
+Column(
                       spacing: Dimensions.sixteen,
                       children: [
                         AppTextFormField(
@@ -59,8 +58,7 @@ class LoginView extends GetView<LoginViewModel> {
                           textInputAction: TextInputAction.done,
                         ),
 
-                        /// Error message
-                        Obx(() {
+Obx(() {
                           final error = controller.errorMessage.value;
                           if (error == null || error.isEmpty) return SizedBox.shrink();
                           return Text(
@@ -74,8 +72,7 @@ class LoginView extends GetView<LoginViewModel> {
                       ],
                     ),
 
-                    /// Actions
-                    Column(
+Column(
                       spacing: Dimensions.sixteen,
                       children: [
                         Obx(() {
@@ -95,7 +92,7 @@ class LoginView extends GetView<LoginViewModel> {
                         AppButton(
                           buttonStyle: BaseButtonStyle.secondaryTextButtonStyle(context: context),
                           buttonText: 'Create an account',
-                          onTap: () => Get.toNamed(AppRoutes.signup),
+                          onTap: () => Get.toNamed(AppRoutes.signup, arguments: Get.arguments),
                         ),
                       ],
                     ),

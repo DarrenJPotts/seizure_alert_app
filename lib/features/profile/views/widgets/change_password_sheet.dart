@@ -97,39 +97,25 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
     required String hint,
     required bool obscure,
     required VoidCallback onToggleObscure,
-  }) => InputDecoration(
-    hintText: hint,
-    hintStyle: Theme.of(
-      context,
-    ).textTheme.bodyMedium?.copyWith(color: Colors.black26),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Colors.black12),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
-        color: _error != null ? Colors.red : Colors.black12,
-        width: _error != null ? 1.5 : 1,
+  }) {
+
+final InputDecorationThemeData fieldTheme =
+        Theme.of(context).inputDecorationTheme;
+    final bool hasError = _error != null;
+
+    return InputDecoration(
+      hintText: hint,
+      enabledBorder: hasError ? fieldTheme.errorBorder : null,
+      focusedBorder: hasError ? fieldTheme.focusedErrorBorder : null,
+      suffixIcon: IconButton(
+        onPressed: onToggleObscure,
+        icon: Icon(
+          obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          size: 20,
+        ),
       ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
-        color: _error != null ? Colors.red : Colors.black,
-        width: 1.5,
-      ),
-    ),
-    suffixIcon: IconButton(
-      onPressed: onToggleObscure,
-      icon: Icon(
-        obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-        color: Colors.black38,
-        size: 20,
-      ),
-    ),
-  );
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,15 +152,14 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
             ),
             SizedBox(height: Dimensions.eight),
           ] else ...[
-            // ── Title ───────────────────────────────────────────────────
+
             Text(
               'Change Password',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Current password ─────────────────────────────────────────
-            Text(
+Text(
               'Current password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -197,8 +182,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── New password ─────────────────────────────────────────────
-            Text(
+Text(
               'New password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -221,8 +205,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Confirm new password ─────────────────────────────────────
-            Text(
+Text(
               'Confirm new password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -244,8 +227,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
               ),
             ),
 
-            // ── Inline error ─────────────────────────────────────────────
-            if (_error != null) ...[
+if (_error != null) ...[
               SizedBox(height: Dimensions.eight),
               Text(
                 _error!,
@@ -256,8 +238,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
             ],
             SizedBox(height: Dimensions.twentyFour),
 
-            // ── Save button ────────────────────────────────────────────
-            SizedBox(
+SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isBusy ? null : _confirm,
@@ -284,8 +265,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
             ),
             SizedBox(height: Dimensions.eight),
 
-            // ── Cancel ───────────────────────────────────────────────────
-            SizedBox(
+SizedBox(
               width: double.infinity,
               child: TextButton(
                 onPressed: _isBusy ? null : () => Get.back(),

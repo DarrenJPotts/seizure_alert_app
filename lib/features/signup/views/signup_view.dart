@@ -39,7 +39,7 @@ class SignupView extends GetView<SignupViewModel> {
                         spacing: Dimensions.thirtySix,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // ── Logo + heading ──────────────────────────────────────
+
                           Column(
                             spacing: Dimensions.sixteen,
                             children: [
@@ -52,8 +52,7 @@ class SignupView extends GetView<SignupViewModel> {
                             ],
                           ),
 
-                          // ── Fields ──────────────────────────────────────────────
-                          Column(
+Column(
                             spacing: Dimensions.sixteen,
                             children: [
                               AppTextFormField(
@@ -80,8 +79,7 @@ class SignupView extends GetView<SignupViewModel> {
                                 validator: controller.validateConfirmPassword,
                               ),
 
-                              // ── Error message ───────────────────────────────────
-                              Obx(() {
+Obx(() {
                                 final error = controller.errorMessage.value;
                                 if (error == null || error.isEmpty) {
                                   return const SizedBox.shrink();
@@ -97,8 +95,7 @@ class SignupView extends GetView<SignupViewModel> {
                             ],
                           ),
 
-                          // ── Actions ─────────────────────────────────────────────
-                          Column(
+Column(
                             spacing: Dimensions.sixteen,
                             children: [
                               Obx(() {
@@ -119,7 +116,7 @@ class SignupView extends GetView<SignupViewModel> {
                               AppButton(
                                 buttonStyle: BaseButtonStyle.secondaryTextButtonStyle(context: context),
                                 buttonText: 'Already have an account? Sign in',
-                                onTap: () => Get.offNamed(AppRoutes.login),
+                                onTap: () => Get.offNamed(AppRoutes.login, arguments: Get.arguments),
                               ),
                             ],
                           ),

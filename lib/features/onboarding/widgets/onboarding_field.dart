@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
 class OnboardingField extends StatelessWidget {
@@ -8,6 +9,9 @@ class OnboardingField extends StatelessWidget {
     required this.controller,
     required this.hint,
     this.keyboardType,
+    this.inputFormatters,
+    this.maxLength,
+    this.errorText,
     this.helper,
     this.autofocus = false,
     this.onChanged,
@@ -17,6 +21,9 @@ class OnboardingField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
+  final String? errorText;
   final String? helper;
   final bool autofocus;
   final ValueChanged<String>? onChanged;
@@ -32,34 +39,16 @@ class OnboardingField extends StatelessWidget {
           controller: controller,
           autofocus: autofocus,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          maxLength: maxLength,
+          maxLengthEnforcement: MaxLengthEnforcement.enforced,
           style: Theme.of(context).textTheme.bodyMedium,
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
             helperText: helper,
-            hintStyle: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.black38),
-            helperStyle: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.black45),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.black12),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.black12),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Colors.black, width: 1.5),
-            ),
+            errorText: errorText,
+            counterText: maxLength == null ? null : '',
           ),
         ),
       ],

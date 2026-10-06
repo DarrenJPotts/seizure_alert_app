@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
-/// Shows a bottom sheet with the app's standard chrome: white background,
-/// safe-area aware, scroll-controlled, rounded top corners.
 class AppBottomSheet {
   const AppBottomSheet._();
 
@@ -22,7 +20,6 @@ class AppBottomSheet {
   );
 }
 
-/// The 36x4 drag handle centred at the top of every bottom sheet.
 class AppBottomSheetHandle extends StatelessWidget {
   const AppBottomSheetHandle({super.key});
 
@@ -39,9 +36,6 @@ class AppBottomSheetHandle extends StatelessWidget {
   );
 }
 
-/// Standard bottom sheet body: keyboard-avoiding padding, the drag handle,
-/// and [child] laid out below it with `Dimensions.twentyFour` padding on all
-/// sides. Wrap [child] in a `Form` if the sheet needs validation.
 class AppBottomSheetContent extends StatelessWidget {
   const AppBottomSheetContent({
     super.key,

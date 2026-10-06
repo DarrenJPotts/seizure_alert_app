@@ -1,18 +1,7 @@
-/**
- * Canonical phone-number handling.
- *
- * Mirror of `lib/core/helpers/phone_number.dart` — the two implementations
- * must stay in sync, since the client writes `phoneNormalized` and these
- * functions query on it.
- */
 
-// Dial code assumed for numbers written in local form (e.g. "082 123 4567").
+
 const DEFAULT_DIAL_CODE = "27";
 
-/**
- * Converts a raw phone string into E.164 form (`+27821234567`).
- * Returns null when there aren't enough digits to be a usable number.
- */
 function normalizePhone(raw) {
   if (typeof raw !== "string") return null;
 
