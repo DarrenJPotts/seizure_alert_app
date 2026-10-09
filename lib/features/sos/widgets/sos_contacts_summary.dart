@@ -9,11 +9,7 @@ class SosContactsSummary extends StatelessWidget {
   final List<ContactDto> contacts;
   final VoidCallback? onAddContact;
 
-  List<ContactDto> get recipients => contacts.where((ContactDto c) => c.notifyViaPush || c.notifyViaSms).toList();
-
-  int get pushCount => recipients.where((ContactDto c) => c.notifyViaPush).length;
-
-  int get smsCount => recipients.where((ContactDto c) => c.notifyViaSms).length;
+  List<ContactDto> get recipients => contacts.where((ContactDto c) => c.isPushReady).toList();
 
   List<ContactDto> get visible => recipients.take(3).toList();
 
@@ -27,8 +23,8 @@ class SosContactsSummary extends StatelessWidget {
         children: [
           Text(
             contacts.isEmpty
-                ? 'No one will receive an SOS until you add an emergency contact.'
-                : 'No alert method is enabled for your contacts. Review your circle before sending SOS.',
+                ? 'No emergency contacts are set up.'
+                : 'No linked contacts are ready for app alerts. Invite a contact or enable push alerts.',
             textAlign: TextAlign.center,
             style: context.theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
           ),
@@ -69,7 +65,7 @@ class SosContactsSummary extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             Text(
-              '$pushCount by push · $smsCount by SMS',
+              'Push notifications only',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
             ),
           ],
@@ -89,7 +85,7 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool muted = contact != null && !contact!.notifyViaPush && !contact!.notifyViaSms;
+    final bool muted = contact != null && !contact!.isPushReady;
     return Container(
       width: 34,
       height: 34,

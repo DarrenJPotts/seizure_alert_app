@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:app_settings/app_settings.dart';
@@ -9,37 +12,44 @@ import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/services/firebase_messaging_service.dart';
+import 'package:seizure_app/core/services/home_widget_service.dart';
 
 class ProfileBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut(() => ProfileViewModel(FirestoreService.instance()), fenix: true);
+    Get.lazyPut(
+      () => ProfileViewModel(FirestoreService.instance()),
+      fenix: true,
+    );
   }
 }
 
 class ProfileViewModel extends GetxController {
   ProfileViewModel(this._firestoreService);
 
-final FirestoreService _firestoreService;
+  final FirestoreService _firestoreService;
 
-final Rxn<UserDto> user = Rxn<UserDto>();
+  final Rxn<UserDto> user = Rxn<UserDto>();
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
   final Rxn<String> errorMessage = Rxn<String>();
   final RxBool isDeleting = false.obs;
+  final RxBool isAddingHomeWidget = false.obs;
 
-final RxBool notificationsEnabled = false.obs;
+  final RxBool notificationsEnabled = false.obs;
   final RxBool locationEnabled = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     fetchProfile();
-    checkPermissions();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkPermissions();
+    });
   }
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
-Future<void> fetchProfile() async {
+  Future<void> fetchProfile() async {
     if (_uid.isEmpty) {
       errorMessage.value = 'No authenticated user found.';
       screenState.value = GenericScreenStates.error;
@@ -123,24 +133,39 @@ Future<void> fetchProfile() async {
   Future<void> checkPermissions() async {
     if (kIsWeb) return;
 
-    final results = await Future.wait([Permission.notification.status, Permission.locationWhenInUse.status]);
+    if (Get.isRegistered<FirebaseMessagingService>()) {
+      final messaging = Get.find<FirebaseMessagingService>();
+      await messaging.refreshReadiness();
+      notificationsEnabled.value = messaging.notificationsAuthorized;
+    } else {
+      notificationsEnabled.value =
+          (await Permission.notification.status).isGranted;
+    }
 
-    notificationsEnabled.value = results[0].isGranted;
-    locationEnabled.value = results[1].isGranted || await Permission.locationAlways.isGranted;
+    final locationStatus = await Permission.locationWhenInUse.status;
+    locationEnabled.value =
+        locationStatus.isGranted || await Permission.locationAlways.isGranted;
   }
 
   Future<void> requestNotifications() async {
     if (kIsWeb) return;
 
-    final status = await Permission.notification.request();
-    await checkPermissions();
-
-    if (status.isGranted) {
-      notificationsEnabled.value = true;
-      if (Get.isRegistered<FirebaseMessagingService>()) {
-        await Get.find<FirebaseMessagingService>().refreshToken();
+    if (Get.isRegistered<FirebaseMessagingService>()) {
+      final messaging = Get.find<FirebaseMessagingService>();
+      await messaging.refreshReadiness();
+      if (messaging.notificationAuthorization.value ==
+          AuthorizationStatus.notDetermined) {
+        await messaging.enableNotifications();
+      } else if (!messaging.notificationsAuthorized) {
+        await messaging.openNotificationSettings();
       }
-    } else if (status.isPermanentlyDenied) {
+      await checkPermissions();
+      return;
+    }
+
+    final status = await Permission.notification.request();
+    notificationsEnabled.value = status.isGranted;
+    if (status.isPermanentlyDenied) {
       await AppSettings.openAppSettings(type: AppSettingsType.notification);
       await checkPermissions();
     }
@@ -149,10 +174,9 @@ Future<void> fetchProfile() async {
   Future<void> requestLocation() async {
     if (kIsWeb) return;
 
-final whenInUse = await Permission.locationWhenInUse.request();
+    final whenInUse = await Permission.locationWhenInUse.request();
 
     if (whenInUse.isGranted) {
-
       final always = await Permission.locationAlways.request();
       locationEnabled.value = always.isGranted || whenInUse.isGranted;
     } else {
@@ -161,18 +185,64 @@ final whenInUse = await Permission.locationWhenInUse.request();
     }
   }
 
-Future<ResultDto<void>> changeEmail({required String newEmail, required String password}) {
-    return FirebaseAuthController.instance().changeEmail(newEmail: newEmail, password: password);
+  Future<void> addHomeWidget() async {
+    if (kIsWeb ||
+        defaultTargetPlatform != TargetPlatform.android ||
+        !Get.isRegistered<HomeWidgetService>() ||
+        isAddingHomeWidget.value) {
+      return;
+    }
+
+    isAddingHomeWidget.value = true;
+    try {
+      final supported = await Get.find<HomeWidgetService>().requestPin();
+      if (!supported) {
+        Get.snackbar(
+          'Widget unavailable',
+          'Add the widget from your launcher widget menu.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.black,
+          colorText: Colors.white,
+        );
+      }
+    } catch (error) {
+      Get.snackbar(
+        'Widget not added',
+        'Open your launcher widget menu and try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.black,
+        colorText: Colors.white,
+      );
+    } finally {
+      isAddingHomeWidget.value = false;
+    }
   }
 
-Future<ResultDto<void>> changePassword({required String currentPassword, required String newPassword}) {
-    return FirebaseAuthController.instance()
-        .changePassword(currentPassword: currentPassword, newPassword: newPassword);
+  Future<ResultDto<void>> changeEmail({
+    required String newEmail,
+    required String password,
+  }) {
+    return FirebaseAuthController.instance().changeEmail(
+      newEmail: newEmail,
+      password: password,
+    );
   }
 
-Future<ResultDto<void>> deleteAccount(String password) async {
+  Future<ResultDto<void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return FirebaseAuthController.instance().changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
+  Future<ResultDto<void>> deleteAccount(String password) async {
     isDeleting.value = true;
-    final result = await FirebaseAuthController.instance().deleteAccount(password);
+    final result = await FirebaseAuthController.instance().deleteAccount(
+      password,
+    );
     isDeleting.value = false;
     return result;
   }

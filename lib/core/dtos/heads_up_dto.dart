@@ -32,11 +32,8 @@ class HeadsUpDto {
     );
   }
   ///
-  /// [expiresAt] is serialised with `toIso8601String()`, which for a local
-  /// `DateTime` carries no timezone suffix — so the server cannot compare it
-  /// against its own clock without guessing the writer's offset. The sweep
-  /// that escalates missed check-ins (`expireHeadsUpWindows` in
-  /// `functions/index.js`) queries this field instead, which is unambiguous.
+  /// The server schedules escalation from this UTC value because the display
+  /// string may not include enough timezone information to compare safely.
   int get expiresAtMs => expiresAt.toUtc().millisecondsSinceEpoch;
 
   Map<String, dynamic> toMap() => {

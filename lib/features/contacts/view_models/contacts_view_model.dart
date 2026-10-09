@@ -8,8 +8,8 @@ import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/extensions/typed_extensions.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/services/home_widget_service.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ContactsViewModel extends GetxController {
   ContactsViewModel(this._firestoreService, this._circleInviteService);
@@ -17,14 +17,16 @@ class ContactsViewModel extends GetxController {
   final FirestoreService _firestoreService;
   final CircleInviteService _circleInviteService;
 
-final RxList<ContactDto> contacts = <ContactDto>[].obs;
+  final RxList<ContactDto> contacts = <ContactDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
+  final RxnString invitingContactId = RxnString();
 
   StreamSubscription<List<ContactDto>>? _contactsSub;
+  Timer? _initialLoadTimer;
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
-@override
+  @override
   void onInit() {
     super.onInit();
     _init();
@@ -37,28 +39,47 @@ final RxList<ContactDto> contacts = <ContactDto>[].obs;
     }
 
     screenState.value = GenericScreenStates.loading;
-    _contactsSub = _firestoreService.watchContacts(_uid).listen((list) {
-      contacts.value = list;
-      screenState.value = GenericScreenStates.loaded;
-    }, onError: (_) => screenState.value = GenericScreenStates.error);
+    _initialLoadTimer = Timer(const Duration(seconds: 10), () {
+      if (screenState.value == GenericScreenStates.loading) {
+        screenState.value = GenericScreenStates.error;
+      }
+    });
+    _contactsSub = _firestoreService
+        .watchContacts(_uid)
+        .listen(
+          (list) {
+            _initialLoadTimer?.cancel();
+            contacts.value = list;
+            screenState.value = GenericScreenStates.loaded;
+            if (Get.isRegistered<HomeWidgetService>()) {
+              unawaited(
+                Get.find<HomeWidgetService>().setSetupReady(
+                  list.any((ContactDto contact) => contact.isPushReady),
+                ),
+              );
+            }
+          },
+          onError: (_) {
+            _initialLoadTimer?.cancel();
+            screenState.value = GenericScreenStates.error;
+          },
+        );
   }
 
-Future<ContactDto?> addContact({
+  Future<ContactDto?> addContact({
     required String name,
     required String phone,
     String? relation,
-    bool notifyViaSms = true,
     bool notifyViaPush = true,
   }) async {
     final contact = ContactDto(
-      id: FirebaseFirestore.instance.collection(FirebaseCollectionKeys.contacts).doc().id,
+      id: _firestoreService.newDocumentId(FirebaseCollectionKeys.contacts),
       userId: _uid,
       name: name.trim(),
       phone: phone.trim(),
       relation: relation.trimNullable(),
       priority: contacts.length,
 
-      notifyViaSms: notifyViaSms,
       notifyViaPush: notifyViaPush,
       createdAt: DateTime.now(),
     );
@@ -66,15 +87,24 @@ Future<ContactDto?> addContact({
     return result.isSuccess ? contact : null;
   }
 
-  /// Checks whether [phone] belongs to a registered app user and, if so,
-  /// sends them an in-app invite (gating [contactId] to pending until they
-  /// accept) instead of relying on the SMS/WhatsApp share link.
-  Future<SendInviteResult?> sendCircleInvite({required String contactId, required String phone}) async {
-    final ResultDto<SendInviteResult> result = await _circleInviteService.sendCircleInvite(
-      contactId: contactId,
-      phone: phone,
-    );
-    return result.isSuccess ? result.data : null;
+  Future<ResultDto<String>> createCircleInvite({
+    required String contactId,
+    bool regenerate = false,
+  }) async {
+    if (invitingContactId.value != null) {
+      return ResultDto.failure(
+        'An invite is already being created. Please wait.',
+      );
+    }
+    invitingContactId.value = contactId;
+    try {
+      return await _circleInviteService.createCircleInvite(
+        contactId: contactId,
+        regenerate: regenerate,
+      );
+    } finally {
+      invitingContactId.value = null;
+    }
   }
 
   Future<bool> updateContact({
@@ -82,7 +112,6 @@ Future<ContactDto?> addContact({
     required String name,
     required String phone,
     String? relation,
-    bool notifyViaSms = true,
     bool notifyViaPush = true,
   }) async {
     final contact = ContactDto(
@@ -92,9 +121,12 @@ Future<ContactDto?> addContact({
       phone: phone.trim(),
       relation: relation.trimNullable(),
       priority: existing.priority,
-      notifyViaSms: notifyViaSms,
       notifyViaPush: notifyViaPush,
       createdAt: existing.createdAt,
+      status: existing.status,
+      linkedUid: existing.linkedUid,
+      inviteStatus: existing.inviteStatus,
+      inviteExpiresAt: existing.inviteExpiresAt,
     );
     final result = await _firestoreService.upsertContact(contact);
     return result.isSuccess;
@@ -107,6 +139,7 @@ Future<ContactDto?> addContact({
 
   @override
   void onClose() {
+    _initialLoadTimer?.cancel();
     _contactsSub?.cancel();
     super.onClose();
   }

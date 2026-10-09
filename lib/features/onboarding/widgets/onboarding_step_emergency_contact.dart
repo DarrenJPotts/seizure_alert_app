@@ -65,6 +65,21 @@ class OnboardingStepEmergencyContact extends StatelessWidget {
             controller: vm.contactRelationController,
             hint: 'e.g. Partner, Parent, Friend',
           ),
+          Obx(() {
+            if (!vm.hasEmergencyContactDetails.value) return const SizedBox.shrink();
+            return SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Invite them to join your circle', style: Theme.of(context).textTheme.bodyMedium),
+              subtitle: Text(
+                'Create a short code to share by SMS or WhatsApp after setup.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+              ),
+              value: vm.inviteEmergencyContact.value,
+              activeTrackColor: Colors.black26,
+              activeThumbColor: Colors.black,
+              onChanged: (value) => vm.inviteEmergencyContact.value = value,
+            );
+          }),
         ],
       ),
     );

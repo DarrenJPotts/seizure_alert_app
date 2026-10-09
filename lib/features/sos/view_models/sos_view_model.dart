@@ -12,10 +12,10 @@ import 'package:seizure_app/core/dtos/alert_response_dto.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
+import 'package:seizure_app/core/services/home_widget_service.dart';
 import 'package:seizure_app/features/seizure_log/view_models/seizure_log_view_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 ///
 /// Firestore's offline cache acknowledges a write locally and completes the
@@ -24,21 +24,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// screen showed a live alert — the user believed their circle had been told
 /// when nothing had left the phone. That is the worst failure this app has,
 /// and it was invisible.
-enum SosDelivery {
-
-  sending,
-
-delivered,
-
-queued,
-
-failed,
-}
+enum SosDelivery { sending, delivered, queued, failed }
 
 class SosViewModel extends GetxController {
   static const _storageKey = 'active_sos';
 
-static const Duration deliveryGrace = Duration(seconds: 8);
+  static const Duration deliveryGrace = Duration(seconds: 8);
 
   final Rxn<AlertDto> activeSos = Rxn<AlertDto>();
   final Rx<Duration> elapsed = Duration.zero.obs;
@@ -66,9 +57,11 @@ static const Duration deliveryGrace = Duration(seconds: 8);
   }
 
   /// True while the circle has *not* been told, for whatever reason.
-  bool get isUndelivered => delivery.value == SosDelivery.queued || delivery.value == SosDelivery.failed;
+  bool get isUndelivered =>
+      delivery.value == SosDelivery.queued ||
+      delivery.value == SosDelivery.failed;
 
-Future<void> _restoreActiveSos() async {
+  Future<void> _restoreActiveSos() async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final String? json = prefs.getString(_storageKey);
@@ -77,19 +70,25 @@ Future<void> _restoreActiveSos() async {
       final AlertDto dto = AlertDto.fromMap(jsonDecode(json));
       if (dto.status == AlertStatus.sent) {
         activeSos.value = dto;
+        _syncHomeWidget();
         _startElapsed();
         _watchResponses(dto.id);
         // Re-issuing the write is idempotent (same deterministic id) and is
         // the only way to learn whether the original one ever landed — the
         // app may have been killed before it did.
         _trackDelivery(dto.id, FirestoreService.instance().createAlert(dto));
+      } else if (dto.status == AlertStatus.cancelled ||
+          dto.status == AlertStatus.resolved) {
+        unawaited(
+          FirestoreService.instance().updateAlertStatus(dto.id, dto.status),
+        );
       }
     } catch (e) {
       debugPrint('[SosVM] Error restoring active SOS: $e');
     }
   }
 
-Future<void> startSos() async {
+  Future<void> startSos() async {
     try {
       Get.find<SeizureLogViewModel>().addEntry(
         occurredAt: DateTime.now(),
@@ -97,10 +96,9 @@ Future<void> startSos() async {
       );
 
       final DateTime now = DateTime.now();
-      final String id = FirebaseFirestore.instance
-          .collection(FirebaseCollectionKeys.alerts)
-          .doc()
-          .id;
+      final String id = FirestoreService.instance().newDocumentId(
+        FirebaseCollectionKeys.alerts,
+      );
       final AlertDto alert = AlertDto(
         id: id,
         userId: _uid,
@@ -109,18 +107,19 @@ Future<void> startSos() async {
         createdAt: now,
       );
 
-await _persist(alert);
+      await _persist(alert);
       activeSos.value = alert;
+      _syncHomeWidget();
       _startElapsed();
       _watchResponses(alert.id);
 
       _trackDelivery(alert.id, FirestoreService.instance().createAlert(alert));
 
-      final Position? position =
-          await LocationService.instance().getCurrentPosition();
+      final Position? position = await LocationService.instance()
+          .getCurrentPosition();
       if (position == null) return;
 
-if (activeSos.value?.id != alert.id) return;
+      if (activeSos.value?.id != alert.id) return;
 
       final AlertDto located = alert.copyWith(
         latitude: position.latitude,
@@ -130,8 +129,12 @@ if (activeSos.value?.id != alert.id) return;
       activeSos.value = located;
 
       unawaited(
-        FirestoreService.instance().createAlert(located).then((ResultDto<void> r) {
-          if (!r.isSuccess) debugPrint('[SosVM] Error attaching location: ${r.error}');
+        FirestoreService.instance().createAlert(located).then((
+          ResultDto<void> r,
+        ) {
+          if (!r.isSuccess) {
+            debugPrint('[SosVM] Error attaching location: ${r.error}');
+          }
         }),
       );
     } catch (e) {
@@ -140,12 +143,13 @@ if (activeSos.value?.id != alert.id) return;
     }
   }
 
-void _trackDelivery(String alertId, Future<ResultDto<void>> write) {
+  void _trackDelivery(String alertId, Future<ResultDto<void>> write) {
     delivery.value = SosDelivery.sending;
 
     _deliveryWatchdog?.cancel();
     _deliveryWatchdog = Timer(deliveryGrace, () {
-      if (activeSos.value?.id == alertId && delivery.value == SosDelivery.sending) {
+      if (activeSos.value?.id == alertId &&
+          delivery.value == SosDelivery.sending) {
         delivery.value = SosDelivery.queued;
       }
     });
@@ -156,8 +160,7 @@ void _trackDelivery(String alertId, Future<ResultDto<void>> write) {
         _deliveryWatchdog?.cancel();
 
         if (result.isSuccess) {
-
-delivery.value = SosDelivery.delivered;
+          delivery.value = SosDelivery.delivered;
         } else {
           debugPrint('[SosVM] Alert write rejected: ${result.error}');
           delivery.value = SosDelivery.failed;
@@ -166,7 +169,7 @@ delivery.value = SosDelivery.delivered;
     );
   }
 
-Future<void> cancelSos() async {
+  Future<void> cancelSos() async {
     final AlertDto? current = activeSos.value;
     if (current == null) return;
 
@@ -180,6 +183,7 @@ Future<void> cancelSos() async {
       );
       await _persist(updated);
       activeSos.value = null;
+      _syncHomeWidget();
       elapsed.value = Duration.zero;
       alertResponses.clear();
 
@@ -198,7 +202,10 @@ Future<void> cancelSos() async {
             )
             .then((ResultDto<void> result) {
               if (result.isSuccess) {
-                _showSnackbar('Alert cancelled', 'Your circle has been told you are OK.');
+                _showSnackbar(
+                  'Alert cancelled',
+                  'Your circle has been told you are OK.',
+                );
               } else {
                 debugPrint('[SosVM] Error cancelling alert: ${result.error}');
                 _showErrorSnackbar(
@@ -210,19 +217,25 @@ Future<void> cancelSos() async {
       );
     } catch (e) {
       debugPrint('[SosVM] Error cancelling SOS: $e');
-      _showErrorSnackbar('Not Updated', 'Your circle may still think this alert is active.');
+      _showErrorSnackbar(
+        'Not Updated',
+        'Your circle may still think this alert is active.',
+      );
     }
   }
 
-void _watchResponses(String alertId) {
+  void _watchResponses(String alertId) {
     _responsesSub?.cancel();
-    _responsesSub = FirestoreService.instance().watchAlertResponses(alertId).listen(
-      (List<AlertResponseDto> list) => alertResponses.value = list,
-      onError: (Object e) => debugPrint('[SosVM] Error watching responses: $e'),
-    );
+    _responsesSub = FirestoreService.instance()
+        .watchAlertResponses(alertId)
+        .listen(
+          (List<AlertResponseDto> list) => alertResponses.value = list,
+          onError: (Object e) =>
+              debugPrint('[SosVM] Error watching responses: $e'),
+        );
   }
 
-void _startElapsed() {
+  void _startElapsed() {
     _elapsedTimer?.cancel();
     _tick();
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
@@ -243,7 +256,7 @@ void _startElapsed() {
     return '${m}m ${s}s';
   }
 
-Future<void> _persist(AlertDto alert) async {
+  Future<void> _persist(AlertDto alert) async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString(_storageKey, jsonEncode(alert.toMap()));
@@ -253,15 +266,25 @@ Future<void> _persist(AlertDto alert) async {
     }
   }
 
+  void _syncHomeWidget() {
+    if (Get.isRegistered<HomeWidgetService>()) {
+      unawaited(Get.find<HomeWidgetService>().syncCurrentState());
+    }
+  }
+
   void _showSnackbar(String title, String message) {
     Get.snackbar(
       '',
       '',
-      titleText: Text(title,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-      messageText:
-          Text(message, style: const TextStyle(color: Colors.white)),
+      titleText: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
+      ),
+      messageText: Text(message, style: const TextStyle(color: Colors.white)),
       snackPosition: SnackPosition.BOTTOM,
       margin: snackbarMargin,
       backgroundColor: Colors.black,
@@ -274,11 +297,15 @@ Future<void> _persist(AlertDto alert) async {
     Get.snackbar(
       '',
       '',
-      titleText: Text(title,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-      messageText:
-          Text(message, style: const TextStyle(color: Colors.white)),
+      titleText: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
+      ),
+      messageText: Text(message, style: const TextStyle(color: Colors.white)),
       snackPosition: SnackPosition.BOTTOM,
       margin: snackbarMargin,
       backgroundColor: Colors.red.shade700,

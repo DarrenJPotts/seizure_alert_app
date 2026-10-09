@@ -6,6 +6,7 @@ import 'package:seizure_app/core/formatters/south_african_phone_input_formatter.
 import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
+import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 import 'package:seizure_app/features/contacts/widgets/invite_picker_sheet.dart';
@@ -15,7 +16,6 @@ typedef AddContactCallback =
       required String name,
       required String phone,
       String? relation,
-      bool notifyViaSms,
       bool notifyViaPush,
     });
 
@@ -25,11 +25,10 @@ typedef UpdateContactCallback =
       required String name,
       required String phone,
       String? relation,
-      bool notifyViaSms,
       bool notifyViaPush,
     });
 
-typedef SendInviteCallback = Future<SendInviteResult?> Function({required String contactId, required String phone});
+typedef SendInviteCallback = Future<ResultDto<String>> Function({required String contactId});
 
 class AddContactBottomSheet extends StatefulWidget {
   const AddContactBottomSheet({
@@ -71,10 +70,10 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
   final _phoneController = TextEditingController();
   final _relationController = TextEditingController();
 
-  bool _notifyViaSms = true;
   bool _notifyViaPush = true;
   bool _sendInvite = true;
   bool _isSaving = false;
+  bool _isCreatingInvite = false;
 
   bool get _isEditing => widget.existingContact != null;
 
@@ -86,7 +85,6 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
       _nameController.text = c.name;
       _phoneController.text = c.phone;
       _relationController.text = c.relation ?? '';
-      _notifyViaSms = c.notifyViaSms;
       _notifyViaPush = c.notifyViaPush;
     }
   }
@@ -113,7 +111,6 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
         name: _nameController.text,
         phone: _phoneController.text,
         relation: _relationController.text.trim().isEmpty ? null : _relationController.text.trim(),
-        notifyViaSms: _notifyViaSms,
         notifyViaPush: _notifyViaPush,
       );
     } else {
@@ -121,46 +118,71 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
         name: _nameController.text,
         phone: _phoneController.text,
         relation: _relationController.text.trim().isEmpty ? null : _relationController.text.trim(),
-        notifyViaSms: _notifyViaSms,
         notifyViaPush: _notifyViaPush,
       );
       success = createdContact != null;
     }
 
     if (!mounted) return;
-    setState(() => _isSaving = false);
 
     if (success) {
-      Get.back();
-      if (!_isEditing && _sendInvite && createdContact != null) {
-        await _sendInviteFor(createdContact);
+      final contactToInvite = createdContact;
+      if (!_isEditing && _sendInvite && contactToInvite != null) {
+        setState(() {
+          _isSaving = false;
+          _isCreatingInvite = true;
+        });
+        final result = await widget.onSendInvite(contactId: contactToInvite.id);
+        if (!mounted) return;
+        Get.back();
+        if (!result.isSuccess || result.data == null) {
+          Get.snackbar(
+            'Invite unavailable',
+            result.error ?? 'The invite could not be created. Please try again.',
+            snackPosition: SnackPosition.BOTTOM,
+            margin: snackbarMargin,
+          );
+          return;
+        }
+        AppBottomSheet.show(
+          context: Get.context!,
+          builder: (_) => InvitePickerSheet(
+            phone: contactToInvite.phone,
+            contactName: contactToInvite.name,
+            code: result.data!,
+            onRegenerate: () => CircleInviteService.instance().createCircleInvite(
+              contactId: contactToInvite.id,
+              regenerate: true,
+            ),
+          ),
+        );
+        return;
       }
+      Get.back();
     } else {
+      setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save. Please try again.')));
     }
   }
 
-  Future<void> _sendInviteFor(ContactDto contact) async {
-    final result = await widget.onSendInvite(contactId: contact.id, phone: contact.phone);
-
-    if (result != null && result.isRegisteredUser) {
-      Get.snackbar(
-        'Invite sent',
-        '${contact.name} will be notified in the app to accept.',
-        snackPosition: SnackPosition.BOTTOM,
-      margin: snackbarMargin,
-      );
-      return;
-    }
-
-AppBottomSheet.show(
-      context: Get.context!,
-      builder: (_) => InvitePickerSheet(phone: contact.phone, contactName: contact.name),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (_isCreatingInvite) {
+      return AppBottomSheetContent(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: Dimensions.thirtyTwo),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: Colors.black),
+              SizedBox(height: Dimensions.sixteen),
+              Text('Creating invite…', style: context.theme.textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      );
+    }
+
     return AppBottomSheetContent(
       child: Form(
         key: _formKey,
@@ -205,18 +227,12 @@ _OutlinedFormField(
             SizedBox(height: Dimensions.twentyFour),
 
 Text(
-              'Alert Notifications',
+              'Emergency Alerts',
               style: context.theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: Colors.black54),
             ),
             SizedBox(height: Dimensions.twelve),
             _ToggleRow(
-              label: 'Notify via SMS',
-              value: _notifyViaSms,
-              onChanged: (v) => setState(() => _notifyViaSms = v),
-            ),
-            const Divider(height: 1, color: Colors.black12),
-            _ToggleRow(
-              label: 'Notify via Push Notification',
+              label: 'Notify via push notifications',
               value: _notifyViaPush,
               onChanged: (v) => setState(() => _notifyViaPush = v),
             ),
@@ -235,8 +251,8 @@ if (!_isEditing) ...[
               ),
               SizedBox(height: Dimensions.eight),
               Text(
-                "If they already use SeizureAlert, they'll get an in-app invite to accept. "
-                'Otherwise, opens your SMS app with a pre-filled invite after saving.',
+                'Creates a one-time code to share by SMS or WhatsApp after saving. '
+                'They sign in and enter the code to accept.',
                 style: context.theme.textTheme.bodySmall?.copyWith(color: Colors.black38),
               ),
               SizedBox(height: Dimensions.twentyFour),

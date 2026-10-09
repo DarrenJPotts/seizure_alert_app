@@ -1,18 +1,21 @@
 import 'dart:async';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/constants/snackbar_margin.dart';
+import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_detail_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
+import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 
 class RespondingViewModel extends GetxController {
   RespondingViewModel(this._alertId, this._caregiverService);
 
-  static const Duration _pollInterval = Duration(seconds: 15);
+  static const Duration _pollInterval = Duration(seconds: 30);
 
   static const int maxNoteLength = 2000;
 
@@ -27,10 +30,17 @@ class RespondingViewModel extends GetxController {
 
   Timer? _ticker;
   Timer? _poll;
+  Worker? _notificationWorker;
 
   @override
   void onInit() {
     super.onInit();
+    if (Get.isRegistered<FirebaseMessagingService>()) {
+      _notificationWorker = ever<RemoteMessage?>(
+        Get.find<FirebaseMessagingService>().lastNotification,
+        _handleNotification,
+      );
+    }
     unawaited(_load(initial: true));
   }
 
@@ -38,7 +48,14 @@ class RespondingViewModel extends GetxController {
   void onClose() {
     _ticker?.cancel();
     _poll?.cancel();
+    _notificationWorker?.dispose();
     super.onClose();
+  }
+
+  void _handleNotification(RemoteMessage? message) {
+    if (message == null || message.data['alertId'] != _alertId) return;
+    if (message.data['alertStatus'] == AlertStatus.sent.name) return;
+    unawaited(_load());
   }
 
   Future<void> _load({bool initial = false}) async {
@@ -52,6 +69,14 @@ class RespondingViewModel extends GetxController {
 
     detail.value = result.data;
     screenState.value = GenericScreenStates.loaded;
+
+    if (!isAlertActive) {
+      _ticker?.cancel();
+      _ticker = null;
+      _poll?.cancel();
+      _poll = null;
+      return;
+    }
 
     if (initial) {
       _startTicker();
@@ -82,6 +107,14 @@ class RespondingViewModel extends GetxController {
     return '$mm:$ss';
   }
 
+  bool get isAlertActive => detail.value?.alert.status == AlertStatus.sent;
+
+  String get alertStatusLabel => switch (detail.value?.alert.status) {
+    AlertStatus.cancelled => 'CANCELLED',
+    AlertStatus.resolved => 'RESOLVED',
+    _ => 'ACTIVE $elapsedClock',
+  };
+
   String get ownerName => detail.value?.ownerProfile.displayName ?? '';
 
   String get subtitle {
@@ -90,7 +123,9 @@ class RespondingViewModel extends GetxController {
 
     final DateTime? respondedAt = current.callerResponse?.respondedAt;
     final int notified = current.notifiedCount;
-    final String people = notified == 1 ? '1 caregiver notified' : '$notified caregivers notified';
+    final String people = notified == 1
+        ? '1 caregiver notified'
+        : '$notified caregivers notified';
 
     if (respondedAt == null) return people;
     final String hhmm =
@@ -101,11 +136,16 @@ class RespondingViewModel extends GetxController {
   List<AlertResponderDto> get roster {
     final AlertDetailDto? current = detail.value;
     if (current == null) return const <AlertResponderDto>[];
-    return <AlertResponderDto>[if (current.callerResponse != null) current.callerResponse!, ...current.otherResponders];
+    return <AlertResponderDto>[
+      if (current.callerResponse != null) current.callerResponse!,
+      ...current.otherResponders,
+    ];
   }
 
   String statusFor(AlertResponderDto responder) {
-    if (responder.responding) return responder.isCaller ? 'On my way' : 'On their way';
+    if (responder.responding) {
+      return responder.isCaller ? 'On my way' : 'On their way';
+    }
     if (responder.seen) {
       final DateTime? seenAt = responder.seenAt;
       if (seenAt == null) return 'Seen the alert';
@@ -115,39 +155,56 @@ class RespondingViewModel extends GetxController {
   }
 
   bool canNudge(AlertResponderDto responder) =>
-      !responder.isCaller && !responder.responding && responder.responderId != null;
+      isAlertActive &&
+      !responder.isCaller &&
+      !responder.responding &&
+      responder.responderId != null;
 
-  List<String> get carePlanSteps => detail.value?.ownerProfile.carePlanSteps ?? const <String>[];
+  List<String> get carePlanSteps =>
+      detail.value?.ownerProfile.carePlanSteps ?? const <String>[];
 
-  Future<void> callOwner() => CallService.call(detail.value?.ownerProfile.phone);
+  Future<void> callOwner() =>
+      CallService.call(detail.value?.ownerProfile.phone);
 
   Future<void> nudge(AlertResponderDto responder) async {
     final String? targetId = responder.responderId;
     if (targetId == null || nudging.contains(targetId)) return;
 
     nudging.add(targetId);
-    final result = await _caregiverService.nudgeResponder(alertId: _alertId, targetResponderId: targetId);
+    final result = await _caregiverService.nudgeResponder(
+      alertId: _alertId,
+      targetResponderId: targetId,
+    );
     nudging.remove(targetId);
 
     if (!result.isSuccess) {
-      _notify('Could not nudge', 'Try phoning ${responder.contactName} instead.');
+      _notify(
+        'Could not nudge',
+        'Try phoning ${responder.contactName} instead.',
+      );
       return;
     }
     if (result.data == false) {
-      _notify('Nudge not delivered', '${responder.contactName} has no device registered for alerts. Phone them.');
+      _notify(
+        'Nudge not delivered',
+        '${responder.contactName} has no device registered for alerts. Phone them.',
+      );
       return;
     }
-    _notify('Nudge sent', '${responder.contactName} has been asked to respond.');
+    _notify(
+      'Nudge sent',
+      '${responder.contactName} has been asked to respond.',
+    );
   }
 
-  Future<void> saveNote(String note) async {
+  Future<bool> saveNote(String note) async {
     final AlertDetailDto? current = detail.value;
     final String trimmed = note.trim();
-    if (current == null || trimmed.isEmpty || isSavingNote.value) return;
+    if (current == null || trimmed.isEmpty || isSavingNote.value) return false;
 
     if (trimmed.length > maxNoteLength) {
       _notify('Too long', 'Keep your note under $maxNoteLength characters.');
-      return;
+      return false;
     }
 
     isSavingNote.value = true;
@@ -159,10 +216,11 @@ class RespondingViewModel extends GetxController {
 
     if (!result.isSuccess) {
       _notify('Could not save', 'Your note was not recorded. Try again.');
-      return;
+      return false;
     }
     _notify('Saved', 'Your account of what happened was recorded.');
     unawaited(_load());
+    return true;
   }
 
   /// No BuildContext here, so the scheme comes from `Get.theme`. A snackbar is
@@ -176,9 +234,16 @@ class RespondingViewModel extends GetxController {
       '',
       titleText: Text(
         title,
-        style: TextStyle(color: scheme.onInverseSurface, fontWeight: FontWeight.bold, fontSize: 16),
+        style: TextStyle(
+          color: scheme.onInverseSurface,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
       ),
-      messageText: Text(message, style: TextStyle(color: scheme.onInverseSurface)),
+      messageText: Text(
+        message,
+        style: TextStyle(color: scheme.onInverseSurface),
+      ),
       snackPosition: SnackPosition.BOTTOM,
       margin: snackbarMargin,
       backgroundColor: scheme.inverseSurface,
@@ -192,7 +257,10 @@ class RespondingBinding extends Bindings {
   @override
   void dependencies() {
     final args = Get.arguments as Map?;
-    final alertId = (args?['alertId'] as String?) ?? Get.parameters['alertId'] ?? '';
-    Get.lazyPut(() => RespondingViewModel(alertId, CaregiverService.instance()));
+    final alertId =
+        (args?['alertId'] as String?) ?? Get.parameters['alertId'] ?? '';
+    Get.lazyPut(
+      () => RespondingViewModel(alertId, CaregiverService.instance()),
+    );
   }
 }

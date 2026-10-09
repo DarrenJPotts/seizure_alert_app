@@ -1,12 +1,15 @@
 import 'dart:async';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_detail_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
+import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/core/services/map_launcher_service.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
@@ -25,21 +28,35 @@ class IncomingAlertViewModel extends GetxController {
 
   final Rx<Duration> elapsed = Duration.zero.obs;
   Timer? _ticker;
+  Worker? _notificationWorker;
 
   @override
   void onInit() {
     super.onInit();
+    if (Get.isRegistered<FirebaseMessagingService>()) {
+      _notificationWorker = ever<RemoteMessage?>(
+        Get.find<FirebaseMessagingService>().lastNotification,
+        _handleNotification,
+      );
+    }
     unawaited(_load());
   }
 
   @override
   void onClose() {
     _ticker?.cancel();
+    _notificationWorker?.dispose();
     super.onClose();
   }
 
-  Future<void> _load() async {
-    screenState.value = GenericScreenStates.loading;
+  void _handleNotification(RemoteMessage? message) {
+    if (message == null || message.data['alertId'] != _alertId) return;
+    if (message.data['alertStatus'] == AlertStatus.sent.name) return;
+    unawaited(_load(showLoading: false));
+  }
+
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading) screenState.value = GenericScreenStates.loading;
     final result = await _caregiverService.getAlertDetail(_alertId);
     if (!result.isSuccess || result.data == null) {
       screenState.value = GenericScreenStates.error;
@@ -48,8 +65,13 @@ class IncomingAlertViewModel extends GetxController {
     detail.value = result.data;
     screenState.value = GenericScreenStates.loaded;
 
-    _startTicker();
-    unawaited(_markSeen());
+    if (isAlertActive) {
+      _startTicker();
+    } else {
+      _ticker?.cancel();
+      _ticker = null;
+    }
+    if (isAlertActive) unawaited(_markSeen());
     unawaited(_computeDistance());
   }
 
@@ -81,7 +103,12 @@ class IncomingAlertViewModel extends GetxController {
     final position = await LocationService.instance().getCurrentPosition();
     if (position == null) return;
 
-    distanceMeters.value = Geolocator.distanceBetween(position.latitude, position.longitude, lat, lng);
+    distanceMeters.value = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      lat,
+      lng,
+    );
   }
 
   String get elapsedClock {
@@ -90,6 +117,25 @@ class IncomingAlertViewModel extends GetxController {
     final String ss = since.inSeconds.remainder(60).toString().padLeft(2, '0');
     if (since.inHours > 0) return '${since.inHours}:$mm:$ss';
     return '$mm:$ss';
+  }
+
+  bool get isAlertActive => detail.value?.alert.status == AlertStatus.sent;
+
+  String get alertStatusLabel => switch (detail.value?.alert.status) {
+    AlertStatus.cancelled => 'CANCELLED',
+    AlertStatus.resolved => 'RESOLVED',
+    _ => 'LIVE · STARTED $elapsedClock AGO',
+  };
+
+  String get heading {
+    final AlertDetailDto? current = detail.value;
+    if (current == null) return '';
+    final String firstName = current.ownerProfile.displayName.split(' ').first;
+    return switch (current.alert.status) {
+      AlertStatus.cancelled => '$firstName cancelled the alert',
+      AlertStatus.resolved => '$firstName resolved the alert',
+      AlertStatus.sent => '$firstName needs help',
+    };
   }
 
   String? distanceLabel() {
@@ -112,6 +158,13 @@ class IncomingAlertViewModel extends GetxController {
     if (current == null) return '';
     final String firstName = current.ownerProfile.displayName.split(' ').first;
 
+    if (current.alert.status == AlertStatus.cancelled) {
+      return '$firstName indicated they are okay. Call if you still have concerns.';
+    }
+    if (current.alert.status == AlertStatus.resolved) {
+      return 'This alert has been marked as resolved.';
+    }
+
     final int others = (current.notifiedCount - 1).clamp(0, 999);
     final String who = switch (others) {
       0 => 'You were notified.',
@@ -122,15 +175,18 @@ class IncomingAlertViewModel extends GetxController {
   }
 
   String? get primaryMedication {
-    final List<String> meds = detail.value?.ownerProfile.medications ?? const <String>[];
+    final List<String> meds =
+        detail.value?.ownerProfile.medications ?? const <String>[];
     return meds.isEmpty ? null : meds.first;
   }
 
-  bool get hasLocation => detail.value?.alert.latitude != null && detail.value?.alert.longitude != null;
+  bool get hasLocation =>
+      detail.value?.alert.latitude != null &&
+      detail.value?.alert.longitude != null;
 
   Future<void> respond() async {
     final current = detail.value;
-    if (current == null || isResponding.value) return;
+    if (current == null || !isAlertActive || isResponding.value) return;
 
     isResponding.value = true;
     final ResultDto<void> result = await _caregiverService.submitAlertResponse(
@@ -144,15 +200,19 @@ class IncomingAlertViewModel extends GetxController {
         'Could not respond',
         'Your response was not recorded. Check your connection and try again.',
         snackPosition: SnackPosition.BOTTOM,
-      margin: snackbarMargin,
+        margin: snackbarMargin,
       );
       return;
     }
 
-    Get.offNamed(AppRoutes.responding, arguments: <String, String>{'alertId': current.alert.id});
+    Get.offNamed(
+      AppRoutes.responding,
+      arguments: <String, String>{'alertId': current.alert.id},
+    );
   }
 
-  Future<void> callOwner() => CallService.call(detail.value?.ownerProfile.phone);
+  Future<void> callOwner() =>
+      CallService.call(detail.value?.ownerProfile.phone);
 
   Future<void> openDirections() async {
     final alert = detail.value?.alert;
@@ -169,7 +229,10 @@ class IncomingAlertBinding extends Bindings {
   @override
   void dependencies() {
     final args = Get.arguments as Map?;
-    final alertId = (args?['alertId'] as String?) ?? Get.parameters['alertId'] ?? '';
-    Get.lazyPut(() => IncomingAlertViewModel(alertId, CaregiverService.instance()));
+    final alertId =
+        (args?['alertId'] as String?) ?? Get.parameters['alertId'] ?? '';
+    Get.lazyPut(
+      () => IncomingAlertViewModel(alertId, CaregiverService.instance()),
+    );
   }
 }

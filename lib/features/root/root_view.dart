@@ -8,6 +8,8 @@ import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
+import 'package:seizure_app/core/services/home_widget_service.dart';
+import 'package:seizure_app/core/widgets/offline_banner.dart';
 import 'package:seizure_app/features/alert_history/alert_history_view.dart';
 import 'package:seizure_app/features/alert_history/view_models/alert_history_view_model.dart';
 import 'package:seizure_app/features/caregiver/caregiver_view.dart';
@@ -29,17 +31,36 @@ import 'package:seizure_app/features/splash/widgets/splash_body.dart';
 class RootBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut(() => ProfileViewModel(FirestoreService.instance()), fenix: true);
-    Get.lazyPut(() => HomeViewModel(FirestoreService.instance()), fenix: true);
-    Get.lazyPut(() => SeizureLogViewModel(FirestoreService.instance()), fenix: true);
     Get.lazyPut(
-      () => ContactsViewModel(FirestoreService.instance(), CircleInviteService.instance()),
+      () => ProfileViewModel(FirestoreService.instance()),
+      fenix: true,
+    );
+    Get.lazyPut(() => HomeViewModel(FirestoreService.instance()), fenix: true);
+    Get.lazyPut(
+      () => SeizureLogViewModel(FirestoreService.instance()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => ContactsViewModel(
+        FirestoreService.instance(),
+        CircleInviteService.instance(),
+      ),
       fenix: true,
     );
     Get.lazyPut(() => SosViewModel(), fenix: true);
 
-    Get.lazyPut(() => CaregiverViewModel(CaregiverService.instance()), fenix: true);
-    Get.lazyPut(() => AlertHistoryViewModel(FirestoreService.instance()), fenix: true);
+    Get.lazyPut(
+      () => CaregiverViewModel(CaregiverService.instance()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => AlertHistoryViewModel(
+        FirestoreService.instance(),
+        CaregiverService.instance(),
+        AppModeService.instance(),
+      ),
+      fenix: true,
+    );
 
     Get.lazyPut(() => RootViewModel(), fenix: true);
   }
@@ -52,13 +73,26 @@ class RootViewModel extends GetxController {
 
   final currentIndex = 2.obs;
   final RxBool ready = false.obs;
+  final RxBool widgetSosRequested = false.obs;
+  Worker? _widgetActionWorker;
 
   @override
   void onInit() {
     super.onInit();
     if (caregiverMode.value) currentIndex.value = 0;
 
-    ever<bool>(caregiverMode, (bool isCaregiver) => currentIndex.value = isCaregiver ? 0 : 2);
+    ever<bool>(
+      caregiverMode,
+      (bool isCaregiver) => currentIndex.value = isCaregiver ? 0 : 2,
+    );
+
+    if (Get.isRegistered<HomeWidgetService>()) {
+      _widgetActionWorker = ever<HomeWidgetAction?>(
+        Get.find<HomeWidgetService>().pendingAction,
+        (_) => _handleWidgetAction(),
+      );
+      _handleWidgetAction();
+    }
 
     _checkOnboarding();
   }
@@ -70,13 +104,23 @@ class RootViewModel extends GetxController {
       return;
     }
 
-    final result = await FirestoreService.instance().getUser(uid);
-    if (!result.isSuccess || result.data == null) {
-      Get.offAllNamed(
-        AppRoutes.onboarding,
-        arguments: <String, OnboardingMode>{'mode': OnboardingMode.completeProfile},
-      );
-      return;
+    try {
+      final result = await FirestoreService.instance().getUser(uid);
+      if (!result.isSuccess && result.error == 'User not found') {
+        Get.offAllNamed(
+          AppRoutes.onboarding,
+          arguments: <String, OnboardingMode>{
+            'mode': OnboardingMode.completeProfile,
+          },
+        );
+        return;
+      }
+
+      if (!result.isSuccess) {
+        debugPrint('[RootViewModel] Could not check profile: ${result.error}');
+      }
+    } catch (error) {
+      debugPrint('[RootViewModel] Could not check profile: $error');
     }
 
     ready.value = true;
@@ -84,6 +128,48 @@ class RootViewModel extends GetxController {
 
   void changePage(int index) {
     currentIndex.value = index;
+  }
+
+  bool consumeWidgetSosRequest() {
+    if (!widgetSosRequested.value) return false;
+    widgetSosRequested.value = false;
+    return true;
+  }
+
+  void _handleWidgetAction() {
+    final service = Get.find<HomeWidgetService>();
+    final action = service.takePendingAction();
+    if (action == null) return;
+
+    if (caregiverMode.value) {
+      if (action != HomeWidgetAction.openApp) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Get.toNamed(AppRoutes.mode);
+        });
+      }
+      return;
+    }
+
+    switch (action) {
+      case HomeWidgetAction.sos:
+        currentIndex.value = 2;
+        widgetSosRequested.value = true;
+        return;
+      case HomeWidgetAction.alert:
+        currentIndex.value = 2;
+        return;
+      case HomeWidgetAction.setup:
+        currentIndex.value = 3;
+        return;
+      case HomeWidgetAction.openApp:
+        return;
+    }
+  }
+
+  @override
+  void onClose() {
+    _widgetActionWorker?.dispose();
+    super.onClose();
   }
 }
 
@@ -95,38 +181,43 @@ class RootView extends GetView<RootViewModel> {
     if (!controller.ready.value) {
       return const Scaffold(backgroundColor: Colors.black, body: SplashBody());
     }
-    return controller.caregiverMode.value ? _buildCaregiverShell() : _buildPatientShell(context);
+    return controller.caregiverMode.value
+        ? _buildCaregiverShell()
+        : _buildPatientShell(context);
   });
 
   Widget _buildCaregiverShell() => Scaffold(
     body: SafeArea(
       bottom: false,
-      child: Obx(
-        () => IndexedStack(
-          index: controller.currentIndex.value,
-          children: [
-            CaregiverView(onOpenProfile: () => controller.changePage(3)),
-            const AlertHistoryView(),
-            const SeizureLogView(),
-            const ProfileView(),
-          ],
-        ),
+      child: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: Obx(
+              () => IndexedStack(
+                index: controller.currentIndex.value,
+                children: [
+                  CaregiverView(onOpenProfile: () => controller.changePage(3)),
+                  const AlertHistoryView(),
+                  const SeizureLogView(),
+                  const ProfileView(),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     ),
-    bottomNavigationBar: FloatingBottomNavWidget(controller: controller, caregiver: true),
+    bottomNavigationBar: FloatingBottomNavWidget(
+      controller: controller,
+      caregiver: true,
+    ),
   );
 
   Widget _buildPatientShell(BuildContext context) => Scaffold(
     appBar: AppBar(
       elevation: 0,
       foregroundColor: Colors.black,
-      title: Text(
-        'SOS is manual',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Colors.black.withValues(alpha: 0.7),
-          fontWeight: FontWeight.w500,
-        ),
-      ),
       centerTitle: false,
       actionsPadding: EdgeInsets.only(right: Dimensions.twelve),
       actions: [
@@ -135,20 +226,31 @@ class RootView extends GetView<RootViewModel> {
           icon: const Icon(Icons.history),
           tooltip: 'Alert history',
         ),
-        IconButton(onPressed: () => _confirmSignOut(context), icon: const Icon(Icons.logout), tooltip: 'Sign out'),
+        IconButton(
+          onPressed: () => _confirmSignOut(context),
+          icon: const Icon(Icons.logout),
+          tooltip: 'Sign out',
+        ),
       ],
     ),
-    body: Obx(
-      () => IndexedStack(
-        index: controller.currentIndex.value,
-        children: [
-          const HomeView(),
-          const SeizureLogView(),
-          SosView(viewModel: controller),
-          const ContactsView(),
-          const ProfileView(),
-        ],
-      ),
+    body: Column(
+      children: [
+        const OfflineBanner(),
+        Expanded(
+          child: Obx(
+            () => IndexedStack(
+              index: controller.currentIndex.value,
+              children: [
+                HomeView(onOpenContacts: () => controller.changePage(3)),
+                const SeizureLogView(),
+                SosView(viewModel: controller),
+                const ContactsView(),
+                const ProfileView(),
+              ],
+            ),
+          ),
+        ),
+      ],
     ),
     bottomNavigationBar: FloatingBottomNavWidget(controller: controller),
   );
@@ -158,9 +260,14 @@ class RootView extends GetView<RootViewModel> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Sign out?'),
-        content: const Text('You will need to sign in again to continue monitoring.'),
+        content: const Text(
+          'You will need to sign in again to continue monitoring.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.black),

@@ -12,10 +12,10 @@ class InviteService {
 
   static const _appUrl = 'https://seizurealert.app';
 
-  static String _buildMessage(String senderName) =>
-      '$senderName added you as their emergency contact on SeizureAlert. '
-      "If they send an SOS or Heads Up alert, you'll receive a notification. "
-      'Download the app: $_appUrl';
+  static String _buildMessage(String senderName, String code) =>
+      '$senderName invited you to join their SeizureAlert circle. '
+      'Sign in or create an account, open My Circle, and enter this one-time code: $code. '
+      'It expires 24 hours after it was generated. Download the app: $_appUrl';
 
   static String _senderName() =>
       FirebaseAuth.instance.currentUser?.displayName?.trim() ?? 'Your contact';
@@ -23,31 +23,31 @@ class InviteService {
 static String? _waMeDigits(String phone) =>
       PhoneNumber.normalize(phone)?.substring(1);
 
-static Future<void> sendSmsInvite({required String phone}) async {
+static Future<void> sendSmsInvite({required String phone, required String code}) async {
     final sender = _senderName();
     final uri = Uri(
       scheme: 'sms',
       path: phone,
-      queryParameters: {'body': _buildMessage(sender)},
+      queryParameters: {'body': _buildMessage(sender, code)},
     );
 
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       } else {
-        await _fallbackCopy(sender);
+        await _fallbackCopy(sender, code);
       }
     } catch (_) {
-      await _fallbackCopy(sender);
+      await _fallbackCopy(sender, code);
     }
   }
 
-static Future<void> sendWhatsAppInvite({required String phone}) async {
+static Future<void> sendWhatsAppInvite({required String phone, required String code}) async {
     final sender = _senderName();
     final digits = _waMeDigits(phone);
 
     if (digits == null) {
-      await _fallbackCopy(sender);
+      await _fallbackCopy(sender, code);
       return;
     }
 
@@ -55,18 +55,18 @@ static Future<void> sendWhatsAppInvite({required String phone}) async {
       scheme: 'https',
       host: 'wa.me',
       path: '/$digits',
-      queryParameters: {'text': _buildMessage(sender)},
+      queryParameters: {'text': _buildMessage(sender, code)},
     );
 
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
-      await _fallbackCopy(sender);
+      await _fallbackCopy(sender, code);
     }
   }
 
-static Future<void> _fallbackCopy(String senderName) async {
-    await Clipboard.setData(ClipboardData(text: _buildMessage(senderName)));
+static Future<void> _fallbackCopy(String senderName, String code) async {
+    await Clipboard.setData(ClipboardData(text: _buildMessage(senderName, code)));
     Get.snackbar(
       '',
       '',

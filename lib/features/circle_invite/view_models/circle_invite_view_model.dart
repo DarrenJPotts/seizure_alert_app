@@ -1,83 +1,64 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:seizure_app/core/dtos/invite_dto.dart';
-import 'package:seizure_app/core/enums/generic_screen_states.dart';
-import 'package:seizure_app/core/services/circle_invite_service.dart';
-import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/constants/snackbar_margin.dart';
+import 'package:seizure_app/core/services/circle_invite_service.dart';
 
 class CircleInviteViewModel extends GetxController {
-  CircleInviteViewModel(this._inviteId, this._circleInviteService, this._firestoreService);
+  CircleInviteViewModel(this._circleInviteService);
 
-  final String _inviteId;
   final CircleInviteService _circleInviteService;
-  final FirestoreService _firestoreService;
-
-  final Rxn<InviteDto> invite = Rxn<InviteDto>();
-  final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
+  final TextEditingController codeController = TextEditingController();
+  final Rxn<CircleInvitePreview> preview = Rxn<CircleInvitePreview>();
+  final RxBool isLoading = false.obs;
   final RxBool isResponding = false.obs;
+  final RxnString errorMessage = RxnString();
 
-  @override
-  void onInit() {
-    super.onInit();
-    _load();
-  }
-
-  Future<void> _load() async {
-    if (_inviteId.isEmpty) {
-      screenState.value = GenericScreenStates.error;
-      return;
+  Future<void> lookUpCode() async {
+    if (isLoading.value) return;
+    isLoading.value = true;
+    errorMessage.value = null;
+    preview.value = null;
+    final result = await _circleInviteService.previewCircleInvite(code: codeController.text.trim());
+    isLoading.value = false;
+    if (result.isSuccess) {
+      preview.value = result.data;
+    } else {
+      errorMessage.value = 'Code is invalid, expired, or already used.';
     }
-    screenState.value = GenericScreenStates.loading;
-    final result = await _firestoreService.getInvite(_inviteId);
-    if (!result.isSuccess || result.data == null) {
-      screenState.value = GenericScreenStates.error;
-      return;
-    }
-    invite.value = result.data;
-    screenState.value = GenericScreenStates.loaded;
   }
 
   Future<void> respond(bool accept) async {
-    if (isResponding.value) return;
+    if (isResponding.value || preview.value == null) return;
     isResponding.value = true;
-
-    final result = await _circleInviteService.respondToInvite(
-      inviteId: _inviteId,
+    final result = await _circleInviteService.respondToCircleInvite(
+      code: codeController.text.trim(),
       accept: accept,
     );
-
     isResponding.value = false;
-
     if (result.isSuccess) {
       Get.back();
       Get.snackbar(
         accept ? 'Invite accepted' : 'Invite declined',
-        accept
-            ? "You'll now be notified if they send an SOS or Heads Up."
-            : "You won't be added to their circle.",
+        accept ? "You'll now receive their alerts." : "You won't be added to their circle.",
         snackPosition: SnackPosition.BOTTOM,
-      margin: snackbarMargin,
+        margin: snackbarMargin,
       );
     } else {
-      Get.snackbar(
-        'Something went wrong',
-        'Could not respond to the invite. Try again.',
-        snackPosition: SnackPosition.BOTTOM,
-      margin: snackbarMargin,
-      );
+      errorMessage.value = 'This code is no longer available. Ask them to send a new invite.';
+      preview.value = null;
     }
+  }
+
+  @override
+  void onClose() {
+    codeController.dispose();
+    super.onClose();
   }
 }
 
 class CircleInviteBinding extends Bindings {
   @override
   void dependencies() {
-    final args = Get.arguments as Map?;
-    final inviteId = (args?['inviteId'] as String?) ?? Get.parameters['inviteId'] ?? '';
-    Get.lazyPut(() => CircleInviteViewModel(
-          inviteId,
-          CircleInviteService.instance(),
-          FirestoreService.instance(),
-        ));
+    Get.lazyPut(() => CircleInviteViewModel(CircleInviteService.instance()));
   }
 }

@@ -9,12 +9,14 @@ class ContactCard extends StatelessWidget {
     required this.onTap,
     required this.onDelete,
     required this.onInvite,
+    this.isInviting = false,
   });
 
   final ContactDto contact;
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onInvite;
+  final bool isInviting;
 
   @override
   Widget build(BuildContext context) {
@@ -63,9 +65,11 @@ class ContactCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (contact.status == ContactStatus.pending) ...[
+                        if (contact.status == ContactStatus.pending ||
+                            contact.inviteStatus != null ||
+                            contact.linkedUid != null) ...[
                           SizedBox(width: Dimensions.eight),
-                          const _PendingBadge(),
+                          _InviteStatusBadge(contact: contact),
                         ],
                       ],
                     ),
@@ -75,16 +79,23 @@ class ContactCard extends StatelessWidget {
               ),
               _NotifyIcons(contact: contact),
               SizedBox(width: Dimensions.four),
-              Tooltip(
-                message: 'Send app invite',
-                child: GestureDetector(
-                  onTap: onInvite,
-                  child: Padding(
-                    padding: EdgeInsets.all(Dimensions.four),
-                    child: const Icon(Icons.send_outlined, size: 16, color: Colors.black38),
+              if (contact.linkedUid == null || contact.linkedUid!.isEmpty)
+                Tooltip(
+                  message: 'Send app invite',
+                  child: GestureDetector(
+                    onTap: isInviting ? null : onInvite,
+                    child: Padding(
+                      padding: EdgeInsets.all(Dimensions.four),
+                      child: isInviting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(color: Colors.black, strokeWidth: 1.5),
+                            )
+                          : const Icon(Icons.send_outlined, size: 16, color: Colors.black38),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -117,15 +128,34 @@ class ContactCard extends StatelessWidget {
   );
 }
 
-class _PendingBadge extends StatelessWidget {
-  const _PendingBadge();
+class _InviteStatusBadge extends StatelessWidget {
+  const _InviteStatusBadge({required this.contact});
+
+  final ContactDto contact;
 
   @override
   Widget build(BuildContext context) {
+    final String label;
+    if (contact.linkedUid?.isNotEmpty == true) {
+      label = 'Accepted';
+    } else if (contact.inviteStatus == 'pending' &&
+        contact.inviteExpiresAt != null &&
+        contact.inviteExpiresAt!.isBefore(DateTime.now())) {
+      label = 'Expired';
+    } else if (contact.inviteStatus == 'pending') {
+      label = 'Awaiting response';
+    } else if (contact.inviteStatus == 'declined') {
+      label = 'Declined';
+    } else if (contact.status == ContactStatus.pending) {
+      label = 'Pending';
+    } else {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: Dimensions.eight, vertical: 2),
       decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(20)),
-      child: Text('Pending', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black54)),
+      child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black54)),
     );
   }
 }
@@ -139,14 +169,6 @@ class _NotifyIcons extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      if (contact.notifyViaSms)
-        Tooltip(
-          message: 'SMS alerts on',
-          child: Padding(
-            padding: EdgeInsets.only(left: Dimensions.four),
-            child: Icon(Icons.sms_outlined, size: 16, color: Colors.black38),
-          ),
-        ),
       if (contact.notifyViaPush)
         Tooltip(
           message: 'Push alerts on',

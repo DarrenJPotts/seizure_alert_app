@@ -6,7 +6,6 @@ import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SeizureLogViewModel extends GetxController {
   SeizureLogViewModel(this._firestoreService);
@@ -50,7 +49,7 @@ Future<bool> addEntry({
     bool alertFired = false,
   }) async {
     final log = SeizureLogDto(
-      id: FirebaseFirestore.instance.collection(FirebaseCollectionKeys.seizureLogs).doc().id,
+      id: _firestoreService.newDocumentId(FirebaseCollectionKeys.seizureLogs),
       userId: _uid,
       occurredAt: occurredAt,
       durationSeconds: durationSeconds,

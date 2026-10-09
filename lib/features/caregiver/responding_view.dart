@@ -16,18 +16,19 @@ class RespondingView extends GetView<RespondingViewModel> {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-
-backgroundColor: scheme.surfaceDim,
+      backgroundColor: scheme.surfaceDim,
       body: SafeArea(
         bottom: false,
         child: Obx(() {
           final GenericScreenStates state = controller.screenState.value;
 
-          if (state == GenericScreenStates.loading || state == GenericScreenStates.initial) {
+          if (state == GenericScreenStates.loading ||
+              state == GenericScreenStates.initial) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (state == GenericScreenStates.error || controller.detail.value == null) {
+          if (state == GenericScreenStates.error ||
+              controller.detail.value == null) {
             return Center(
               child: Padding(
                 padding: EdgeInsets.all(Dimensions.twentyFour),
@@ -39,7 +40,9 @@ backgroundColor: scheme.surfaceDim,
                     Text(
                       'This alert is no longer available',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                     TextButton(
                       onPressed: Get.back<void>,
@@ -73,19 +76,28 @@ class _Loaded extends GetView<RespondingViewModel> {
           child: RefreshIndicator(
             onRefresh: controller.reload,
             child: ListView(
-              padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.twenty, Dimensions.twenty, Dimensions.twelve),
+              padding: EdgeInsets.fromLTRB(
+                Dimensions.twenty,
+                Dimensions.twenty,
+                Dimensions.twenty,
+                Dimensions.twelve,
+              ),
               children: <Widget>[
                 Text(
                   controller.ownerName,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineLarge?.copyWith(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.4),
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                  ),
                 ),
                 SizedBox(height: Dimensions.six),
                 Obx(
                   () => Text(
                     controller.subtitle,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 SizedBox(height: Dimensions.twentyFour),
@@ -110,7 +122,12 @@ class _Header extends GetView<RespondingViewModel> {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.eight, Dimensions.twenty, 0),
+      padding: EdgeInsets.fromLTRB(
+        Dimensions.twenty,
+        Dimensions.eight,
+        Dimensions.twenty,
+        0,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
@@ -123,36 +140,52 @@ class _Header extends GetView<RespondingViewModel> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Icon(Icons.arrow_back, size: 20, color: scheme.onSurfaceVariant),
+                  Icon(
+                    Icons.arrow_back,
+                    size: 20,
+                    color: scheme.onSurfaceVariant,
+                  ),
                   SizedBox(width: Dimensions.six),
                   Text(
                     'Alerts',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: Dimensions.twelve, vertical: Dimensions.six),
+            padding: EdgeInsets.symmetric(
+              horizontal: Dimensions.twelve,
+              vertical: Dimensions.six,
+            ),
             decoration: BoxDecoration(
               color: scheme.inverseSurface,
               borderRadius: BorderRadius.circular(Dimensions.circular),
             ),
-            child: Obx(
-              () => LiveStatusLabel(
-                label: 'ACTIVE ${controller.elapsedClock}',
+            child: Obx(() {
+              final TextStyle? style = Theme.of(context).textTheme.labelSmall
+                  ?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
+                    color: scheme.onInverseSurface,
+                  );
+
+              if (!controller.isAlertActive) {
+                return Text(controller.alertStatusLabel, style: style);
+              }
+
+              return LiveStatusLabel(
+                label: controller.alertStatusLabel,
                 color: scheme.onInverseSurface,
                 indicatorSize: 10,
                 gap: Dimensions.six,
-                textStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
-                  color: scheme.onInverseSurface,
-                ),
-              ),
-            ),
+                textStyle: style,
+              );
+            }),
           ),
         ],
       ),
@@ -175,7 +208,10 @@ class _RosterSection extends GetView<RespondingViewModel> {
         _Card(
           children: roster.isEmpty
               ? <Widget>[const _MessageRow('Nobody has opened this alert yet')]
-              : <Widget>[for (final AlertResponderDto responder in roster) _ResponderRow(responder: responder)],
+              : <Widget>[
+                  for (final AlertResponderDto responder in roster)
+                    _ResponderRow(responder: responder),
+                ],
         ),
       ],
     );
@@ -191,9 +227,8 @@ class _ResponderRow extends GetView<RespondingViewModel> {
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
     final String name = responder.isCaller ? 'You' : responder.contactName;
-    final TextStyle? statusStyle = Theme.of(
-      context,
-    ).textTheme.bodyLarge?.copyWith(fontSize: 13, color: scheme.onSurfaceVariant);
+    final TextStyle? statusStyle = Theme.of(context).textTheme.bodyLarge
+        ?.copyWith(fontSize: 13, color: scheme.onSurfaceVariant);
 
     return SizedBox(
       height: 68,
@@ -201,7 +236,10 @@ class _ResponderRow extends GetView<RespondingViewModel> {
         padding: EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
         child: Row(
           children: <Widget>[
-            CaregiverAvatar(name: responder.isCaller ? null : responder.contactName, size: 34),
+            CaregiverAvatar(
+              name: responder.isCaller ? null : responder.contactName,
+              size: 34,
+            ),
             SizedBox(width: Dimensions.twelve),
             Expanded(
               child: Column(
@@ -211,7 +249,9 @@ class _ResponderRow extends GetView<RespondingViewModel> {
                   Text(
                     name,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   SizedBox(height: Dimensions.two),
                   responder.responding
@@ -232,19 +272,29 @@ class _ResponderRow extends GetView<RespondingViewModel> {
             if (controller.canNudge(responder)) ...<Widget>[
               SizedBox(width: Dimensions.eight),
               Obx(() {
-                final bool busy = controller.nudging.contains(responder.responderId);
+                final bool busy = controller.nudging.contains(
+                  responder.responderId,
+                );
                 return OutlinedButton(
                   onPressed: busy ? null : () => controller.nudge(responder),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: scheme.onSurface),
-                    padding: EdgeInsets.symmetric(horizontal: Dimensions.fourteen, vertical: Dimensions.six),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Dimensions.fourteen,
+                      vertical: Dimensions.six,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.circular)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.circular),
+                    ),
                   ),
                   child: Text(
                     busy ? 'Sending…' : 'Nudge',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 );
               }),
@@ -270,8 +320,15 @@ class _CarePlanSection extends GetView<RespondingViewModel> {
         SizedBox(height: Dimensions.ten),
         _Card(
           children: steps.isEmpty
-              ? <Widget>[const _MessageRow('No care plan saved. Ask them to add one to their emergency note.')]
-              : <Widget>[for (int i = 0; i < steps.length; i++) _CarePlanStep(number: i + 1, text: steps[i])],
+              ? <Widget>[
+                  const _MessageRow(
+                    'No care plan saved. Ask them to add one to their emergency note.',
+                  ),
+                ]
+              : <Widget>[
+                  for (int i = 0; i < steps.length; i++)
+                    _CarePlanStep(number: i + 1, text: steps[i]),
+                ],
         ),
       ],
     );
@@ -286,7 +343,10 @@ class _CarePlanStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.sixteen),
+    padding: EdgeInsets.symmetric(
+      horizontal: Dimensions.eighteen,
+      vertical: Dimensions.sixteen,
+    ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -301,7 +361,14 @@ class _CarePlanStep extends StatelessWidget {
           ),
         ),
         SizedBox(width: Dimensions.twelve),
-        Expanded(child: Text(text, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.5))),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.5),
+          ),
+        ),
       ],
     ),
   );
@@ -315,7 +382,12 @@ class _ActionBar extends GetView<RespondingViewModel> {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.twelve, Dimensions.twenty, Dimensions.twenty),
+      padding: EdgeInsets.fromLTRB(
+        Dimensions.twenty,
+        Dimensions.twelve,
+        Dimensions.twenty,
+        Dimensions.twenty,
+      ),
       child: Row(
         spacing: Dimensions.ten,
         children: <Widget>[
@@ -323,16 +395,22 @@ class _ActionBar extends GetView<RespondingViewModel> {
             child: SizedBox(
               height: 64,
               child: ElevatedButton(
-                onPressed: () => _showLogSheet(context),
+                onPressed: () => AppBottomSheet.show<void>(
+                  context: context,
+                  builder: (_) => _LogResponseSheet(controller: controller),
+                ),
 
                 style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: Text(
                   'Log what happened',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: scheme.onPrimary),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onPrimary,
+                  ),
                 ),
               ),
             ),
@@ -345,7 +423,9 @@ class _ActionBar extends GetView<RespondingViewModel> {
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: scheme.onSurface, width: 1.5),
                 padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Icon(Icons.call, size: 24),
             ),
@@ -354,57 +434,84 @@ class _ActionBar extends GetView<RespondingViewModel> {
       ),
     );
   }
+}
 
-  void _showLogSheet(BuildContext context) {
-    final TextEditingController field = TextEditingController(
-      text: controller.detail.value?.callerResponse?.note ?? '',
+class _LogResponseSheet extends StatefulWidget {
+  const _LogResponseSheet({required this.controller});
+
+  final RespondingViewModel controller;
+
+  @override
+  State<_LogResponseSheet> createState() => _LogResponseSheetState();
+}
+
+class _LogResponseSheetState extends State<_LogResponseSheet> {
+  late final TextEditingController _field;
+
+  @override
+  void initState() {
+    super.initState();
+    _field = TextEditingController(
+      text: widget.controller.detail.value?.callerResponse?.note ?? '',
     );
-
-    AppBottomSheet.show(
-      context: context,
-      builder: (BuildContext sheetContext) => AppBottomSheetContent(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Text('What happened', style: Theme.of(sheetContext).textTheme.titleMedium),
-            SizedBox(height: Dimensions.eight),
-            Text(
-              'Recorded against your response so ${controller.ownerName.split(' ').first} can read it later. '
-              'It does not replace their own seizure log.',
-              style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
-                color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            SizedBox(height: Dimensions.sixteen),
-            TextField(
-              controller: field,
-              autofocus: true,
-              maxLines: 5,
-              minLines: 3,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Duration, what you saw, what you did…'),
-            ),
-            SizedBox(height: Dimensions.twentyFour),
-            Obx(
-              () => ElevatedButton(
-                onPressed: controller.isSavingNote.value
-                    ? null
-                    : () async {
-                        await controller.saveNote(field.text);
-                        if (Get.isBottomSheetOpen ?? false) Get.back<void>();
-                      },
-                child: Text(controller.isSavingNote.value ? 'Saving…' : 'Save'),
-              ),
-            ),
-            TextButton(
-              onPressed: Get.back<void>,
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-      ),
-    ).whenComplete(field.dispose);
   }
+
+  @override
+  void dispose() {
+    _field.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AppBottomSheetContent(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text('What happened', style: Theme.of(context).textTheme.titleMedium),
+        SizedBox(height: Dimensions.eight),
+        Text(
+          'Recorded against your response so ${widget.controller.ownerName.split(' ').first} can read it later. '
+          'It does not replace their own seizure log.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        SizedBox(height: Dimensions.sixteen),
+        TextField(
+          controller: _field,
+          autofocus: true,
+          maxLines: 5,
+          minLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'Duration, what you saw, what you did…',
+          ),
+        ),
+        SizedBox(height: Dimensions.twentyFour),
+        Obx(
+          () => ElevatedButton(
+            onPressed: widget.controller.isSavingNote.value
+                ? null
+                : () async {
+                    final bool saved = await widget.controller.saveNote(
+                      _field.text,
+                    );
+                    if (saved && context.mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+            child: Text(
+              widget.controller.isSavingNote.value ? 'Saving…' : 'Save',
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -462,7 +569,10 @@ class _MessageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.twenty),
+    padding: EdgeInsets.symmetric(
+      horizontal: Dimensions.eighteen,
+      vertical: Dimensions.twenty,
+    ),
     child: Text(
       message,
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(

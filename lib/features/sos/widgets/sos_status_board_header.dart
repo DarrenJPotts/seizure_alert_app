@@ -124,7 +124,12 @@ SosDelivery.delivered => Row(
         children: <Widget>[
           const Icon(Icons.cloud_off, size: 14, color: Colors.white),
           SizedBox(width: Dimensions.eight),
-          Expanded(child: Text('NOT SENT', style: style)),
+          Expanded(
+            child: Text(
+              delivery == SosDelivery.queued ? 'NOT CONFIRMED' : 'NOT SENT',
+              style: style,
+            ),
+          ),
         ],
       ),
     };
@@ -211,7 +216,7 @@ class _UndeliveredNotice extends StatelessWidget {
       children: <Widget>[
         Text(
           delivery == SosDelivery.queued
-              ? 'No connection — nobody has been notified yet. This will send by itself as soon as you are back online.'
+              ? 'The server has not confirmed this alert yet. It will keep trying when a connection is available. Call a contact instead if you need help now.'
               : 'This alert could not be sent. Nobody has been notified.',
           style: Theme.of(
             context,

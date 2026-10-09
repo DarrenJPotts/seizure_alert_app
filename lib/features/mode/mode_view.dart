@@ -111,8 +111,7 @@ class _WatchingSection extends GetView<ModeViewModel> {
               subtitle: _accessLabel(person),
             ),
         SettingsActionRow(
-          title: 'Accept an invite',
-          badgeCount: controller.pendingInvites.length,
+          title: 'Enter invite code',
           onTap: controller.openInvite,
         ),
       ],
