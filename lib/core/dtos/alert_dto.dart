@@ -1,4 +1,5 @@
 enum AlertType { sos, headsUp, headsUpExpired }
+
 enum AlertStatus { sent, resolved, cancelled }
 
 class AlertDto {
@@ -10,6 +11,7 @@ class AlertDto {
   final double? longitude;
   final String? locationLabel;
   final String? message;
+  final String? ownerName;
   final DateTime createdAt;
   final DateTime? resolvedAt;
 
@@ -22,6 +24,7 @@ class AlertDto {
     this.longitude,
     this.locationLabel,
     this.message,
+    this.ownerName,
     required this.createdAt,
     this.resolvedAt,
   });
@@ -30,13 +33,18 @@ class AlertDto {
     id: map['id'] as String,
     userId: map['userId'] as String,
     type: AlertType.values.firstWhere((AlertType e) => e.name == map['type']),
-    status: AlertStatus.values.firstWhere((AlertStatus e) => e.name == map['status']),
+    status: AlertStatus.values.firstWhere(
+      (AlertStatus e) => e.name == map['status'],
+    ),
     latitude: (map['latitude'] as num?)?.toDouble(),
     longitude: (map['longitude'] as num?)?.toDouble(),
     locationLabel: map['locationLabel'] as String?,
     message: map['message'] as String?,
+    ownerName: map['ownerName'] as String?,
     createdAt: DateTime.parse(map['createdAt'] as String),
-    resolvedAt: map['resolvedAt'] != null ? DateTime.parse(map['resolvedAt'] as String) : null,
+    resolvedAt: map['resolvedAt'] != null
+        ? DateTime.parse(map['resolvedAt'] as String)
+        : null,
   );
 
   Map<String, dynamic> toMap() => {
@@ -66,6 +74,7 @@ class AlertDto {
     longitude: longitude ?? this.longitude,
     locationLabel: locationLabel,
     message: message,
+    ownerName: ownerName,
     createdAt: createdAt,
     resolvedAt: resolvedAt ?? this.resolvedAt,
   );

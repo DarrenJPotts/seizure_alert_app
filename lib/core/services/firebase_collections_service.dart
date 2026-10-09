@@ -6,7 +6,6 @@ import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_response_dto.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
-import 'package:seizure_app/core/dtos/invite_dto.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/helpers/phone_number.dart';
@@ -21,6 +20,8 @@ class FirestoreService {
       : Get.put(FirestoreService(FirebaseFirestore.instance));
 
   final FirebaseFirestore _db;
+
+  String newDocumentId(String collection) => _db.collection(collection).doc().id;
 
 Future<ResultDto<void>> upsertUser(UserDto user) async {
     final String? phoneError = PhoneNumber.validationError(user.phone);
@@ -194,22 +195,4 @@ Future<ResultDto<void>> upsertHeadsUp(HeadsUpDto headsUp) async {
         .map((s) => s.docs.map((d) => AlertResponseDto.fromMap(d.data())).toList());
   }
 
-Future<ResultDto<InviteDto?>> getInvite(String inviteId) async {
-    try {
-      final doc = await _db.collection(FirebaseCollectionKeys.invites).doc(inviteId).get();
-      if (!doc.exists) return ResultDto.success(null);
-      return ResultDto.success(InviteDto.fromMap(doc.data()!));
-    } catch (e) {
-      return ResultDto.failure(e.toString());
-    }
-  }
-
-  Stream<List<InviteDto>> watchPendingInvites(String recipientUid) {
-    return _db
-        .collection(FirebaseCollectionKeys.invites)
-        .where('recipientUid', isEqualTo: recipientUid)
-        .where('status', isEqualTo: InviteStatus.pending.name)
-        .snapshots()
-        .map((s) => s.docs.map((d) => InviteDto.fromMap(d.data())).toList());
-  }
 }

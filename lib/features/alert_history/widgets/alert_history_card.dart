@@ -4,11 +4,7 @@ import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/features/alert_history/widgets/alert_detail_sheet.dart';
 
 class AlertHistoryCard extends StatelessWidget {
-  const AlertHistoryCard({
-    super.key,
-    required this.alert,
-    required this.onTap,
-  });
+  const AlertHistoryCard({super.key, required this.alert, required this.onTap});
 
   final AlertDto alert;
   final VoidCallback onTap;
@@ -45,31 +41,32 @@ class AlertHistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: Dimensions.four,
                 children: [
-                  Text(alertLabelForType(alert.type),
-                      style: Theme.of(context).textTheme.bodyMedium),
+                  Text(
+                    alert.ownerName == null
+                        ? alertLabelForType(alert.type)
+                        : '${alert.ownerName} · ${alertLabelForType(alert.type)}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   Text(
                     formatAlertDate(alert.createdAt),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.black45),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.black45),
                   ),
                 ],
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 alertLabelForStatus(alert.status),
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(color: Colors.black54),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: Colors.black54),
               ),
             ),
             SizedBox(width: Dimensions.eight),

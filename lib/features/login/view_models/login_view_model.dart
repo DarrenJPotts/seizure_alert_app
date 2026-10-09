@@ -48,9 +48,9 @@ final TextEditingController emailController = TextEditingController();
         screenState.value = GenericScreenStates.error;
         errorMessage.value = result.error ?? 'Invalid username or password. Please try again.';
       }
-    } catch (e) {
+    } catch (_) {
       screenState.value = GenericScreenStates.error;
-      errorMessage.value = e.toString();
+      errorMessage.value = 'Unable to sign in. Check your connection and try again.';
     }
   }
 
@@ -64,7 +64,6 @@ final TextEditingController emailController = TextEditingController();
     if (route == AppRoutes.alertHistory ||
         route == AppRoutes.mode ||
         route.startsWith('${AppRoutes.incomingAlert}?alertId=') ||
-        route.startsWith('${AppRoutes.circleInvite}?inviteId=') ||
         route.startsWith('${AppRoutes.responding}?alertId=')) {
       return route;
     }

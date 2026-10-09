@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
+import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
 import 'package:seizure_app/features/contacts/widgets/add_contact_bottom_sheet.dart';
 import 'package:seizure_app/features/contacts/widgets/contact_card.dart';
@@ -24,14 +25,24 @@ class ContactsView extends GetView<ContactsViewModel> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('My Circle', style: context.theme.textTheme.titleMedium),
-              TextButton.icon(
-                onPressed: () => AddContactBottomSheet.show(
-                  onAdd: controller.addContact,
-                  onUpdate: controller.updateContact,
-                  onSendInvite: controller.sendCircleInvite,
-                ),
-                icon: const Icon(Icons.person_add_outlined, size: 16),
-                label: const Text('Add contact'),
+              Wrap(
+                spacing: Dimensions.four,
+                children: [
+                  IconButton(
+                    tooltip: 'Enter invite code',
+                    onPressed: () => Get.toNamed(AppRoutes.circleInvite),
+                    icon: const Icon(Icons.key_outlined),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => AddContactBottomSheet.show(
+                      onAdd: controller.addContact,
+                      onUpdate: controller.updateContact,
+                      onSendInvite: controller.createCircleInvite,
+                    ),
+                    icon: const Icon(Icons.person_add_outlined, size: 16),
+                    label: const Text('Add contact'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -92,7 +103,7 @@ class ContactsView extends GetView<ContactsViewModel> {
                       onPressed: () => AddContactBottomSheet.show(
                         onAdd: controller.addContact,
                         onUpdate: controller.updateContact,
-                        onSendInvite: controller.sendCircleInvite,
+                        onSendInvite: controller.createCircleInvite,
                       ),
                       child: const Text('Add your first contact'),
                     ),
@@ -107,20 +118,31 @@ class ContactsView extends GetView<ContactsViewModel> {
               separatorBuilder: (_, _) => SizedBox(height: Dimensions.twelve),
               itemBuilder: (context, index) => ContactCard(
                 contact: contacts[index],
+                isInviting: controller.invitingContactId.value == contacts[index].id,
                 onTap: () => AddContactBottomSheet.show(
                   onAdd: controller.addContact,
                   onUpdate: controller.updateContact,
-                  onSendInvite: controller.sendCircleInvite,
+                  onSendInvite: controller.createCircleInvite,
                   existingContact: contacts[index],
                 ),
                 onDelete: () => controller.deleteContact(contacts[index].id),
-                onInvite: () => AppBottomSheet.show(
-                  context: context,
-                  builder: (_) => InvitePickerSheet(
-                    phone: contacts[index].phone,
-                    contactName: contacts[index].name,
-                  ),
-                ),
+                onInvite: () async {
+                  final contact = contacts[index];
+                  final result = await controller.createCircleInvite(contactId: contact.id);
+                  if (!result.isSuccess || result.data == null) {
+                    Get.snackbar('Invite unavailable', result.error ?? 'The invite could not be created. Please try again.');
+                    return;
+                  }
+                  AppBottomSheet.show(
+                    context: context,
+                    builder: (_) => InvitePickerSheet(
+                      phone: contact.phone,
+                      contactName: contact.name,
+                      code: result.data!,
+                      onRegenerate: () => controller.createCircleInvite(contactId: contact.id, regenerate: true),
+                    ),
+                  );
+                },
               ),
             );
           }),

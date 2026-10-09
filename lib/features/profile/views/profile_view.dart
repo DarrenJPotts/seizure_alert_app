@@ -24,8 +24,11 @@ class ProfileView extends GetView<ProfileViewModel> {
   Widget build(BuildContext context) => Obx(() {
     final GenericScreenStates state = controller.screenState.value;
 
-    if (state == GenericScreenStates.loading || state == GenericScreenStates.initial) {
-      return const Center(child: CircularProgressIndicator(color: Colors.black));
+    if (state == GenericScreenStates.loading ||
+        state == GenericScreenStates.initial) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.black),
+      );
     }
 
     if (state == GenericScreenStates.error || controller.user.value == null) {
@@ -79,7 +82,10 @@ class _IdentityCard extends GetView<ProfileViewModel> {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(vertical: Dimensions.twentyFour, horizontal: Dimensions.twenty),
+    padding: EdgeInsets.symmetric(
+      vertical: Dimensions.twentyFour,
+      horizontal: Dimensions.twenty,
+    ),
     decoration: BoxDecoration(
       color: Colors.white,
       border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
@@ -90,7 +96,10 @@ class _IdentityCard extends GetView<ProfileViewModel> {
         Container(
           width: 72,
           height: 72,
-          decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black),
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black,
+          ),
           alignment: Alignment.center,
           child: Text(
             _initials(user.displayName),
@@ -128,8 +137,13 @@ class _IdentityCard extends GetView<ProfileViewModel> {
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.black,
             side: BorderSide(color: Colors.black.withValues(alpha: 0.2)),
-            padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.ten),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.circular)),
+            padding: EdgeInsets.symmetric(
+              horizontal: Dimensions.eighteen,
+              vertical: Dimensions.ten,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.circular),
+            ),
           ),
         ),
       ],
@@ -137,7 +151,11 @@ class _IdentityCard extends GetView<ProfileViewModel> {
   );
 
   String _initials(String? name) {
-    final List<String> parts = (name ?? '').trim().split(RegExp(r'\s+')).where((String p) => p.isNotEmpty).toList();
+    final List<String> parts = (name ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((String p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
@@ -195,7 +213,9 @@ class _MedicalSection extends StatelessWidget {
           SettingsValueRow(
             icon: Icons.medication_outlined,
             label: 'Medications',
-            value: user.medications.isNotNullOrEmpty ? user.medications!.join(', ') : 'Not set',
+            value: user.medications.isNotNullOrEmpty
+                ? user.medications!.join(', ')
+                : 'Not set',
           ),
           SettingsValueRow(
             icon: Icons.warning_amber_outlined,
@@ -237,7 +257,9 @@ class _SettingsSection extends GetView<ProfileViewModel> {
         SettingsNavRow(
           icon: Icons.shield_outlined,
           title: 'Mode',
-          trailingText: AppModeService.instance().caregiverMode.value ? 'Caregiver' : 'Personal',
+          trailingText: AppModeService.instance().caregiverMode.value
+              ? 'Caregiver'
+              : 'Personal',
           onTap: () => Get.toNamed(AppRoutes.mode),
         ),
         SettingsValueRow(
@@ -246,20 +268,32 @@ class _SettingsSection extends GetView<ProfileViewModel> {
               : Icons.notifications_off_outlined,
           label: 'Notifications',
           value: controller.notificationsLabel,
-          valueColor: controller.notificationsEnabled.value ? null : Colors.black54,
+          valueColor: controller.notificationsEnabled.value
+              ? null
+              : Colors.black54,
           onTap: controller.requestNotifications,
         ),
         SettingsValueRow(
-          icon: controller.locationEnabled.value ? Icons.location_on_outlined : Icons.location_off_outlined,
+          icon: controller.locationEnabled.value
+              ? Icons.location_on_outlined
+              : Icons.location_off_outlined,
           label: 'Location',
           value: controller.locationLabel,
           valueColor: controller.locationEnabled.value ? null : Colors.black54,
           onTap: controller.requestLocation,
         ),
         SettingsNavRow(
+          icon: Icons.widgets_outlined,
+          title: 'Home screen widget',
+          trailingText: controller.isAddingHomeWidget.value ? 'Adding…' : 'Add',
+          onTap: controller.addHomeWidget,
+        ),
+        SettingsNavRow(
           icon: Icons.key_outlined,
           title: 'Password',
-          onTap: () => ChangePasswordSheet.show(onChangePassword: controller.changePassword),
+          onTap: () => ChangePasswordSheet.show(
+            onChangePassword: controller.changePassword,
+          ),
         ),
         SettingsNavRow(
           icon: Icons.lock_outline,
@@ -274,7 +308,9 @@ class _SettingsSection extends GetView<ProfileViewModel> {
   static String _consentLabel(UserDto? user) {
     final DateTime? at = user?.privacyConsentAt;
     if (at == null) return 'Not recorded';
-    if (user?.privacyConsentVersion != PrivacyNotice.version) return 'Update available';
+    if (user?.privacyConsentVersion != PrivacyNotice.version) {
+      return 'Update available';
+    }
     return 'Agreed ${at.day}/${at.month}/${at.year}';
   }
 }
@@ -288,7 +324,8 @@ class _DangerSection extends GetView<ProfileViewModel> {
       SettingsDestructiveRow(
         icon: Icons.delete_outline,
         title: 'Delete account',
-        onTap: () => DeleteAccountSheet.show(onDelete: controller.deleteAccount),
+        onTap: () =>
+            DeleteAccountSheet.show(onDelete: controller.deleteAccount),
       ),
     ],
   );

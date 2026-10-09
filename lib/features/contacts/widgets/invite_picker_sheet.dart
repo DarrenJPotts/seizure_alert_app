@@ -1,18 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
+import 'package:seizure_app/core/dtos/onboarding_invite_dto.dart';
+import 'package:seizure_app/core/dtos/result_dto.dart';
+import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/invite_service.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 
-class InvitePickerSheet extends StatelessWidget {
+typedef RegenerateInviteCallback = Future<ResultDto<String>> Function();
+
+class InvitePickerSheet extends StatefulWidget {
   const InvitePickerSheet({
     super.key,
     required this.phone,
     required this.contactName,
+    required this.code,
+    this.onRegenerate,
   });
 
   final String phone;
   final String contactName;
+  final String code;
+  final RegenerateInviteCallback? onRegenerate;
+
+  static void showAfterNavigation(OnboardingInviteDto invite) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = Get.context;
+      if (context == null) return;
+      AppBottomSheet.show(
+        context: context,
+        builder: (_) => InvitePickerSheet(
+          phone: invite.phone,
+          contactName: invite.contactName,
+          code: invite.code,
+          onRegenerate: () => CircleInviteService.instance().createCircleInvite(
+            contactId: invite.contactId,
+            regenerate: true,
+          ),
+        ),
+      );
+    });
+  }
+
+  @override
+  State<InvitePickerSheet> createState() => _InvitePickerSheetState();
+}
+
+class _InvitePickerSheetState extends State<InvitePickerSheet> {
+  late String _code = widget.code;
+  bool _isRegenerating = false;
+
+  Future<void> _regenerate() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Generate a new code?'),
+        content: const Text('The current invite code will stop working.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Generate new code')),
+        ],
+      ),
+    );
+    if (confirmed != true || widget.onRegenerate == null || !mounted) return;
+
+    setState(() => _isRegenerating = true);
+    final result = await widget.onRegenerate!();
+    if (!mounted) return;
+    setState(() => _isRegenerating = false);
+    if (!result.isSuccess || result.data == null) {
+      Get.snackbar(
+        'Could not generate code',
+        result.error ?? 'Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: snackbarMargin,
+      );
+      return;
+    }
+    setState(() => _code = result.data!);
+  }
+
+  Future<void> _copyCode() async {
+    await Clipboard.setData(ClipboardData(text: _code));
+    if (!mounted) return;
+    Get.snackbar('Code copied', 'Share it with ${widget.contactName}.', snackPosition: SnackPosition.BOTTOM);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,49 +95,84 @@ class InvitePickerSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          Text(
-            'Invite $contactName',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('Invite ${widget.contactName}', style: Theme.of(context).textTheme.titleMedium),
           SizedBox(height: Dimensions.four),
           Text(
-            'Send them a link to download SeizureAlert.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+            'This code expires 24 hours after generation. Reopen this invite to resend it.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
           ),
           SizedBox(height: Dimensions.twentyFour),
-
-_ChannelRow(
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen, horizontal: Dimensions.twenty),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      _code,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 4,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Copy code',
+                  onPressed: _isRegenerating ? null : _copyCode,
+                  icon: const Icon(Icons.copy_outlined),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: Dimensions.twentyFour),
+          _ChannelRow(
             icon: Icons.sms_outlined,
             label: 'Via SMS',
             onTap: () {
+              if (_isRegenerating) return;
               Get.back();
-              InviteService.sendSmsInvite(phone: phone);
+              InviteService.sendSmsInvite(phone: widget.phone, code: _code);
             },
           ),
           SizedBox(height: Dimensions.twelve),
-
-_ChannelRow(
+          _ChannelRow(
             icon: Icons.chat_bubble_outline_rounded,
             label: 'Via WhatsApp',
             onTap: () {
+              if (_isRegenerating) return;
               Get.back();
-              InviteService.sendWhatsAppInvite(phone: phone);
+              InviteService.sendWhatsAppInvite(phone: widget.phone, code: _code);
             },
           ),
-          SizedBox(height: Dimensions.sixteen),
-
-SizedBox(
+          if (widget.onRegenerate != null) ...[
+            SizedBox(height: Dimensions.twelve),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isRegenerating ? null : _regenerate,
+                icon: _isRegenerating
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.refresh, size: 18),
+                label: Text(_isRegenerating ? 'Generating…' : 'Generate new code'),
+              ),
+            ),
+          ],
+          SizedBox(height: Dimensions.eight),
+          SizedBox(
             width: double.infinity,
             child: TextButton(
               onPressed: () => Get.back(),
               style: TextButton.styleFrom(foregroundColor: Colors.black),
-              child: const Text('Skip'),
+              child: const Text('Done'),
             ),
           ),
-          SizedBox(height: Dimensions.eight),
         ],
       ),
     );
@@ -71,46 +180,32 @@ SizedBox(
 }
 
 class _ChannelRow extends StatelessWidget {
-  const _ChannelRow({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  const _ChannelRow({required this.icon, required this.label, required this.onTap});
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: EdgeInsets.all(Dimensions.sixteen),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.black12),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withValues(alpha: 0.06),
-              ),
-              child: Icon(icon, size: 20, color: Colors.black54),
-            ),
-            SizedBox(width: Dimensions.twelve),
-            Expanded(
-              child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.black26),
-          ],
-        ),
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      padding: EdgeInsets.all(Dimensions.sixteen),
+      decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withValues(alpha: 0.06)),
+            child: Icon(icon, size: 20, color: Colors.black54),
+          ),
+          SizedBox(width: Dimensions.twelve),
+          Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+          const Icon(Icons.chevron_right, color: Colors.black26),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

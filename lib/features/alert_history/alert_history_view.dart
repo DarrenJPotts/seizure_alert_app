@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
+import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/features/alert_history/view_models/alert_history_view_model.dart';
 import 'package:seizure_app/features/alert_history/widgets/alert_detail_sheet.dart';
 import 'package:seizure_app/features/alert_history/widgets/alert_history_card.dart';
@@ -14,8 +15,10 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Alert History',
-            style: Theme.of(context).textTheme.titleMedium),
+        title: Text(
+          controller.caregiverMode ? 'Alerts' : 'Alert History',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
@@ -37,15 +40,22 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
               mainAxisSize: MainAxisSize.min,
               spacing: Dimensions.twelve,
               children: [
-                const Icon(Icons.error_outline,
-                    size: 48, color: Colors.black26),
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Colors.black26,
+                ),
                 Text(
                   'Could not load alert history',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: Colors.black54),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
                 ),
+                if (controller.caregiverMode)
+                  OutlinedButton(
+                    onPressed: controller.reload,
+                    child: const Text('Try again'),
+                  ),
               ],
             ),
           );
@@ -57,27 +67,48 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
               mainAxisSize: MainAxisSize.min,
               spacing: Dimensions.twelve,
               children: [
-                const Icon(Icons.notifications_none_outlined,
-                    size: 48, color: Colors.black26),
-                Text(
-                  'No alerts sent yet',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: Colors.black54),
+                const Icon(
+                  Icons.notifications_none_outlined,
+                  size: 48,
+                  color: Colors.black26,
                 ),
+                Text(
+                  controller.caregiverMode
+                      ? 'No alerts received yet'
+                      : 'No alerts sent yet',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                ),
+                if (controller.caregiverMode)
+                  TextButton(
+                    onPressed: controller.reload,
+                    child: const Text('Refresh'),
+                  ),
               ],
             ),
           );
         }
 
-        return ListView.separated(
-          padding: EdgeInsets.all(Dimensions.twentyFour),
-          itemCount: controller.alerts.length,
-          separatorBuilder: (_, _) => SizedBox(height: Dimensions.twelve),
-          itemBuilder: (context, index) => AlertHistoryCard(
-            alert: controller.alerts[index],
-            onTap: () => AlertDetailSheet.show(controller.alerts[index]),
+        return RefreshIndicator(
+          onRefresh: controller.reload,
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(Dimensions.twentyFour),
+            itemCount: controller.alerts.length,
+            separatorBuilder: (_, _) => SizedBox(height: Dimensions.twelve),
+            itemBuilder: (context, index) {
+              final alert = controller.alerts[index];
+              return AlertHistoryCard(
+                alert: alert,
+                onTap: () => controller.caregiverMode
+                    ? Get.toNamed(
+                        AppRoutes.incomingAlert,
+                        arguments: <String, String>{'alertId': alert.id},
+                      )
+                    : AlertDetailSheet.show(alert),
+              );
+            },
           ),
         );
       }),

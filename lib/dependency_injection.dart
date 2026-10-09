@@ -7,17 +7,20 @@ import 'core/controllers/firebase_auth_controller/firebase_auth_controller.dart'
 import 'core/controllers/theme_controller/theme_controller.dart';
 import 'core/services/app_mode_service.dart';
 import 'core/services/firebase_messaging_service.dart';
+import 'core/services/home_widget_service.dart';
 import 'core/services/local_notifications_service.dart';
+import 'core/services/network_status_service.dart';
 
 Future<void> initDependencyInjection() async {
-
   FirebaseAuthController.instance();
 
-final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
 
   await Get.putAsync(() async => AppModeService(prefs).init());
 
-await Get.putAsync(() async => ThemeController(prefs).init());
+  await Get.putAsync(() async => ThemeController(prefs).init());
+  await Get.putAsync(() async => NetworkStatusService().init());
+  await Get.putAsync(() => HomeWidgetService().init());
 
   /// Notification setup failures must not block app launch — SOS and Heads
   /// Up are usable without push notifications working.
@@ -26,11 +29,12 @@ await Get.putAsync(() async => ThemeController(prefs).init());
 
 Future<void> _setUpNotifications() async {
   try {
-
     await Get.putAsync(() => LocalNotificationsService().init());
 
-await Get.putAsync(
-      () => FirebaseMessagingService().init(localNotificationsService: Get.find<LocalNotificationsService>()),
+    await Get.putAsync(
+      () => FirebaseMessagingService().init(
+        localNotificationsService: Get.find<LocalNotificationsService>(),
+      ),
     );
   } catch (e) {
     debugPrint('[DependencyInjection] Error setting up notifications: $e');

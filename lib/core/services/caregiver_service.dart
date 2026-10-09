@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:get/get.dart';
+import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_detail_dto.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/dtos/watched_person_dto.dart';
@@ -17,7 +18,9 @@ class CaregiverService {
   DateTime? _cachedAt;
   static const _cacheTtl = Duration(seconds: 30);
 
-  Future<ResultDto<WatchListDto>> getPeopleIWatch({bool forceRefresh = false}) async {
+  Future<ResultDto<WatchListDto>> getPeopleIWatch({
+    bool forceRefresh = false,
+  }) async {
     final cachedAt = _cachedAt;
     if (!forceRefresh &&
         _cachedWatchList != null &&
@@ -45,9 +48,29 @@ class CaregiverService {
 
   Future<ResultDto<AlertDetailDto>> getAlertDetail(String alertId) async {
     try {
-      final result = await _functions.httpsCallable('getAlertDetail').call({'alertId': alertId});
+      final result = await _functions.httpsCallable('getAlertDetail').call({
+        'alertId': alertId,
+      });
       final data = Map<String, dynamic>.from(result.data as Map);
       return ResultDto.success(AlertDetailDto.fromMap(data));
+    } catch (e) {
+      return ResultDto.failure(e.toString());
+    }
+  }
+
+  Future<ResultDto<List<AlertDto>>> getAlertHistory() async {
+    try {
+      final result = await _functions
+          .httpsCallable('getCaregiverAlertHistory')
+          .call();
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final rawAlerts = data['alerts'] as List? ?? const <dynamic>[];
+      final alerts = rawAlerts
+          .map(
+            (item) => AlertDto.fromMap(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+      return ResultDto.success(alerts);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
@@ -68,18 +91,23 @@ class CaregiverService {
     String? note,
   }) async {
     try {
-      await _functions.httpsCallable('submitAlertResponse').call(<String, dynamic>{
-        'alertId': alertId,
-        'responding': ?responding,
-        'note': ?note,
-      });
+      await _functions.httpsCallable('submitAlertResponse').call(
+        <String, dynamic>{
+          'alertId': alertId,
+          'responding': ?responding,
+          'note': ?note,
+        },
+      );
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
   }
 
-  Future<ResultDto<bool>> nudgeResponder({required String alertId, required String targetResponderId}) async {
+  Future<ResultDto<bool>> nudgeResponder({
+    required String alertId,
+    required String targetResponderId,
+  }) async {
     try {
       final result = await _functions.httpsCallable('nudgeResponder').call({
         'alertId': alertId,

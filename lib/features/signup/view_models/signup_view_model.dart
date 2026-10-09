@@ -6,6 +6,7 @@ import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/features/onboarding/view_models/onboarding_view_model.dart';
+import 'package:seizure_app/features/contacts/widgets/invite_picker_sheet.dart';
 
 class SignupBinding extends Bindings {
   @override
@@ -57,24 +58,23 @@ class SignupViewModel extends GetxController {
         passwordController.text,
       );
 
-      // An account now exists on this device, so onboarding must not be shown
-      // again. Setting it here rather than leaving it to the draft commit
-      // covers the paths that never reach one: arriving straight from the
-      // login screen's "Create account" link, or leaving the name blank so
-      // `hasDraft` is false. `commitDraft` sets the same flag, which then
-      // no-ops.
-      //
-      // This is only about whether the intro is shown. Whether the user
-      // actually has a profile is a separate, server-side question that
-      // `RootViewModel._checkOnboarding` answers on every launch, redirecting
-      // to `OnboardingMode.completeProfile` when the Firestore document is
-      // missing.
-      await AppModeService.instance().setOnboardingCompleted(true);
+      final commit = await OnboardingViewModel.commitAndDisposeDraft();
+      if (!commit.saved) {
+        screenState.value = GenericScreenStates.loaded;
+        Get.offAllNamed(
+          AppRoutes.onboarding,
+          arguments: <String, OnboardingMode>{
+            'mode': OnboardingMode.completeProfile,
+          },
+        );
+        return;
+      }
 
-      await OnboardingViewModel.commitAndDisposeDraft();
+      await AppModeService.instance().setOnboardingCompleted(true);
 
       screenState.value = GenericScreenStates.loaded;
       Get.offAllNamed(AppRoutes.root);
+      if (commit.invite != null) InvitePickerSheet.showAfterNavigation(commit.invite!);
     } on FirebaseAuthException catch (e) {
       screenState.value = GenericScreenStates.error;
       errorMessage.value = _mapError(e.code);
