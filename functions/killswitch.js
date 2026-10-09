@@ -12,10 +12,9 @@
  * A cost or abuse spike is exactly the scenario this needs to survive without
  * itself becoming a second source of unbounded reads.
  *
- * Fails open: a missing doc, or a Firestore read that itself errors, is
- * treated as enabled. This is a switch a human flips on purpose — it must
- * never go off by itself because of a transient read failure. Only an
- * explicit `enabled: false` turns functions off.
+ * A missing config document defaults to enabled. A failed config read pauses
+ * function work for the cache window because continuing without knowing the
+ * configured state could increase spend during an outage or abuse spike.
  */
 
 const CACHE_TTL_MS = 30 * 1000;
@@ -35,9 +34,9 @@ async function functionsEnabled(db, now = Date.now()) {
     cached = { enabled, fetchedAt: now };
     return enabled;
   } catch (e) {
-    console.error("Kill switch check failed; failing open (functions stay enabled).", e);
-    cached = { enabled: true, fetchedAt: now };
-    return true;
+    console.error("Kill switch check failed; failing closed (function work is paused).", e);
+    cached = { enabled: false, fetchedAt: now };
+    return false;
   }
 }
 

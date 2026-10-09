@@ -75,19 +75,26 @@
       ]
     },
     {
-      "collectionGroup": "headsUp",
+      "collectionGroup": "invites",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "status",
+          "fieldPath": "contactId",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "expiresAtMs",
+          "fieldPath": "status",
           "order": "ASCENDING"
         }
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "invites",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    }
+  ]
 }

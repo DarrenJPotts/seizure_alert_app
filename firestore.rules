@@ -10,6 +10,68 @@ function isOwner(uid) {
       return isAuthed() && request.auth.uid == uid;
     }
 
+    function isShortOptionalString(data, field, maxLength) {
+      return data.get(field, null) == null
+        || (data.get(field, null) is string
+          && data.get(field, null).size() <= maxLength);
+    }
+
+    function isOptionalCoordinate(data, field, minimum, maximum) {
+      return data.get(field, null) == null
+        || (data.get(field, null) is number
+          && data.get(field, null) >= minimum
+          && data.get(field, null) <= maximum);
+    }
+
+    function hasValidAlertShape(data, alertId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'type', 'status', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'type', 'status', 'latitude', 'longitude',
+          'locationLabel', 'message', 'createdAt', 'resolvedAt'
+        ])
+        && data.id == alertId
+        && data.id is string
+        && data.id.size() <= 160
+        && data.userId is string
+        && data.userId.size() > 0
+        && data.userId.size() <= 128
+        && data.type in ['sos', 'headsUp']
+        && data.status in ['sent', 'resolved', 'cancelled']
+        && data.createdAt is string
+        && data.createdAt.size() <= 40
+        && isOptionalCoordinate(data, 'latitude', -90, 90)
+        && isOptionalCoordinate(data, 'longitude', -180, 180)
+        && isShortOptionalString(data, 'locationLabel', 200)
+        && isShortOptionalString(data, 'message', 500)
+        && isShortOptionalString(data, 'resolvedAt', 40);
+    }
+
+    function hasValidHeadsUpShape(data, headsUpId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'createdAt', 'expiresAt', 'expiresAtMs', 'status'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'createdAt', 'expiresAt', 'expiresAtMs', 'note', 'status'
+        ])
+        && data.id == headsUpId
+        && data.id is string
+        && data.id.size() <= 128
+        && data.userId is string
+        && data.userId.size() > 0
+        && data.userId.size() <= 128
+        && data.createdAt is string
+        && data.createdAt.size() <= 40
+        && data.expiresAt is string
+        && data.expiresAt.size() <= 40
+        && data.expiresAtMs is int
+        && timestamp.value(data.expiresAtMs) > request.time - duration.value(5, 'm')
+        && timestamp.value(data.expiresAtMs) <= request.time + duration.value(24, 'h')
+        && isShortOptionalString(data, 'note', 500)
+        && data.status in ['active', 'checkedIn', 'cancelled'];
+    }
+
 function hasValidOptionalSaPhone(data) {
       return !('phone' in data)
         || data.phone == null
@@ -45,7 +107,9 @@ match /contacts/{contactId} {
 
       allow create:       if isOwner(request.resource.data.userId)
                           && hasValidRequiredSaPhone(request.resource.data)
-                          && !('linkedUid' in request.resource.data);
+                          && !request.resource.data.keys().hasAny([
+                               'linkedUid', 'inviteStatus', 'inviteExpiresAtMs'
+                             ]);
 
       allow update:       if isAuthed()
                           && resource.data.userId == request.auth.uid
@@ -54,7 +118,9 @@ match /contacts/{contactId} {
                                 .affectedKeys().hasAny(['phone', 'phoneNormalized'])
                               || hasValidRequiredSaPhone(request.resource.data))
                           && !request.resource.data.diff(resource.data)
-                               .affectedKeys().hasAny(['linkedUid']);
+                               .affectedKeys().hasAny([
+                                 'linkedUid', 'inviteStatus', 'inviteExpiresAtMs'
+                               ]);
     }
 
 match /seizureLogs/{logId} {
@@ -69,19 +135,41 @@ match /seizureLogs/{logId} {
 match /alerts/{alertId} {
       allow read, delete: if isAuthed()
                           && resource.data.userId == request.auth.uid;
-      allow create:       if isOwner(request.resource.data.userId);
+      allow create:       if isOwner(request.resource.data.userId)
+                          && hasValidAlertShape(request.resource.data, alertId)
+                          && request.resource.data.status == 'sent'
+                          && request.resource.data.get('resolvedAt', null) == null;
       allow update:       if isAuthed()
                           && resource.data.userId == request.auth.uid
-                          && request.resource.data.userId == resource.data.userId;
+                          && request.resource.data.userId == resource.data.userId
+                          && hasValidAlertShape(request.resource.data, alertId)
+                          && request.resource.data.diff(resource.data)
+                               .affectedKeys().hasOnly([
+                                 'latitude', 'longitude', 'locationLabel',
+                                 'status', 'resolvedAt'
+                               ])
+                          && resource.data.status == 'sent'
+                          && request.resource.data.status in [
+                               'sent', 'resolved', 'cancelled'
+                             ];
     }
 
 match /headsUp/{headsUpId} {
       allow read, delete: if isAuthed()
                           && resource.data.userId == request.auth.uid;
-      allow create:       if isOwner(request.resource.data.userId);
+      allow create:       if isOwner(request.resource.data.userId)
+                          && hasValidHeadsUpShape(request.resource.data, headsUpId)
+                          && request.resource.data.status == 'active';
       allow update:       if isAuthed()
                           && resource.data.userId == request.auth.uid
-                          && request.resource.data.userId == resource.data.userId;
+                          && request.resource.data.userId == resource.data.userId
+                          && hasValidHeadsUpShape(request.resource.data, headsUpId)
+                          && request.resource.data.diff(resource.data)
+                               .affectedKeys().hasOnly(['status'])
+                          && resource.data.status == 'active'
+                          && request.resource.data.status in [
+                               'active', 'checkedIn', 'cancelled'
+                             ];
     }
 
 match /alert_responses/{responseId} {
@@ -106,10 +194,7 @@ match /rate_limits/{limitId} {
     }
 
     match /invites/{inviteId} {
-      allow read:  if isAuthed()
-                   && (resource.data.senderUid == request.auth.uid
-                       || resource.data.recipientUid == request.auth.uid);
-      allow write: if false;
+      allow read, write: if false;
     }
 
 match /system/{docId} {

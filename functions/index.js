@@ -1,21 +1,24 @@
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onTaskDispatched } = require("firebase-functions/v2/tasks");
 const { onMessagePublished } = require("firebase-functions/v2/pubsub");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getFunctions } = require("firebase-admin/functions");
 const { getMessaging } = require("firebase-admin/messaging");
-const { normalizePhone } = require("./phone");
+const crypto = require("node:crypto");
 const { daysSince, isEscalationStale } = require("./time");
 const { functionsEnabled } = require("./killswitch");
 
-setGlobalOptions({ maxInstances: 5 });
+setGlobalOptions({ maxInstances: 5, minInstances: 0 });
 
 // Callable endpoints reject requests without a valid Firebase App Check
 // attestation. The mobile client initializes App Check before any Firebase
 // services are used.
-const CALLABLE_OPTIONS = { enforceAppCheck: true };
+// Cloud Run must accept the transport request before callable Auth and App
+// Check can validate it inside the function.
+const CALLABLE_OPTIONS = { enforceAppCheck: true, invoker: "public" };
 
 const BILLING_BUDGET_TOPIC = "seizure-alert-budget-alerts";
 const BILLING_ACCOUNT_ID = "017AAE-400AB6-98B366";
@@ -27,13 +30,13 @@ const db = getFirestore();
 const messaging = getMessaging();
 
 /**
- * Stop function work when the $10 monthly budget's actual spend reaches 100%.
+ * Stop function work when the $1 monthly budget's actual spend reaches 100%.
  * The kill switch remains off until an operator manually re-enables it in
  * Firestore. Billing notifications are delayed/estimated, so this is a safety
  * brake, not a guaranteed hard spending ceiling.
  */
 exports.disableFunctionsAtBudget = onMessagePublished(
-  { topic: BILLING_BUDGET_TOPIC, retry: true },
+  { topic: BILLING_BUDGET_TOPIC, retry: false, maxInstances: 1, minInstances: 0 },
   async (event) => {
     const message = event.data?.message;
     const attributes = message?.attributes || {};
@@ -66,7 +69,14 @@ exports.disableFunctionsAtBudget = onMessagePublished(
       return;
     }
 
-    await db.collection("system").doc("functionsConfig").set(
+    const configRef = db.collection("system").doc("functionsConfig");
+    const configSnapshot = await configRef.get();
+    if (configSnapshot.exists && configSnapshot.data().enabled === false) {
+      console.info("Function kill switch is already on.");
+      return;
+    }
+
+    await configRef.set(
       {
         enabled: false,
         reason: "monthly_budget_reached",
@@ -85,26 +95,14 @@ exports.disableFunctionsAtBudget = onMessagePublished(
   }
 );
 
-async function findUserByPhone(phone) {
-  const normalized = normalizePhone(phone);
+function normalizeInviteCode(value) {
+  if (typeof value !== "string") return null;
+  const code = value.replace(/[\s-]/g, "").toUpperCase();
+  return /^(?:[0-9]{8}|[0-9A-F]{32})$/.test(code) ? code : null;
+}
 
-  if (normalized) {
-    const snap = await db
-      .collection("users")
-      .where("phoneNormalized", "==", normalized)
-      .limit(1)
-      .get();
-    if (!snap.empty) return snap.docs[0];
-  }
-
-  if (!phone) return null;
-
-  const legacySnap = await db
-    .collection("users")
-    .where("phone", "==", phone)
-    .limit(1)
-    .get();
-  return legacySnap.empty ? null : legacySnap.docs[0];
+function hashInviteCode(code) {
+  return crypto.createHash("sha256").update(code).digest("hex");
 }
 
 async function findLinkedContacts(uid, extraWhere = []) {
@@ -194,26 +192,6 @@ function buildMessage({ token, title, body, alertId, alertType, alertStatus, use
   };
 }
 
-function buildInviteMessage({ token, title, body, inviteId, kind }) {
-  return {
-    token,
-    notification: { title, body },
-    data: {
-      type: kind,
-      inviteId: String(inviteId),
-    },
-    android: {
-      priority: "high",
-      notification: { sound: "default" },
-    },
-    apns: {
-      payload: {
-        aps: { sound: "default", contentAvailable: true },
-      },
-    },
-  };
-}
-
 async function notifyContacts(alertUserId, alert, copy) {
   const contactsSnap = await db
     .collection("contacts")
@@ -281,6 +259,16 @@ exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => 
   const alertUserId = alert.userId;
   if (!alertUserId) return;
 
+  try {
+    await enforceRateLimit(alertUserId, "alertNotify", 6, 10 * 60 * 1000);
+  } catch (error) {
+    if (error instanceof HttpsError && error.code === "resource-exhausted") {
+      console.warn(`Notification rate limit reached for ${alertUserId}.`);
+      return;
+    }
+    throw error;
+  }
+
   const userDoc = await db.collection("users").doc(alertUserId).get();
   const userName = userDoc.exists ? (userDoc.data().displayName || "Someone") : "Someone";
 
@@ -305,6 +293,16 @@ exports.onAlertUpdated = onDocumentUpdated("alerts/{alertId}", async (event) => 
   const alertUserId = after.userId;
   if (!alertUserId) return;
 
+  try {
+    await enforceRateLimit(alertUserId, "alertNotify", 6, 10 * 60 * 1000);
+  } catch (error) {
+    if (error instanceof HttpsError && error.code === "resource-exhausted") {
+      console.warn(`Notification rate limit reached for ${alertUserId}.`);
+      return;
+    }
+    throw error;
+  }
+
   const userDoc = await db.collection("users").doc(alertUserId).get();
   const userName = userDoc.exists ? (userDoc.data().displayName || "Someone") : "Someone";
 
@@ -316,85 +314,89 @@ exports.onAlertUpdated = onDocumentUpdated("alerts/{alertId}", async (event) => 
 
 // ---------------------------------------------------------------------------
 //
-// The client also counts down and escalates locally, but only while the app
-// is alive. A Heads Up exists precisely for the case where the user goes
-// quiet — phone dead, app killed by the OS, mid-seizure — so the client can
-// never be the thing that guarantees the escalation fires. This sweep is that
-// guarantee; the client path is now just a fast local path.
-//
-// Both paths write the alert under the same deterministic id, so whichever
-// gets there first wins and the contact circle is notified exactly once.
+// A Heads Up must escalate even when the phone is off or the app is killed.
+// The delayed task is therefore the only writer of the expiry alert, and its
+// deterministic alert id keeps retries idempotent.
 // ---------------------------------------------------------------------------
 
-const HEADS_UP_SWEEP_LIMIT = 200;
-
-// How late an expiry may be and still be worth telling anyone about.
-//
-// The sweep runs every minute, so normal lateness is under 60s. Anything much
-// older than that means the sweep itself was broken — as it was for ~3 days
-// when the `headsUp (status, expiresAtMs)` composite index had been declared in
-// firestore.indexes.json but never deployed, so every run threw
-// FAILED_PRECONDITION.
-//
-// Without this guard, the first successful run after that fix escalates the
-// entire backlog at once: up to 200 "Check-in Missed" pushes for windows that
-// closed days ago. That is not a late alert, it is a false alarm — and a
-// caregiver who gets a handful of those learns to disregard the one channel
-// this app exists to keep credible.
-//
-// An hour is generous enough to escalate through any realistic transient
-// outage (a deploy, a brief incident) while suppressing a stale backlog.
-// Suppressed windows are still closed, and logged at warn so the backlog is
-// visible rather than silently dropped.
 const HEADS_UP_ESCALATION_GRACE_MS = 60 * 60 * 1000;
 
-exports.expireHeadsUpWindows = onSchedule(
-  { schedule: "every 1 minutes", timeoutSeconds: 120 },
-  async () => {
+// Each Heads Up creates one delayed task. This keeps server-side escalation
+// reliable while avoiding an idle scheduler that wakes up every minute.
+exports.onHeadsUpCreated = onDocumentCreated("headsUp/{headsUpId}", async (event) => {
+  if (!(await functionsEnabled(db))) {
+    console.warn("Kill switch is on; skipping Heads Up task creation.");
+    return;
+  }
+
+  const headsUp = event.data?.data();
+  const headsUpId = event.params.headsUpId;
+  const expiresAtMs = headsUp?.expiresAtMs;
+  if (
+    headsUp?.status !== "active" ||
+    typeof expiresAtMs !== "number" ||
+    !Number.isFinite(expiresAtMs)
+  ) {
+    console.warn(`Heads Up ${headsUpId} cannot be scheduled because its expiry is invalid.`);
+    return;
+  }
+
+  try {
+    await getFunctions()
+      .taskQueue("expireHeadsUpWindow")
+      .enqueue(
+        { headsUpId },
+        {
+          id: headsUpId,
+          scheduleTime: new Date(Math.max(expiresAtMs, Date.now())),
+          dispatchDeadlineSeconds: 60,
+        }
+      );
+  } catch (error) {
+    if (error?.code === "functions/task-already-exists") {
+      console.info(`Expiry task already exists for Heads Up ${headsUpId}.`);
+      return;
+    }
+    throw error;
+  }
+});
+
+exports.expireHeadsUpWindow = onTaskDispatched(
+  {
+    retryConfig: {
+      maxAttempts: 5,
+      minBackoffSeconds: 30,
+      maxBackoffSeconds: 300,
+      maxDoublings: 3,
+    },
+    rateLimits: { maxConcurrentDispatches: 5, maxDispatchesPerSecond: 5 },
+    timeoutSeconds: 120,
+    minInstances: 0,
+    maxInstances: 5,
+  },
+  async (request) => {
     if (!(await functionsEnabled(db))) {
-      console.warn("Kill switch is on; skipping expireHeadsUpWindows.");
+      console.warn("Kill switch is on; skipping expireHeadsUpWindow.");
       return;
     }
 
+    const headsUpId = request.data?.headsUpId;
+    if (typeof headsUpId !== "string" || !headsUpId) return;
+
+    const doc = await db.collection("headsUp").doc(headsUpId).get();
+    if (!doc.exists || doc.data().status !== "active") return;
+
     const nowMs = Date.now();
-
-    const dueSnap = await db
-      .collection("headsUp")
-      .where("status", "==", "active")
-      .where("expiresAtMs", "<=", nowMs)
-      .limit(HEADS_UP_SWEEP_LIMIT)
-      .get();
-
-    if (dueSnap.empty) return;
-
-    console.log(`Expiring ${dueSnap.size} Heads Up window(s).`);
-
-    const results = await Promise.allSettled(
-      dueSnap.docs.map((doc) => expireOneHeadsUp(doc, nowMs))
-    );
-
-    let suppressed = 0;
-    results.forEach((result, i) => {
-      if (result.status === "rejected") {
-        console.error(`Failed to expire ${dueSnap.docs[i].id}:`, result.reason);
-        return;
-      }
-      if (result.value?.suppressed) suppressed += 1;
-    });
-
-    if (suppressed > 0) {
-      console.warn(
-        `Closed ${suppressed} Heads Up window(s) without notifying anyone: ` +
-          `they expired more than ${HEADS_UP_ESCALATION_GRACE_MS / 60000} minutes ` +
-          `ago, so an escalation now would be a false alarm. A non-zero count ` +
-          `here means this sweep was not running when it should have been.`
-      );
+    const expiresAtMs = doc.data().expiresAtMs;
+    if (typeof expiresAtMs !== "number" || expiresAtMs > nowMs) {
+      throw new Error(`Heads Up ${headsUpId} expiry task was dispatched early.`);
     }
 
-    if (dueSnap.size === HEADS_UP_SWEEP_LIMIT) {
+    const result = await expireOneHeadsUp(doc, nowMs);
+    if (result?.suppressed) {
       console.warn(
-        `Sweep hit its ${HEADS_UP_SWEEP_LIMIT}-document limit; the remainder ` +
-          `will be picked up on the next run.`
+        `Closed Heads Up ${headsUpId} without notifying anyone because it expired ` +
+          `more than ${HEADS_UP_ESCALATION_GRACE_MS / 60000} minutes ago.`
       );
     }
   }
@@ -405,9 +407,8 @@ async function expireOneHeadsUp(doc, nowMs) {
   const alertId = `${doc.id}_expired`;
   const alertRef = db.collection("alerts").doc(alertId);
 
-  // Too late to be worth an alert — close the window and say nothing. Done
-  // before the origin-alert read below, so a large backlog costs one write per
-  // document rather than a read, a transaction and a push.
+  // Too late to be useful as an alert, so close the window before doing the
+  // extra reads and push work that a stale delayed task no longer justifies.
   const lateBy = nowMs - (headsUp.expiresAtMs ?? nowMs);
   if (isEscalationStale(headsUp.expiresAtMs, nowMs, HEADS_UP_ESCALATION_GRACE_MS)) {
     await doc.ref.update({ status: "expired" });
@@ -597,6 +598,56 @@ found.forEach((person) => delete person.activity);
   return { people: found, recentActivity };
 });
 
+exports.getCaregiverAlertHistory = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+
+  const callerUid = request.auth?.uid;
+  if (!callerUid) {
+    throw new HttpsError("unauthenticated", "Sign in required.");
+  }
+
+  await enforceRateLimit(callerUid, "caregiverAlertHistory", 10, 60 * 1000);
+
+  const contactDocs = await findLinkedContacts(callerUid);
+  const ownerIds = [
+    ...new Set(contactDocs.map((doc) => doc.data().userId).filter(Boolean)),
+  ].slice(0, 30);
+
+  if (ownerIds.length === 0) return { alerts: [] };
+
+  // Firestore `in` queries accept at most 30 values. Keeping the fan-out in a
+  // single bounded query also caps reads each time the history tab is opened.
+  const [alertsSnap, ...ownerDocs] = await Promise.all([
+    db
+      .collection("alerts")
+      .where("userId", "in", ownerIds)
+      .orderBy("createdAt", "desc")
+      .limit(20)
+      .get(),
+    ...ownerIds.map((ownerId) => db.collection("users").doc(ownerId).get()),
+  ]);
+
+  const ownerNames = new Map(
+    ownerDocs.map((doc) => [
+      doc.id,
+      doc.exists ? doc.data().displayName || "Someone" : "Someone",
+    ])
+  );
+
+  return {
+    alerts: alertsSnap.docs.map((doc) => {
+      const alert = doc.data();
+      return {
+        ...alert,
+        id: doc.id,
+        ownerName: ownerNames.get(alert.userId) || "Someone",
+      };
+    }),
+  };
+});
+
 exports.getAlertDetail = onCall(CALLABLE_OPTIONS, async (request) => {
   if (!(await functionsEnabled(db))) {
     throw new HttpsError("unavailable", "This feature is temporarily disabled.");
@@ -696,199 +747,128 @@ const [ownerDoc, contactDocs] = await Promise.all([
   };
 });
 
-// ---------------------------------------------------------------------------
-// registered user, send them an in-app invite instead of relying on the
-// SMS/WhatsApp share link. The contact is gated to `status: "pending"` until
-// the recipient accepts, so they aren't notified of anything before consenting.
-// ---------------------------------------------------------------------------
-
-exports.sendCircleInvite = onCall(CALLABLE_OPTIONS, async (request) => {
-  if (!(await functionsEnabled(db))) {
-    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
-  }
-
+exports.createCircleInvite = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) throw new HttpsError("unavailable", "This feature is temporarily disabled.");
   const callerUid = request.auth?.uid;
-  if (!callerUid) {
-    throw new HttpsError("unauthenticated", "Sign in required.");
-  }
-
-  await enforceRateLimit(callerUid, "invite", 10, 60 * 60 * 1000);
+  if (!callerUid) throw new HttpsError("unauthenticated", "Sign in required.");
+  await enforceRateLimit(callerUid, "inviteCreate", 10, 60 * 60 * 1000);
 
   const contactId = request.data?.contactId;
-  const phone = request.data?.phone;
-  if (!contactId || !phone) {
-    throw new HttpsError("invalid-argument", "contactId and phone are required.");
-  }
-
-  const contactDoc = await db.collection("contacts").doc(contactId).get();
-  if (!contactDoc.exists || contactDoc.data().userId !== callerUid) {
-    throw new HttpsError("permission-denied", "Not your contact.");
-  }
-
-const contactPhone = contactDoc.data().phone;
-  if (
-    !contactPhone ||
-    normalizePhone(contactPhone) !== normalizePhone(phone)
-  ) {
-    throw new HttpsError(
-      "invalid-argument",
-      "That phone number does not match the contact."
-    );
-  }
-
-  const recipientDoc = await findUserByPhone(contactPhone);
-
-  if (!recipientDoc) {
-    return { isRegisteredUser: false };
-  }
-
-  const recipientUid = recipientDoc.id;
-  if (recipientUid === callerUid) {
-    return { isRegisteredUser: false };
-  }
-
-  const existingSnap = await db
-    .collection("invites")
-    .where("senderUid", "==", callerUid)
-    .where("recipientUid", "==", recipientUid)
-    .where("status", "==", "pending")
-    .limit(1)
-    .get();
-
+  if (typeof contactId !== "string" || !contactId.trim()) throw new HttpsError("invalid-argument", "contactId is required.");
+  const regenerate = request.data?.regenerate === true;
+  const contactRef = db.collection("contacts").doc(contactId);
   const callerDoc = await db.collection("users").doc(callerUid).get();
   const senderName = callerDoc.exists ? (callerDoc.data().displayName || "Someone") : "Someone";
 
-  let inviteId;
-  if (!existingSnap.empty) {
-    inviteId = existingSnap.docs[0].id;
-  } else {
-    const inviteRef = db.collection("invites").doc();
-    inviteId = inviteRef.id;
-    await inviteRef.set({
-      id: inviteId,
-      contactId,
-      senderUid: callerUid,
-      senderName,
-      recipientUid,
-      recipientPhone: phone,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      respondedAt: null,
-    });
-  }
-
-  await db.collection("contacts").doc(contactId).update({ status: "pending" });
-
-  const fcmToken = recipientDoc.data().fcmToken;
-  if (fcmToken) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const inviteCode = String(crypto.randomInt(0, 100000000)).padStart(8, "0");
+    const inviteRef = db.collection("invites").doc(hashInviteCode(inviteCode));
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
     try {
-      await messaging.send(
-        buildInviteMessage({
-          token: fcmToken,
-          title: "Circle invite",
-          body: `${senderName} wants to add you to their circle.`,
-          inviteId,
-          kind: "circle_invite",
-        })
-      );
-    } catch (e) {
-      console.error("Failed to send invite push:", e);
+      return await db.runTransaction(async (tx) => {
+        const contactDoc = await tx.get(contactRef);
+        if (!contactDoc.exists || contactDoc.data().userId !== callerUid) {
+          throw new HttpsError("permission-denied", "Not your contact.");
+        }
+        if (contactDoc.data().linkedUid) {
+          throw new HttpsError("failed-precondition", "This contact is already linked.");
+        }
+
+        const existingInvites = await tx.get(
+          db.collection("invites").where("contactId", "==", contactId).where("status", "==", "pending")
+        );
+        const codeDoc = await tx.get(inviteRef);
+        const now = Date.now();
+        const reusable = existingInvites.docs
+          .filter((doc) => {
+            const data = doc.data();
+            const expiry = data.expiresAt?.toMillis?.() ?? 0;
+            return expiry > now && /^[0-9]{8}$/.test(data.code || "");
+          })
+          .sort((a, b) => b.data().expiresAt.toMillis() - a.data().expiresAt.toMillis())[0];
+
+        if (reusable && !regenerate) {
+          const data = reusable.data();
+          return { code: data.code, expiresAt: data.expiresAt.toMillis(), reused: true };
+        }
+        if (codeDoc.exists) throw new HttpsError("already-exists", "Choose another invite code.");
+
+        tx.create(inviteRef, {
+          code: inviteCode,
+          senderUid: callerUid,
+          senderName,
+          contactId,
+          status: "pending",
+          createdAt: FieldValue.serverTimestamp(),
+          expiresAt: new Date(expiresAt),
+          respondedAt: null,
+        });
+        for (const oldInvite of existingInvites.docs) {
+          tx.update(oldInvite.ref, { status: "superseded", respondedAt: FieldValue.serverTimestamp() });
+        }
+        tx.update(contactRef, {
+          status: "active",
+          inviteStatus: "pending",
+          inviteExpiresAtMs: expiresAt,
+        });
+        return { code: inviteCode, expiresAt, reused: false };
+      });
+    } catch (error) {
+      if (error.code !== "already-exists" || attempt === 4) throw error;
     }
   }
 
-  return { isRegisteredUser: true, inviteId };
+  throw new HttpsError("resource-exhausted", "Could not generate an invite code. Please try again.");
 });
 
-// ---------------------------------------------------------------------------
-// deletes it. Both mutate a contact doc owned by a different uid, which is
-// only safe because this runs under the Admin SDK.
-// ---------------------------------------------------------------------------
-
-exports.respondToInvite = onCall(CALLABLE_OPTIONS, async (request) => {
-  if (!(await functionsEnabled(db))) {
-    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
-  }
-
+exports.previewCircleInvite = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) throw new HttpsError("unavailable", "This feature is temporarily disabled.");
   const callerUid = request.auth?.uid;
-  if (!callerUid) {
-    throw new HttpsError("unauthenticated", "Sign in required.");
-  }
-
-  await enforceRateLimit(callerUid, "inviteResponse", 20, 60 * 60 * 1000);
-
-  const inviteId = request.data?.inviteId;
-  const accept = request.data?.accept;
-  if (!inviteId || typeof accept !== "boolean") {
-    throw new HttpsError("invalid-argument", "inviteId and accept are required.");
-  }
-
-  const inviteRef = db.collection("invites").doc(inviteId);
-  const inviteDoc = await inviteRef.get();
-  if (!inviteDoc.exists) {
-    throw new HttpsError("not-found", "Invite not found.");
-  }
-
+  if (!callerUid) throw new HttpsError("unauthenticated", "Sign in required.");
+  await enforceRateLimit(callerUid, "invitePreview", 10, 60 * 60 * 1000);
+  const code = normalizeInviteCode(request.data?.code);
+  if (!code) throw new HttpsError("invalid-argument", "Enter a valid invite code.");
+  const inviteDoc = await db.collection("invites").doc(hashInviteCode(code)).get();
+  if (!inviteDoc.exists) throw new HttpsError("not-found", "Invite code not found.");
   const invite = inviteDoc.data();
-  if (invite.recipientUid !== callerUid) {
-    throw new HttpsError("permission-denied", "This invite is not yours to respond to.");
+  if (invite.senderUid === callerUid) throw new HttpsError("failed-precondition", "You cannot redeem your own invite.");
+  if (invite.status !== "pending" || invite.expiresAt.toMillis() <= Date.now()) throw new HttpsError("failed-precondition", "This invite has expired or was already used.");
+  const contactDoc = await db.collection("contacts").doc(invite.contactId).get();
+  if (!contactDoc.exists || contactDoc.data().userId !== invite.senderUid || contactDoc.data().linkedUid) {
+    throw new HttpsError("failed-precondition", "This invite is no longer available.");
   }
-
-  if (invite.status !== "pending") {
-    return { status: invite.status };
-  }
-
-  const newStatus = accept ? "accepted" : "declined";
-  await inviteRef.update({ status: newStatus, respondedAt: new Date().toISOString() });
-
-  const contactRef = db.collection("contacts").doc(invite.contactId);
-  if (accept) {
-
-await contactRef
-      .update({ status: "active", linkedUid: callerUid })
-      .catch(() => null);
-  } else {
-    await contactRef.delete().catch(() => null);
-  }
-
-  const senderDoc = await db.collection("users").doc(invite.senderUid).get();
-  const fcmToken = senderDoc.exists ? senderDoc.data().fcmToken : null;
-  if (fcmToken) {
-    const recipientDoc = await db.collection("users").doc(callerUid).get();
-    const recipientName = recipientDoc.exists
-      ? (recipientDoc.data().displayName || "Your contact")
-      : "Your contact";
-    try {
-      await messaging.send(
-        buildInviteMessage({
-          token: fcmToken,
-          title: accept ? "Invite accepted" : "Invite declined",
-          body: accept
-            ? `${recipientName} accepted your circle invite.`
-            : `${recipientName} declined your circle invite.`,
-          inviteId,
-          kind: "circle_invite_response",
-        })
-      );
-    } catch (e) {
-      console.error("Failed to send invite response push:", e);
-    }
-  }
-
-  return { status: newStatus };
+  return { senderName: invite.senderName || "Someone", contactName: contactDoc.data().name || "your contact" };
 });
 
-// ---------------------------------------------------------------------------
-//
-// Exists because the respond screen shows the whole roster: seeing "Sipho V.
-// — called, no answer" is only useful if you can do something about it. The
-// alternative was for the caregiver to leave the app and phone them, which
-// is the thing they are already failing to do.
-//
-// Authorization mirrors getAlertDetail: the caller must be a non-pending
-// contact of the alert's owner. Without that this would be an open push
-// endpoint keyed on a guessable alert id.
-// ---------------------------------------------------------------------------
-
+exports.respondToCircleInvite = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  const callerUid = request.auth?.uid;
+  if (!callerUid) throw new HttpsError("unauthenticated", "Sign in required.");
+  await enforceRateLimit(callerUid, "inviteResponse", 20, 60 * 60 * 1000);
+  const code = normalizeInviteCode(request.data?.code);
+  const accept = request.data?.accept;
+  if (!code || typeof accept !== "boolean") throw new HttpsError("invalid-argument", "A valid invite code and response are required.");
+  const inviteRef = db.collection("invites").doc(hashInviteCode(code));
+  const status = await db.runTransaction(async (tx) => {
+    const inviteDoc = await tx.get(inviteRef);
+    if (!inviteDoc.exists) throw new HttpsError("not-found", "Invite code not found.");
+    const data = inviteDoc.data();
+    if (data.senderUid === callerUid) throw new HttpsError("failed-precondition", "You cannot redeem your own invite.");
+    if (data.status !== "pending" || data.expiresAt.toMillis() <= Date.now()) throw new HttpsError("failed-precondition", "This invite has expired or was already used.");
+    const contactRef = db.collection("contacts").doc(data.contactId);
+    const contactDoc = await tx.get(contactRef);
+    if (!contactDoc.exists || contactDoc.data().userId !== data.senderUid || contactDoc.data().linkedUid) {
+      throw new HttpsError("failed-precondition", "This invite is no longer available.");
+    }
+    const nextStatus = accept ? "accepted" : "declined";
+    tx.update(inviteRef, { status: nextStatus, ...(accept ? { recipientUid: callerUid } : {}), respondedAt: FieldValue.serverTimestamp() });
+    tx.update(contactRef, accept
+      ? { status: "active", linkedUid: callerUid, inviteStatus: "accepted" }
+      : { status: "active", inviteStatus: "declined" });
+    return nextStatus;
+  });
+  return { status };
+});
 exports.nudgeResponder = onCall(CALLABLE_OPTIONS, async (request) => {
   if (!(await functionsEnabled(db))) {
     throw new HttpsError("unavailable", "This feature is temporarily disabled.");
