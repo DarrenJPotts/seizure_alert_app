@@ -1,15 +1,15 @@
 import 'package:flutter/services.dart';
+
 class SouthAfricanPhoneInputFormatter extends TextInputFormatter {
   const SouthAfricanPhoneInputFormatter();
 
-static const int maxLength = 15;
+  static const int maxLength = 15;
 
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-
     if (!newValue.composing.isCollapsed) return newValue;
 
     final String trimmed = newValue.text.trimLeft();
@@ -34,16 +34,31 @@ static const int maxLength = 15;
     if (digits.length > maxDigits) return oldValue;
 
     if (compact.startsWith('+27')) {
-      formatted = _group(compact, prefixLength: 3, groups: const <int>[2, 3, 4]);
+      formatted = _group(
+        compact,
+        prefixLength: 3,
+        groups: const <int>[2, 3, 4],
+      );
     } else if (hasInternationalPlus || compact.startsWith('00')) {
-
       return newValue;
     } else if (compact.startsWith('0')) {
-      formatted = _group(compact, prefixLength: 0, groups: const <int>[3, 3, 4]);
+      formatted = _group(
+        compact,
+        prefixLength: 0,
+        groups: const <int>[3, 3, 4],
+      );
     } else if (compact.startsWith('27')) {
-      formatted = _group(compact, prefixLength: 2, groups: const <int>[2, 3, 4]);
+      formatted = _group(
+        compact,
+        prefixLength: 2,
+        groups: const <int>[2, 3, 4],
+      );
     } else {
-      formatted = _group(compact, prefixLength: 0, groups: const <int>[2, 3, 4]);
+      formatted = _group(
+        compact,
+        prefixLength: 0,
+        groups: const <int>[2, 3, 4],
+      );
     }
 
     if (formatted == newValue.text) return newValue;
@@ -70,9 +85,20 @@ static const int maxLength = 15;
     return result.toString();
   }
 
-  static TextEditingValue _withSelection(TextEditingValue value, String formatted) {
-    final int base = _mapOffset(value.text, value.selection.baseOffset, formatted);
-    final int extent = _mapOffset(value.text, value.selection.extentOffset, formatted);
+  static TextEditingValue _withSelection(
+    TextEditingValue value,
+    String formatted,
+  ) {
+    final int base = _mapOffset(
+      value.text,
+      value.selection.baseOffset,
+      formatted,
+    );
+    final int extent = _mapOffset(
+      value.text,
+      value.selection.extentOffset,
+      formatted,
+    );
     return value.copyWith(
       text: formatted,
       selection: TextSelection(
@@ -89,8 +115,11 @@ static const int maxLength = 15;
     if (oldOffset < 0) return oldOffset;
     final int safeOffset = oldOffset.clamp(0, oldText.length).toInt();
     final String beforeCursor = oldText.substring(0, safeOffset);
-    final int digitsBeforeCursor = RegExp(r'\d').allMatches(beforeCursor).length;
-    final bool plusBeforeCursor = beforeCursor.contains('+') && formatted.startsWith('+');
+    final int digitsBeforeCursor = RegExp(
+      r'\d',
+    ).allMatches(beforeCursor).length;
+    final bool plusBeforeCursor =
+        beforeCursor.contains('+') && formatted.startsWith('+');
 
     int newOffset = plusBeforeCursor ? 1 : 0;
     int seenDigits = 0;
@@ -99,7 +128,9 @@ static const int maxLength = 15;
       newOffset++;
     }
 
-if (digitsBeforeCursor > 0 && newOffset < formatted.length && formatted[newOffset] == ' ') {
+    if (digitsBeforeCursor > 0 &&
+        newOffset < formatted.length &&
+        formatted[newOffset] == ' ') {
       newOffset++;
     }
     return newOffset;

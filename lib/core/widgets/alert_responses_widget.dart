@@ -25,18 +25,18 @@ class _AlertResponsesWidgetState extends State<AlertResponsesWidget> {
     _sub = FirestoreService.instance()
         .watchAlertResponses(widget.alertId)
         .listen(
-      (list) {
-        if (mounted) {
-          setState(() {
-            _responses = list;
-            _loading = false;
-          });
-        }
-      },
-      onError: (_) {
-        if (mounted) setState(() => _loading = false);
-      },
-    );
+          (list) {
+            if (mounted) {
+              setState(() {
+                _responses = list;
+                _loading = false;
+              });
+            }
+          },
+          onError: (_) {
+            if (mounted) setState(() => _loading = false);
+          },
+        );
   }
 
   @override
@@ -59,18 +59,15 @@ class _AlertResponsesWidgetState extends State<AlertResponsesWidget> {
             padding: EdgeInsets.symmetric(vertical: Dimensions.eight),
             child: Text(
               'Waiting for your circle to respond...',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.black45),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.black45),
             ),
           )
         else
           Column(
             spacing: Dimensions.eight,
-            children: _responses
-                .map((r) => _ResponseRow(response: r))
-                .toList(),
+            children: _responses.map((r) => _ResponseRow(response: r)).toList(),
           ),
       ],
     );
@@ -86,7 +83,6 @@ class _ResponseRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-
         Container(
           width: 36,
           height: 36,
@@ -97,23 +93,23 @@ class _ResponseRow extends StatelessWidget {
           child: Center(
             child: Text(
               _initials(response.contactName),
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(color: Colors.black54, fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Colors.black54,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
         SizedBox(width: Dimensions.twelve),
 
-Expanded(
+        Expanded(
           child: Text(
             response.contactName,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
 
-if (response.responding)
+        if (response.responding)
           _Badge(label: 'Responding', filled: true)
         else if (response.seen)
           _Badge(label: 'Seen', filled: false),
@@ -146,8 +142,8 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: filled ? Colors.white : Colors.black54,
-            ),
+          color: filled ? Colors.white : Colors.black54,
+        ),
       ),
     );
   }

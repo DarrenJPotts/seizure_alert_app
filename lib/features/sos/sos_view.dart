@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_response_dto.dart';
+import 'package:seizure_app/core/dtos/alert_delivery_dto.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
+import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/widgets/alert_map_widget.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
@@ -30,19 +34,22 @@ class SosView extends StatelessWidget {
     BuildContext context,
     SosViewModel sosVm, {
     required bool hasRecipients,
+    VoidCallback? onComplete,
   }) {
     HapticFeedback.heavyImpact();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => CountdownAlertDialog(
-        hasRecipients: hasRecipients,
-        onConfirm: () {
-          Navigator.pop(context);
-          sosVm.startSos();
-        },
-        onCancel: () => Navigator.pop(context),
-      ),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => CountdownAlertDialog(
+          hasRecipients: hasRecipients,
+          onConfirm: () {
+            Navigator.pop(context);
+            sosVm.startSos();
+          },
+          onCancel: () => Navigator.pop(context),
+        ),
+      ).whenComplete(() => onComplete?.call()),
     );
   }
 
@@ -55,26 +62,72 @@ class SosView extends StatelessWidget {
       if (sosVm.activeSos.value != null) {
         if (widgetRequested) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            viewModel.consumeWidgetSosRequest();
+            viewModel.discardWidgetSosRequest();
           });
         }
         return _buildActiveState(context, sosVm);
       }
       if (widgetRequested) {
+        final contactsVm = Get.find<ContactsViewModel>();
+        final contactsState = contactsVm.screenState.value;
+        if (contactsState == GenericScreenStates.initial ||
+            contactsState == GenericScreenStates.loading) {
+          return _buildWidgetLoadingState(context, sosVm);
+        }
+        if (contactsState == GenericScreenStates.error) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!viewModel.widgetSosRequested.value) return;
+            viewModel.discardWidgetSosRequest();
+            Get.snackbar(
+              'Contacts unavailable',
+              'Check your connection and try SOS again.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.black,
+              colorText: Colors.white,
+            );
+          });
+          return _buildIdleState(context, sosVm);
+        }
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!viewModel.consumeWidgetSosRequest()) return;
-          final contactsVm = Get.find<ContactsViewModel>();
           _handleSOS(
             context,
             sosVm,
             hasRecipients: contactsVm.contacts.any(
               (contact) => contact.isPushReady,
             ),
+            onComplete: viewModel.completeWidgetSosRequest,
           );
         });
       }
       return _buildIdleState(context, sosVm);
     });
+  }
+
+  Widget _buildWidgetLoadingState(BuildContext context, SosViewModel sosVm) {
+    return Stack(
+      children: [
+        _buildIdleState(context, sosVm),
+        Positioned.fill(
+          child: ColoredBox(
+            color: Colors.white.withValues(alpha: 0.92),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(color: Colors.black),
+                  SizedBox(height: Dimensions.sixteen),
+                  Text(
+                    'Checking your circle…',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildActiveState(BuildContext context, SosViewModel sosVm) {
@@ -83,6 +136,7 @@ class SosView extends StatelessWidget {
     return Obx(() {
       final RxList<ContactDto> contacts = contactsVm.contacts;
       final RxList<AlertResponseDto> responses = sosVm.alertResponses;
+      final RxList<AlertDeliveryDto> deliveries = sosVm.alertDeliveries;
       final List<ContactDto> recipients = contacts
           .where((ContactDto c) => c.isPushReady)
           .toList();
@@ -153,9 +207,16 @@ class SosView extends StatelessWidget {
                       child: Column(
                         children: recipients.map((ContactDto contact) {
                           AlertResponseDto? response;
+                          AlertDeliveryDto? delivery;
                           for (final AlertResponseDto r in responses) {
                             if (r.contactId == contact.id) {
                               response = r;
+                              break;
+                            }
+                          }
+                          for (final AlertDeliveryDto value in deliveries) {
+                            if (value.contactId == contact.id) {
+                              delivery = value;
                               break;
                             }
                           }
@@ -164,6 +225,8 @@ class SosView extends StatelessWidget {
                             phone: contact.phone,
                             seen: response?.seen ?? false,
                             responding: response?.responding ?? false,
+                            deliveryStatus: delivery?.status,
+                            escalationStage: delivery?.escalationStage ?? 0,
                           );
                         }).toList(),
                       ),

@@ -11,6 +11,8 @@ class CaregiverViewModel extends GetxController {
   final RxList<WatchedPersonDto> people = <WatchedPersonDto>[].obs;
   final RxList<WatchActivityDto> recentActivity = <WatchActivityDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
+  final RxBool watchListRefreshing = false.obs;
+  final RxBool watchListRefreshFailed = false.obs;
 
   /// When the list last came back from the server. A cached watch list can be
   /// 30s old and a caregiver cannot otherwise tell.
@@ -23,25 +25,44 @@ class CaregiverViewModel extends GetxController {
   }
 
   Future<void> loadPeopleIWatch({bool forceRefresh = false}) async {
+    if (watchListRefreshing.value) return;
+
+    watchListRefreshing.value = true;
+    watchListRefreshFailed.value = false;
     if (screenState.value != GenericScreenStates.loaded) {
       screenState.value = GenericScreenStates.loading;
     }
 
-    final result = await _caregiverService.getPeopleIWatch(forceRefresh: forceRefresh);
-    if (!result.isSuccess || result.data == null) {
-      if (people.isEmpty) screenState.value = GenericScreenStates.error;
-      return;
-    }
+    try {
+      final result = await _caregiverService.getPeopleIWatch(
+        forceRefresh: forceRefresh,
+      );
+      if (!result.isSuccess || result.data == null) {
+        watchListRefreshFailed.value = true;
+        if (people.isEmpty) screenState.value = GenericScreenStates.error;
+        return;
+      }
 
-    people.value = result.data!.people;
-    recentActivity.value = result.data!.recentActivity;
-    lastUpdatedAt.value = DateTime.now();
-    screenState.value = people.isEmpty ? GenericScreenStates.empty : GenericScreenStates.loaded;
+      people.value = result.data!.people;
+      recentActivity.value = result.data!.recentActivity;
+      lastUpdatedAt.value = DateTime.now();
+      screenState.value = people.isEmpty
+          ? GenericScreenStates.empty
+          : GenericScreenStates.loaded;
+    } catch (_) {
+      watchListRefreshFailed.value = true;
+      if (people.isEmpty) screenState.value = GenericScreenStates.error;
+    } finally {
+      watchListRefreshing.value = false;
+    }
   }
 
   List<WatchedPersonDto> get sortedPeople {
     final List<WatchedPersonDto> sorted = people.toList();
-    sorted.sort((WatchedPersonDto a, WatchedPersonDto b) => _urgency(a).compareTo(_urgency(b)));
+    sorted.sort(
+      (WatchedPersonDto a, WatchedPersonDto b) =>
+          _urgency(a).compareTo(_urgency(b)),
+    );
     return sorted;
   }
 

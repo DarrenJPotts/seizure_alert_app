@@ -5,6 +5,7 @@ import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_response_dto.dart';
+import 'package:seizure_app/core/dtos/alert_delivery_dto.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
@@ -21,13 +22,17 @@ class FirestoreService {
 
   final FirebaseFirestore _db;
 
-  String newDocumentId(String collection) => _db.collection(collection).doc().id;
+  String newDocumentId(String collection) =>
+      _db.collection(collection).doc().id;
 
-Future<ResultDto<void>> upsertUser(UserDto user) async {
+  Future<ResultDto<void>> upsertUser(UserDto user) async {
     final String? phoneError = PhoneNumber.validationError(user.phone);
     if (phoneError != null) return ResultDto.failure(phoneError);
     try {
-      await _db.collection(FirebaseCollectionKeys.users).doc(user.uid).set(user.toMap(), SetOptions(merge: true));
+      await _db
+          .collection(FirebaseCollectionKeys.users)
+          .doc(user.uid)
+          .set(user.toMap(), SetOptions(merge: true));
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
@@ -36,19 +41,37 @@ Future<ResultDto<void>> upsertUser(UserDto user) async {
 
   Future<ResultDto<void>> updateFcmToken(String uid, String token) async {
     try {
-      await _db
-          .collection(FirebaseCollectionKeys.users)
-          .doc(uid)
-          .set({'fcmToken': token}, SetOptions(merge: true));
+      await _db.collection(FirebaseCollectionKeys.users).doc(uid).set({
+        'fcmToken': token,
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
   }
 
+  Future<ResultDto<void>> updateSafetyPlan(
+    String uid,
+    Map<String, dynamic> values,
+  ) async {
+    try {
+      await _db
+          .collection(FirebaseCollectionKeys.users)
+          .doc(uid)
+          .set(values, SetOptions(merge: true));
+      return ResultDto.success(null);
+    } catch (error) {
+      return ResultDto.failure(error.toString());
+    }
+  }
+
   Future<ResultDto<UserDto>> getUser(String uid) async {
     try {
-      final doc = await _db.collection(FirebaseCollectionKeys.users).doc(uid).get();
+      final doc = await _db
+          .collection(FirebaseCollectionKeys.users)
+          .doc(uid)
+          .get();
       if (!doc.exists) return ResultDto.failure('User not found');
 
       return ResultDto.success(UserDto.fromMap(doc.data()!));
@@ -57,7 +80,7 @@ Future<ResultDto<void>> upsertUser(UserDto user) async {
     }
   }
 
-Stream<List<ContactDto>> watchContacts(String userId) {
+  Stream<List<ContactDto>> watchContacts(String userId) {
     return _db
         .collection(FirebaseCollectionKeys.contacts)
         .where('userId', isEqualTo: userId)
@@ -85,20 +108,25 @@ Stream<List<ContactDto>> watchContacts(String userId) {
 
   Future<ResultDto<void>> deleteContact(String contactId) async {
     try {
-      await _db.collection(FirebaseCollectionKeys.contacts).doc(contactId).delete();
+      await _db
+          .collection(FirebaseCollectionKeys.contacts)
+          .doc(contactId)
+          .delete();
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
   }
 
-Stream<List<SeizureLogDto>> watchSeizureLogs(String userId) {
+  Stream<List<SeizureLogDto>> watchSeizureLogs(String userId) {
     return _db
         .collection(FirebaseCollectionKeys.seizureLogs)
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((s) {
-          final list = s.docs.map((d) => SeizureLogDto.fromMap(d.data())).toList();
+          final list = s.docs
+              .map((d) => SeizureLogDto.fromMap(d.data()))
+              .toList();
           list.sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
           return list;
         });
@@ -106,7 +134,10 @@ Stream<List<SeizureLogDto>> watchSeizureLogs(String userId) {
 
   Future<ResultDto<void>> deleteSeizureLog(String logId) async {
     try {
-      await _db.collection(FirebaseCollectionKeys.seizureLogs).doc(logId).delete();
+      await _db
+          .collection(FirebaseCollectionKeys.seizureLogs)
+          .doc(logId)
+          .delete();
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
@@ -115,27 +146,38 @@ Stream<List<SeizureLogDto>> watchSeizureLogs(String userId) {
 
   Future<ResultDto<void>> addSeizureLog(SeizureLogDto log) async {
     try {
-      await _db.collection(FirebaseCollectionKeys.seizureLogs).doc(log.id).set(log.toMap());
+      await _db
+          .collection(FirebaseCollectionKeys.seizureLogs)
+          .doc(log.id)
+          .set(log.toMap());
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
   }
 
-Future<ResultDto<void>> createAlert(AlertDto alert) async {
+  Future<ResultDto<void>> createAlert(AlertDto alert) async {
     try {
-      await _db.collection(FirebaseCollectionKeys.alerts).doc(alert.id).set(alert.toMap());
+      await _db
+          .collection(FirebaseCollectionKeys.alerts)
+          .doc(alert.id)
+          .set(alert.toMap(), SetOptions(merge: true));
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
   }
 
-  Future<ResultDto<void>> updateAlertStatus(String alertId, AlertStatus status) async {
+  Future<ResultDto<void>> updateAlertStatus(
+    String alertId,
+    AlertStatus status,
+  ) async {
     try {
       await _db.collection(FirebaseCollectionKeys.alerts).doc(alertId).update({
         'status': status.name,
-        'resolvedAt': status == AlertStatus.resolved ? DateTime.now().toIso8601String() : null,
+        'resolvedAt': status == AlertStatus.resolved
+            ? DateTime.now().toIso8601String()
+            : null,
       });
       return ResultDto.success(null);
     } catch (e) {
@@ -153,9 +195,12 @@ Future<ResultDto<void>> createAlert(AlertDto alert) async {
         .map((s) => s.docs.map((d) => AlertDto.fromMap(d.data())).toList());
   }
 
-Future<ResultDto<void>> upsertHeadsUp(HeadsUpDto headsUp) async {
+  Future<ResultDto<void>> upsertHeadsUp(HeadsUpDto headsUp) async {
     try {
-      await _db.collection(FirebaseCollectionKeys.headsUp).doc(headsUp.id).set(headsUp.toMap());
+      await _db
+          .collection(FirebaseCollectionKeys.headsUp)
+          .doc(headsUp.id)
+          .set(headsUp.toMap());
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
@@ -178,6 +223,7 @@ Future<ResultDto<void>> upsertHeadsUp(HeadsUpDto headsUp) async {
       return ResultDto.failure(e.toString());
     }
   }
+
   /// The `alertOwnerId` filter is not redundant with `alertId`. Firestore
   /// evaluates security rules against the *query* on a list operation, not
   /// against the documents it returns, so it will reject any query it cannot
@@ -192,7 +238,22 @@ Future<ResultDto<void>> upsertHeadsUp(HeadsUpDto headsUp) async {
         .where('alertId', isEqualTo: alertId)
         .where('alertOwnerId', isEqualTo: uid)
         .snapshots()
-        .map((s) => s.docs.map((d) => AlertResponseDto.fromMap(d.data())).toList());
+        .map(
+          (s) => s.docs.map((d) => AlertResponseDto.fromMap(d.data())).toList(),
+        );
   }
 
+  Stream<List<AlertDeliveryDto>> watchAlertDeliveries(String alertId) {
+    final String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return _db
+        .collection('alert_deliveries')
+        .where('alertId', isEqualTo: alertId)
+        .where('alertOwnerId', isEqualTo: uid)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((document) => AlertDeliveryDto.fromMap(document.data()))
+              .toList(),
+        );
+  }
 }

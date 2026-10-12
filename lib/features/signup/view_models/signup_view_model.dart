@@ -28,7 +28,8 @@ class SignupViewModel extends GetxController {
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
 
   bool get showSetupProgress =>
-      Get.isRegistered<OnboardingViewModel>() && Get.find<OnboardingViewModel>().hasDraft;
+      Get.isRegistered<OnboardingViewModel>() &&
+      Get.find<OnboardingViewModel>().hasDraft;
 
   String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) return 'Email is required';
@@ -74,7 +75,9 @@ class SignupViewModel extends GetxController {
 
       screenState.value = GenericScreenStates.loaded;
       Get.offAllNamed(AppRoutes.root);
-      if (commit.invite != null) InvitePickerSheet.showAfterNavigation(commit.invite!);
+      if (commit.invite != null) {
+        InvitePickerSheet.showAfterNavigation(commit.invite!);
+      }
     } on FirebaseAuthException catch (e) {
       screenState.value = GenericScreenStates.error;
       errorMessage.value = _mapError(e.code);

@@ -67,7 +67,10 @@ void main() {
 
     test('adds an hours segment once there is one', () {
       expect(format(const Duration(hours: 1)), '1:00:00');
-      expect(format(const Duration(hours: 1, minutes: 5, seconds: 9)), '1:05:09');
+      expect(
+        format(const Duration(hours: 1, minutes: 5, seconds: 9)),
+        '1:05:09',
+      );
     });
 
     test('formats the three window lengths the user can pick', () {

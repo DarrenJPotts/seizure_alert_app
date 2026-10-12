@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,7 +16,7 @@ import 'core/themes/app_theme.dart';
 Future<void> _setUpFirebase() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-if (kIsWeb) return;
+  if (kIsWeb) return;
 
   try {
     await FirebaseAppCheck.instance.activate(
@@ -32,10 +35,29 @@ if (kIsWeb) return;
   }
 }
 
+Future<void> _setUpCrashReporting() async {
+  if (kIsWeb) return;
+
+  try {
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+      !kDebugMode,
+    );
+  } catch (error) {
+    // Crash reporting must never prevent the emergency interface from opening.
+    debugPrint('Firebase Crashlytics setup failed: $error');
+  }
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await _setUpFirebase();
+  await _setUpCrashReporting();
 
   await initDependencyInjection();
 

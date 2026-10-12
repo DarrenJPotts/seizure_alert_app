@@ -11,7 +11,9 @@ import '../support/pump.dart';
 /// one silently reshapes the other two.
 void main() {
   group('SettingsGroup', () {
-    testWidgets('draws a hairline between children but not above the first', (WidgetTester tester) async {
+    testWidgets('draws a hairline between children but not above the first', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         wrap(
           const SettingsGroup(
@@ -28,19 +30,29 @@ void main() {
     });
 
     testWidgets('a single child gets no dividers', (WidgetTester tester) async {
-      await tester.pumpWidget(wrap(const SettingsGroup(children: <Widget>[SettingsMessageRow('only')])));
+      await tester.pumpWidget(
+        wrap(
+          const SettingsGroup(children: <Widget>[SettingsMessageRow('only')]),
+        ),
+      );
 
       expect(find.byType(Divider), findsNothing);
     });
   });
 
   group('SettingsValueRow', () {
-    testWidgets('shows a chevron only when tappable', (WidgetTester tester) async {
+    testWidgets('shows a chevron only when tappable', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         wrap(
           const SettingsGroup(
             children: <Widget>[
-              SettingsValueRow(icon: Icons.phone_outlined, label: 'Phone', value: 'Not set'),
+              SettingsValueRow(
+                icon: Icons.phone_outlined,
+                label: 'Phone',
+                value: 'Not set',
+              ),
             ],
           ),
         ),
@@ -64,7 +76,9 @@ void main() {
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
-    testWidgets('grows past the base height for a multi-line value', (WidgetTester tester) async {
+    testWidgets('grows past the base height for a multi-line value', (
+      WidgetTester tester,
+    ) async {
       // The emergency note is the field a caregiver reads mid-emergency. The
       // old fixed-width label column truncated it; this row must let it wrap.
       await tester.pumpWidget(
@@ -76,7 +90,8 @@ void main() {
                 SettingsValueRow(
                   icon: Icons.note_outlined,
                   label: 'Emergency note',
-                  value: 'Do not restrain. Time the seizure. Over five minutes, give midazolam and call 10177.',
+                  value:
+                      'Do not restrain. Time the seizure. Over five minutes, give midazolam and call 10177.',
                 ),
               ],
             ),
@@ -84,13 +99,18 @@ void main() {
         ),
       );
 
-      expect(tester.getSize(find.byType(SettingsValueRow)).height, greaterThan(64));
+      expect(
+        tester.getSize(find.byType(SettingsValueRow)).height,
+        greaterThan(64),
+      );
       expect(tester.takeException(), isNull);
     });
   });
 
   group('SettingsTileRow', () {
-    testWidgets('collapses to one semantics node when given a label', (WidgetTester tester) async {
+    testWidgets('collapses to one semantics node when given a label', (
+      WidgetTester tester,
+    ) async {
       final SemanticsHandle handle = tester.ensureSemantics();
 
       await tester.pumpWidget(
@@ -105,11 +125,16 @@ void main() {
         ),
       );
 
-      expect(find.bySemanticsLabel('Today, 9:30 AM. ~2m 30s · Kitchen. Alert sent.'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Today, 9:30 AM. ~2m 30s · Kitchen. Alert sent.'),
+        findsOneWidget,
+      );
       handle.dispose();
     });
 
-    testWidgets('is not tappable without an onTap', (WidgetTester tester) async {
+    testWidgets('is not tappable without an onTap', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(wrap(const SettingsTileRow(title: 'Read only')));
 
       expect(find.byType(InkWell), findsNothing);
@@ -118,7 +143,9 @@ void main() {
   });
 
   group('SettingsSwitchRow', () {
-    testWidgets('reports its state to a screen reader as one toggle', (WidgetTester tester) async {
+    testWidgets('reports its state to a screen reader as one toggle', (
+      WidgetTester tester,
+    ) async {
       final SemanticsHandle handle = tester.ensureSemantics();
 
       await tester.pumpWidget(
@@ -134,13 +161,17 @@ void main() {
       );
 
       expect(
-        find.bySemanticsLabel("Caregiver mode. Watch someone else, don't send SOS"),
+        find.bySemanticsLabel(
+          "Caregiver mode. Watch someone else, don't send SOS",
+        ),
         findsOneWidget,
       );
       handle.dispose();
     });
 
-    testWidgets('tapping the row toggles, not just the pill', (WidgetTester tester) async {
+    testWidgets('tapping the row toggles, not just the pill', (
+      WidgetTester tester,
+    ) async {
       bool? received;
       await tester.pumpWidget(
         wrap(
@@ -159,23 +190,38 @@ void main() {
   });
 
   group('SettingsScreenHeader', () {
-    testWidgets('shows the back row only for a pushed route', (WidgetTester tester) async {
-      await tester.pumpWidget(wrap(const SettingsScreenHeader(title: 'Profile')));
+    testWidgets('shows the back row only for a pushed route', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(const SettingsScreenHeader(title: 'Profile')),
+      );
       expect(find.byIcon(Icons.arrow_back), findsNothing);
 
       await tester.pumpWidget(
-        wrap(SettingsScreenHeader(title: 'Mode', backLabel: 'Profile', onBack: () {})),
+        wrap(
+          SettingsScreenHeader(
+            title: 'Mode',
+            backLabel: 'Profile',
+            onBack: () {},
+          ),
+        ),
       );
       expect(find.byIcon(Icons.arrow_back), findsOneWidget);
       expect(find.text('Profile'), findsOneWidget);
     });
 
-    testWidgets('renders a trailing action beside the title', (WidgetTester tester) async {
+    testWidgets('renders a trailing action beside the title', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         wrap(
           SettingsScreenHeader(
             title: 'Seizure log',
-            trailing: TextButton(onPressed: () {}, child: const Text('Add entry')),
+            trailing: TextButton(
+              onPressed: () {},
+              child: const Text('Add entry'),
+            ),
           ),
         ),
       );
@@ -184,14 +230,19 @@ void main() {
       expect(find.text('Add entry'), findsOneWidget);
     });
 
-    testWidgets('does not overflow when a long title meets a trailing action', (WidgetTester tester) async {
+    testWidgets('does not overflow when a long title meets a trailing action', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         wrap(
           SizedBox(
             width: 320,
             child: SettingsScreenHeader(
               title: 'A considerably longer screen title',
-              trailing: TextButton(onPressed: () {}, child: const Text('Add entry')),
+              trailing: TextButton(
+                onPressed: () {},
+                child: const Text('Add entry'),
+              ),
             ),
           ),
         ),

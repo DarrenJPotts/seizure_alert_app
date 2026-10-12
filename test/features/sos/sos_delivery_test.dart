@@ -21,10 +21,18 @@ void main() {
 
     test('treats queued and failed as undelivered', () {
       vm.delivery.value = SosDelivery.queued;
-      expect(vm.isUndelivered, isTrue, reason: 'offline: nobody has been notified');
+      expect(
+        vm.isUndelivered,
+        isTrue,
+        reason: 'offline: nobody has been notified',
+      );
 
       vm.delivery.value = SosDelivery.failed;
-      expect(vm.isUndelivered, isTrue, reason: 'rejected: nobody has been notified');
+      expect(
+        vm.isUndelivered,
+        isTrue,
+        reason: 'rejected: nobody has been notified',
+      );
     });
 
     test('only a server acknowledgement counts as delivered', () {

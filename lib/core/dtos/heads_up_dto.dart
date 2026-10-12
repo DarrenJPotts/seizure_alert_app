@@ -17,7 +17,8 @@ class HeadsUpDto {
     required this.status,
   });
 
-  bool get isActive => status == HeadsUpStatus.active && DateTime.now().isBefore(expiresAt);
+  bool get isActive =>
+      status == HeadsUpStatus.active && DateTime.now().isBefore(expiresAt);
 
   Duration get remaining => expiresAt.difference(DateTime.now());
 
@@ -31,6 +32,7 @@ class HeadsUpDto {
       status: HeadsUpStatus.values.firstWhere((e) => e.name == map['status']),
     );
   }
+
   ///
   /// The server schedules escalation from this UTC value because the display
   /// string may not include enough timezone information to compare safely.

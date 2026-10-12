@@ -18,7 +18,11 @@ class ModeView extends GetView<ModeViewModel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SettingsScreenHeader(title: 'Mode', backLabel: 'Profile', onBack: Get.back),
+          SettingsScreenHeader(
+            title: 'Mode',
+            backLabel: 'Profile',
+            onBack: Get.back,
+          ),
           Expanded(
             child: ListView(
               padding: EdgeInsets.fromLTRB(
@@ -56,6 +60,7 @@ class _ThisDeviceSection extends GetView<ModeViewModel> {
               title: 'Caregiver mode',
               subtitle: "Watch someone else, don't send SOS",
               value: controller.caregiverMode.value,
+              loading: controller.changingCaregiverMode.value,
               onChanged: controller.setCaregiverMode,
             ),
           ),
@@ -70,6 +75,7 @@ class _ThisDeviceSection extends GetView<ModeViewModel> {
               icon: Icons.call_outlined,
               title: 'Auto-answer calls',
               value: controller.autoAnswerCalls.value,
+              loading: controller.changingAutoAnswer.value,
               onChanged: controller.setAutoAnswerCalls,
             ),
           ),

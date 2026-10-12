@@ -43,6 +43,66 @@
       ]
     },
     {
+      "collectionGroup": "alert_responses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "alertId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "responding",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "alert_deliveries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "alertId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "alertOwnerId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "wearable_device_credentials",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tokenHash",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "revoked",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "alerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "seizureLogs",
       "queryScope": "COLLECTION",
       "fields": [
@@ -92,6 +152,12 @@
   "fieldOverrides": [
     {
       "collectionGroup": "invites",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "wearable_pairings",
       "fieldPath": "expiresAt",
       "ttl": true,
       "indexes": []

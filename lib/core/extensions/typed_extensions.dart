@@ -5,9 +5,11 @@ extension NullableStringX on String? {
 
   bool get isNotNullOrEmpty => !isNullOrEmpty;
 
-  String? get capitalizeFirstLetter => isNotNullOrEmpty ? this!.capitalizeFirstLetter : null;
+  String? get capitalizeFirstLetter =>
+      isNotNullOrEmpty ? this!.capitalizeFirstLetter : null;
 
-  String? get lowerCaseFirstLetter => isNotNullOrEmpty ? this!.lowerCaseFirstLetter : null;
+  String? get lowerCaseFirstLetter =>
+      isNotNullOrEmpty ? this!.lowerCaseFirstLetter : null;
 
   bool get isSvg => isNotNullOrEmpty ? this!.endsWith('.svg') : false;
 
@@ -61,14 +63,18 @@ extension ColorExtension on Color {
   Color darken([double amount = 0.1]) {
     assert(amount >= 0 && amount <= 1, 'Amount should be between 0 and 1');
     final hsl = HSLColor.fromColor(this);
-    final darkenedHsl = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
+    final darkenedHsl = hsl.withLightness(
+      (hsl.lightness - amount).clamp(0.0, 1.0),
+    );
     return darkenedHsl.toColor();
   }
 
   Color lighten([double amount = 0.1]) {
     assert(amount >= 0 && amount <= 1, 'Amount should be between 0 and 1');
     final hsl = HSLColor.fromColor(this);
-    final lightenedHsl = hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0));
+    final lightenedHsl = hsl.withLightness(
+      (hsl.lightness + amount).clamp(0.0, 1.0),
+    );
     return lightenedHsl.toColor();
   }
 }

@@ -6,19 +6,19 @@ class LocationService {
       ? Get.find<LocationService>()
       : Get.put(LocationService());
 
-Future<bool> hasPermission() async {
+  Future<bool> hasPermission() async {
     final permission = await Geolocator.checkPermission();
     return permission == LocationPermission.whileInUse ||
         permission == LocationPermission.always;
   }
 
-Future<bool> requestPermission() async {
+  Future<bool> requestPermission() async {
     final permission = await Geolocator.requestPermission();
     return permission == LocationPermission.whileInUse ||
         permission == LocationPermission.always;
   }
 
-Future<Position?> getCurrentPosition() async {
+  Future<Position?> getCurrentPosition() async {
     LocationPermission permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {

@@ -10,14 +10,18 @@ import '../support/pump.dart';
 
 void main() {
   group('DaysFreeCard', () {
-    testWidgets('shows an empty state when nothing has been logged', (WidgetTester tester) async {
+    testWidgets('shows an empty state when nothing has been logged', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(wrap(const DaysFreeCard(days: null)));
 
       expect(find.text('—'), findsOneWidget);
       expect(find.text('No seizures logged yet'), findsOneWidget);
     });
 
-    testWidgets('says Today rather than showing a zero', (WidgetTester tester) async {
+    testWidgets('says Today rather than showing a zero', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(wrap(const DaysFreeCard(days: 0)));
 
       expect(find.text('Today'), findsOneWidget);
@@ -25,7 +29,9 @@ void main() {
       expect(find.text('Last seizure was today'), findsOneWidget);
     });
 
-    testWidgets('uses the singular for exactly one day', (WidgetTester tester) async {
+    testWidgets('uses the singular for exactly one day', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(wrap(const DaysFreeCard(days: 1)));
 
       expect(find.text('1'), findsOneWidget);
@@ -39,7 +45,9 @@ void main() {
       expect(find.text('days since last seizure'), findsOneWidget);
     });
 
-    testWidgets('renders a large day count without overflowing', (WidgetTester tester) async {
+    testWidgets('renders a large day count without overflowing', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(wrap(const DaysFreeCard(days: 3650)));
 
       expect(find.text('3650'), findsOneWidget);
@@ -49,29 +57,43 @@ void main() {
 
   group('StatChip', () {
     testWidgets('shows its value and label', (WidgetTester tester) async {
-      await tester.pumpWidget(wrap(const StatChip(label: 'Last 7 days', value: 3)));
+      await tester.pumpWidget(
+        wrap(const StatChip(label: 'Last 7 days', value: 3)),
+      );
 
       expect(find.text('3'), findsOneWidget);
       expect(find.text('Last 7 days'), findsOneWidget);
     });
 
-    testWidgets('renders a zero rather than hiding it', (WidgetTester tester) async {
-      await tester.pumpWidget(wrap(const StatChip(label: 'This month', value: 0)));
+    testWidgets('renders a zero rather than hiding it', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(const StatChip(label: 'This month', value: 0)),
+      );
 
       expect(find.text('0'), findsOneWidget);
     });
   });
 
   group('GreetingWidget', () {
-    testWidgets('shows the greeting alone when there is no name', (WidgetTester tester) async {
-      await tester.pumpWidget(wrap(const GreetingWidget(greeting: 'Good morning', name: '')));
+    testWidgets('shows the greeting alone when there is no name', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(const GreetingWidget(greeting: 'Good morning', name: '')),
+      );
 
       expect(find.text('Good morning'), findsOneWidget);
       expect(find.text('Good morning,'), findsNothing);
     });
 
-    testWidgets('appends a comma and the name when there is one', (WidgetTester tester) async {
-      await tester.pumpWidget(wrap(const GreetingWidget(greeting: 'Good morning', name: 'Darren')));
+    testWidgets('appends a comma and the name when there is one', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(const GreetingWidget(greeting: 'Good morning', name: 'Darren')),
+      );
 
       expect(find.text('Good morning,'), findsOneWidget);
       expect(find.text('Darren'), findsOneWidget);
@@ -83,12 +105,18 @@ void main() {
       final DateTime start = DateTime(2026, 1, 1);
       return List<GridCell>.generate(
         28,
-        (int i) =>
-            (date: start.add(Duration(days: i)), hasSeizure: seizureAt.contains(i), isFuture: false, isToday: i == 27),
+        (int i) => (
+          date: start.add(Duration(days: i)),
+          hasSeizure: seizureAt.contains(i),
+          isFuture: false,
+          isToday: i == 27,
+        ),
       );
     }
 
-    testWidgets('renders the seven weekday initials', (WidgetTester tester) async {
+    testWidgets('renders the seven weekday initials', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(wrap(ActivityGrid(cells: cells())));
 
       expect(find.text('M'), findsOneWidget);
@@ -99,21 +127,29 @@ void main() {
       expect(find.text('S'), findsNWidgets(2));
     });
 
-    testWidgets('renders a legend for both states', (WidgetTester tester) async {
+    testWidgets('renders a legend for both states', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(wrap(ActivityGrid(cells: cells())));
 
       expect(find.text('Seizure'), findsOneWidget);
       expect(find.text('Seizure-free'), findsOneWidget);
     });
 
-    testWidgets('lays out 28 cells regardless of content', (WidgetTester tester) async {
-      await tester.pumpWidget(wrap(ActivityGrid(cells: cells(seizureAt: <int>{3, 19}))));
+    testWidgets('lays out 28 cells regardless of content', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(ActivityGrid(cells: cells(seizureAt: <int>{3, 19}))),
+      );
 
       expect(find.byType(AspectRatio), findsNWidgets(28));
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('renders a fully blank month without error', (WidgetTester tester) async {
+    testWidgets('renders a fully blank month without error', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(wrap(ActivityGrid(cells: cells())));
 
       expect(tester.takeException(), isNull);

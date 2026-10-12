@@ -31,30 +31,36 @@ class BaseButtonStyle {
     required this.borderHoverWidth,
   });
 
-factory BaseButtonStyle.primaryButton({required BuildContext context}) => PrimaryButtonStyle(context: context);
+  factory BaseButtonStyle.primaryButton({required BuildContext context}) =>
+      PrimaryButtonStyle(context: context);
 
-  factory BaseButtonStyle.secondaryButton({required BuildContext context}) => SecondaryButtonStyle(context: context);
+  factory BaseButtonStyle.secondaryButton({required BuildContext context}) =>
+      SecondaryButtonStyle(context: context);
 
-  factory BaseButtonStyle.secondaryOutlineButtonStyle({required BuildContext context}) => SecondaryOutlineButtonStyle(context: context);
-  factory BaseButtonStyle.secondaryTextButtonStyle({required BuildContext context}) => SecondaryTextButtonStyle(context: context);
+  factory BaseButtonStyle.secondaryOutlineButtonStyle({
+    required BuildContext context,
+  }) => SecondaryOutlineButtonStyle(context: context);
+  factory BaseButtonStyle.secondaryTextButtonStyle({
+    required BuildContext context,
+  }) => SecondaryTextButtonStyle(context: context);
 
-final Color buttonColor;
+  final Color buttonColor;
   final Color textColor;
   final Color borderColor;
   final Color loaderColor;
   final Color loaderBackgroundColor;
   final Color hoverColor;
 
-final Color disabledBorderColor;
+  final Color disabledBorderColor;
   final Color disabledColor;
   final Color disabledLoaderColor;
   final Color disabledLoaderBackgroundColor;
   final Color disabledHoverColor;
 
-final TextStyle textStyle;
+  final TextStyle textStyle;
   final TextStyle disabledTextStyle;
 
-final BorderRadius borderRadius;
+  final BorderRadius borderRadius;
   final EdgeInsetsGeometry padding;
   final double borderWidth;
   final double borderHoverWidth;
@@ -64,7 +70,7 @@ final BorderRadius borderRadius;
   final int maxLines;
   final TextOverflow textOverflow;
 
-BaseButtonStyle copyWith({
+  BaseButtonStyle copyWith({
     Color? buttonColor,
     Color? textColor,
     Color? borderColor,
@@ -107,7 +113,8 @@ BaseButtonStyle copyWith({
     maxLines: maxLines ?? this.maxLines,
     textOverflow: textOverflow ?? this.textOverflow,
     disabledLoaderColor: disabledLoaderColor ?? this.disabledLoaderColor,
-    disabledLoaderBackgroundColor: disabledLoaderBackgroundColor ?? this.disabledLoaderBackgroundColor,
+    disabledLoaderBackgroundColor:
+        disabledLoaderBackgroundColor ?? this.disabledLoaderBackgroundColor,
     disabledBorderColor: disabledBorderColor ?? this.disabledBorderColor,
     hoverColor: hoverColor ?? this.hoverColor,
     disabledHoverColor: disabledHoverColor ?? this.disabledHoverColor,

@@ -1,5 +1,5 @@
 name: seizure_app
-description: "A new Flutter project."
+description: "User-triggered seizure safety alerts and caregiver coordination."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -31,6 +31,11 @@ dependencies:
   phone_numbers_parser: 9.0.28
   flutter_native_splash: ^2.4.8
   home_widget: ^0.10.0
+  firebase_crashlytics: ^5.4.0
+  package_info_plus: ^10.2.2
+  share_plus: ^13.3.1
+  pdf: ^3.12.0
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:

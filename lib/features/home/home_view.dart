@@ -22,12 +22,18 @@ class HomeView extends GetView<HomeViewModel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Dimensions.twentyFour,
         children: [
-          Obx(() => GreetingWidget(greeting: controller.greeting, name: controller.firstName)),
+          Obx(
+            () => GreetingWidget(
+              greeting: controller.greeting,
+              name: controller.firstName,
+            ),
+          ),
           SetupCheckCard(onTap: onOpenContacts),
           Obx(() {
             final _ = controller.seizureLogs.length;
             final state = controller.screenState.value;
-            final loading = state == GenericScreenStates.loading ||
+            final loading =
+                state == GenericScreenStates.loading ||
                 state == GenericScreenStates.initial;
 
             if (loading) {

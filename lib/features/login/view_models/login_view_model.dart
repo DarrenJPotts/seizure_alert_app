@@ -18,9 +18,9 @@ class LoginBinding extends Bindings {
 class LoginViewModel extends GetxController {
   LoginViewModel(this._firebaseAuthController);
 
-final FirebaseAuthController _firebaseAuthController;
+  final FirebaseAuthController _firebaseAuthController;
 
-final TextEditingController emailController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   final Rxn<String> errorMessage = Rxn<String>();
@@ -30,7 +30,10 @@ final TextEditingController emailController = TextEditingController();
     screenState.value = GenericScreenStates.loading;
     errorMessage.value = null;
     try {
-      final ResultDto<User> result = await _firebaseAuthController.signIn(emailController.text, passwordController.text);
+      final ResultDto<User> result = await _firebaseAuthController.signIn(
+        emailController.text,
+        passwordController.text,
+      );
 
       if (result.isSuccess) {
         // Signing in successfully means the account already exists, so this
@@ -46,11 +49,13 @@ final TextEditingController emailController = TextEditingController();
         Get.offAllNamed(redirectRoute ?? AppRoutes.root);
       } else {
         screenState.value = GenericScreenStates.error;
-        errorMessage.value = result.error ?? 'Invalid username or password. Please try again.';
+        errorMessage.value =
+            result.error ?? 'Invalid username or password. Please try again.';
       }
     } catch (_) {
       screenState.value = GenericScreenStates.error;
-      errorMessage.value = 'Unable to sign in. Check your connection and try again.';
+      errorMessage.value =
+          'Unable to sign in. Check your connection and try again.';
     }
   }
 

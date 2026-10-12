@@ -24,7 +24,12 @@ void main() {
   /// dependent.
   SeizureLogDto logDaysAgo(int days, {String id = 'log'}) {
     final DateTime now = DateTime.now();
-    final DateTime day = DateTime(now.year, now.month, now.day, 12).subtract(Duration(days: days));
+    final DateTime day = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      12,
+    ).subtract(Duration(days: days));
     return Fixtures.seizureLog(id: '$id-$days', occurredAt: day);
   }
 
@@ -84,7 +89,10 @@ void main() {
       final DateTime today = DateTime(now.year, now.month, now.day, 9);
       vm.seizureLogs.value = <SeizureLogDto>[
         Fixtures.seizureLog(id: 'a', occurredAt: today),
-        Fixtures.seizureLog(id: 'b', occurredAt: today.add(const Duration(hours: 2))),
+        Fixtures.seizureLog(
+          id: 'b',
+          occurredAt: today.add(const Duration(hours: 2)),
+        ),
       ];
 
       expect(vm.last7DaysCount, 2);
@@ -96,18 +104,30 @@ void main() {
       expect(vm.thisMonthCount, 0);
     });
 
-    test('counts from the first of the current month, not a rolling window', () {
-      final DateTime now = DateTime.now();
-      final DateTime firstOfMonth = DateTime(now.year, now.month, 1, 12);
-      final DateTime lastMonth = DateTime(now.year, now.month, 1, 12).subtract(const Duration(days: 1));
+    test(
+      'counts from the first of the current month, not a rolling window',
+      () {
+        final DateTime now = DateTime.now();
+        final DateTime firstOfMonth = DateTime(now.year, now.month, 1, 12);
+        final DateTime lastMonth = DateTime(
+          now.year,
+          now.month,
+          1,
+          12,
+        ).subtract(const Duration(days: 1));
 
-      vm.seizureLogs.value = <SeizureLogDto>[
-        Fixtures.seizureLog(id: 'this', occurredAt: firstOfMonth),
-        Fixtures.seizureLog(id: 'prev', occurredAt: lastMonth),
-      ];
+        vm.seizureLogs.value = <SeizureLogDto>[
+          Fixtures.seizureLog(id: 'this', occurredAt: firstOfMonth),
+          Fixtures.seizureLog(id: 'prev', occurredAt: lastMonth),
+        ];
 
-      expect(vm.thisMonthCount, 1, reason: 'the last day of the previous month is excluded');
-    });
+        expect(
+          vm.thisMonthCount,
+          1,
+          reason: 'the last day of the previous month is excluded',
+        );
+      },
+    );
   });
 
   group('gridData', () {
@@ -132,7 +152,11 @@ void main() {
       final List<GridCell> cells = vm.gridData;
       final GridCell target = cells.firstWhere((GridCell c) {
         final DateTime now = DateTime.now();
-        final DateTime fiveDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 5));
+        final DateTime fiveDaysAgo = DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(const Duration(days: 5));
         return c.date == fiveDaysAgo;
       });
 
@@ -146,10 +170,16 @@ void main() {
 
     test('never marks a future cell as having a seizure', () {
       vm.seizureLogs.value = <SeizureLogDto>[
-        Fixtures.seizureLog(id: 'future', occurredAt: DateTime.now().add(const Duration(days: 3))),
+        Fixtures.seizureLog(
+          id: 'future',
+          occurredAt: DateTime.now().add(const Duration(days: 3)),
+        ),
       ];
 
-      expect(vm.gridData.where((GridCell c) => c.isFuture && c.hasSeizure), isEmpty);
+      expect(
+        vm.gridData.where((GridCell c) => c.isFuture && c.hasSeizure),
+        isEmpty,
+      );
     });
 
     test('ignores a seizure older than the 28-day window', () {
@@ -161,7 +191,10 @@ void main() {
 
   group('greeting', () {
     test('is one of the three time-of-day greetings', () {
-      expect(vm.greeting, anyOf('Good morning', 'Good afternoon', 'Good evening'));
+      expect(
+        vm.greeting,
+        anyOf('Good morning', 'Good afternoon', 'Good evening'),
+      );
     });
   });
 

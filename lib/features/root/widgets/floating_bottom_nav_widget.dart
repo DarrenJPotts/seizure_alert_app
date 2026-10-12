@@ -5,23 +5,37 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/features/root/root_view.dart';
 
 class FloatingBottomNavWidget extends StatelessWidget {
-  const FloatingBottomNavWidget({super.key, required this.controller, this.caregiver = false});
+  const FloatingBottomNavWidget({
+    super.key,
+    required this.controller,
+    this.caregiver = false,
+  });
 
   final RootViewModel controller;
 
   final bool caregiver;
 
   @override
-  Widget build(BuildContext context) => caregiver ? _buildCaregiverNav() : _buildPatientNav();
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    minimum: EdgeInsets.only(bottom: Dimensions.twenty),
+    child: caregiver ? _buildCaregiverNav() : _buildPatientNav(),
+  );
 
   Widget _buildCaregiverNav() => Container(
-    margin: EdgeInsets.only(left: Dimensions.twentyFour, right: Dimensions.twentyFour, bottom: Dimensions.twenty),
+    margin: EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
     height: 70,
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(35),
       border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: Offset(0, 6))],
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: Offset(0, 6),
+        ),
+      ],
     ),
     child: Obx(
       () => Row(
@@ -42,17 +56,10 @@ class FloatingBottomNavWidget extends StatelessWidget {
             semanticLabel: 'Alerts',
           ),
           _FloatingNavItem(
-            icon: Icons.book_outlined,
-            activeIcon: Icons.book_rounded,
-            isActive: controller.currentIndex.value == 2,
-            onTap: () => controller.changePage(2),
-            semanticLabel: 'Seizure log',
-          ),
-          _FloatingNavItem(
             icon: Icons.person_outline,
             activeIcon: Icons.person,
-            isActive: controller.currentIndex.value == 3,
-            onTap: () => controller.changePage(3),
+            isActive: controller.currentIndex.value == 2,
+            onTap: () => controller.changePage(2),
             semanticLabel: 'Profile',
           ),
         ],
@@ -61,18 +68,23 @@ class FloatingBottomNavWidget extends StatelessWidget {
   );
 
   Widget _buildPatientNav() => Container(
-    margin: EdgeInsets.only(left: Dimensions.twentyFour, right: Dimensions.twentyFour, bottom: Dimensions.twenty),
+    margin: EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
     child: Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
       children: [
-
         Container(
           height: 70,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(35),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: Offset(0, 6))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
           ),
           child: Obx(
             () => Row(
@@ -112,7 +124,7 @@ class FloatingBottomNavWidget extends StatelessWidget {
           ),
         ),
 
-Positioned(
+        Positioned(
           top: -25,
           child: Semantics(
             button: true,
@@ -126,7 +138,11 @@ Positioned(
                   shape: BoxShape.circle,
                   color: Colors.black,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: Offset(0, 4)),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: Icon(Icons.emergency, color: Colors.white, size: 32),
@@ -135,7 +151,7 @@ Positioned(
           ),
         ),
 
-Obx(() {
+        Obx(() {
           double? dotPosition;
           if (controller.currentIndex.value == 2) {
             dotPosition = null;
@@ -147,7 +163,10 @@ Obx(() {
               child: Container(
                 width: 6,
                 height: 6,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black,
+                ),
               ),
             );
           }
@@ -191,13 +210,20 @@ class _FloatingNavItem extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(isActive ? activeIcon : icon, color: isActive ? Colors.black : Colors.black38, size: 26),
+              Icon(
+                isActive ? activeIcon : icon,
+                color: isActive ? Colors.black : Colors.black38,
+                size: 26,
+              ),
               SizedBox(height: Dimensions.four),
               AnimatedContainer(
                 duration: Duration(milliseconds: 200),
                 width: isActive ? 6 : 0,
                 height: 6,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black,
+                ),
               ),
             ],
           ),

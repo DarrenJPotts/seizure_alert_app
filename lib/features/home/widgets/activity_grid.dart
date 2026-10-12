@@ -16,17 +16,19 @@ class ActivityGrid extends StatelessWidget {
         SizedBox(height: Dimensions.twelve),
         Row(
           children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-              .map((d) => Expanded(
-                    child: Center(
-                      child: Text(
-                        d,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Colors.black38,
-                              fontWeight: FontWeight.w500,
-                            ),
+              .map(
+                (d) => Expanded(
+                  child: Center(
+                    child: Text(
+                      d,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.black38,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ))
+                  ),
+                ),
+              )
               .toList(),
         ),
         SizedBox(height: Dimensions.eight),
@@ -54,19 +56,17 @@ class ActivityGrid extends StatelessWidget {
             _LegendDot(color: Colors.black),
             Text(
               'Seizure',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(color: Colors.black54),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: Colors.black54),
             ),
             SizedBox(width: Dimensions.four),
             _LegendDot(color: Colors.black.withValues(alpha: 0.08)),
             Text(
               'Seizure-free',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(color: Colors.black54),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: Colors.black54),
             ),
           ],
         ),
@@ -83,7 +83,9 @@ class _GridCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (cell.isFuture) {
-      return Container(decoration: BoxDecoration(borderRadius: BorderRadius.circular(6)));
+      return Container(
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(6)),
+      );
     }
 
     final color = cell.hasSeizure
@@ -109,12 +111,12 @@ class _LegendDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: Colors.black12),
-        ),
-      );
+    width: 12,
+    height: 12,
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(3),
+      border: Border.all(color: Colors.black12),
+    ),
+  );
 }

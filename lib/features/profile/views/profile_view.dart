@@ -189,6 +189,17 @@ class _ContactSection extends GetView<ProfileViewModel> {
           onChangeEmail: controller.changeEmail,
         ),
       ),
+      SettingsValueRow(
+        icon: controller.emailVerified
+            ? Icons.verified_outlined
+            : Icons.mark_email_unread_outlined,
+        label: 'Email verification',
+        value: controller.emailVerified ? 'Verified' : 'Verify',
+        loading: controller.isSendingEmailVerification.value,
+        onTap: controller.emailVerified
+            ? null
+            : controller.sendEmailVerification,
+      ),
     ],
   );
 }
@@ -226,6 +237,14 @@ class _MedicalSection extends StatelessWidget {
             icon: Icons.note_outlined,
             label: 'Emergency note',
             value: user.emergencyNote ?? 'Not set',
+          ),
+          SettingsNavRow(
+            icon: Icons.health_and_safety_outlined,
+            title: 'Safety plan & medication',
+            trailingText: user.medicationReminders.isEmpty
+                ? 'Set up'
+                : '${user.medicationReminders.length} reminders',
+            onTap: () => Get.toNamed(AppRoutes.safetyPlan),
           ),
         ],
       ),
@@ -271,6 +290,7 @@ class _SettingsSection extends GetView<ProfileViewModel> {
           valueColor: controller.notificationsEnabled.value
               ? null
               : Colors.black54,
+          loading: controller.isRequestingNotifications.value,
           onTap: controller.requestNotifications,
         ),
         SettingsValueRow(
@@ -280,13 +300,20 @@ class _SettingsSection extends GetView<ProfileViewModel> {
           label: 'Location',
           value: controller.locationLabel,
           valueColor: controller.locationEnabled.value ? null : Colors.black54,
+          loading: controller.isRequestingLocation.value,
           onTap: controller.requestLocation,
         ),
         SettingsNavRow(
           icon: Icons.widgets_outlined,
           title: 'Home screen widget',
-          trailingText: controller.isAddingHomeWidget.value ? 'Adding…' : 'Add',
+          trailingText: controller.homeWidgetActionLabel,
+          loading: controller.isAddingHomeWidget.value,
           onTap: controller.addHomeWidget,
+        ),
+        SettingsNavRow(
+          icon: Icons.health_and_safety_outlined,
+          title: 'Safety readiness',
+          onTap: () => Get.toNamed(AppRoutes.safetyReadiness),
         ),
         SettingsNavRow(
           icon: Icons.key_outlined,
@@ -300,6 +327,11 @@ class _SettingsSection extends GetView<ProfileViewModel> {
           title: 'Privacy',
           trailingText: _consentLabel(controller.user.value),
           onTap: () => PrivacyNoticeSheet.show(context),
+        ),
+        SettingsNavRow(
+          icon: Icons.help_outline,
+          title: 'Help & diagnostics',
+          onTap: () => Get.toNamed(AppRoutes.support),
         ),
       ],
     ),

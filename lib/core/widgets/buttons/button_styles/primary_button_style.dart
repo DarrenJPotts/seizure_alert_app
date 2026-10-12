@@ -10,7 +10,7 @@ final class PrimaryButtonStyle extends BaseButtonStyle {
         buttonColor: context.theme.primaryColor,
         textColor: Colors.white,
         borderRadius: BorderRadius.circular(Dimensions.eight),
-        borderColor:context.theme.primaryColor,
+        borderColor: context.theme.primaryColor,
         padding: EdgeInsets.zero,
         textAlign: TextAlign.center,
         maxLines: 3,

@@ -19,7 +19,8 @@ class ModeViewModel extends GetxController {
 
   final RxList<WatchedPersonDto> watching = <WatchedPersonDto>[].obs;
   final RxBool loadingWatching = true.obs;
-
+  final RxBool changingCaregiverMode = false.obs;
+  final RxBool changingAutoAnswer = false.obs;
 
   @override
   void onInit() {
@@ -30,23 +31,40 @@ class ModeViewModel extends GetxController {
   Future<void> _loadWatching() async {
     loadingWatching.value = true;
     final result = await _caregiverService.getPeopleIWatch();
-    if (result.isSuccess && result.data != null) watching.value = result.data!.people;
+    if (result.isSuccess && result.data != null) {
+      watching.value = result.data!.people;
+    }
     loadingWatching.value = false;
   }
 
   Future<void> setCaregiverMode(bool value) async {
+    if (changingCaregiverMode.value) return;
+
     HapticFeedback.selectionClick();
-    _caregiverService.invalidateWatchList();
-    await _appMode.setCaregiverMode(value);
-    unawaited(_loadWatching());
+    changingCaregiverMode.value = true;
+    try {
+      _caregiverService.invalidateWatchList();
+      await _appMode.setCaregiverMode(value);
+      unawaited(_loadWatching());
+    } finally {
+      changingCaregiverMode.value = false;
+    }
   }
 
   Future<void> setAutoAnswerCalls(bool value) async {
+    if (changingAutoAnswer.value) return;
+
     HapticFeedback.selectionClick();
-    await _appMode.setAutoAnswerCalls(value);
+    changingAutoAnswer.value = true;
+    try {
+      await _appMode.setAutoAnswerCalls(value);
+    } finally {
+      changingAutoAnswer.value = false;
+    }
   }
 
-  Future<void> openAlertOverride() => AppSettings.openAppSettings(type: AppSettingsType.notification);
+  Future<void> openAlertOverride() =>
+      AppSettings.openAppSettings(type: AppSettingsType.notification);
 
   void openInvite() => Get.toNamed(AppRoutes.circleInvite);
 }
@@ -55,7 +73,8 @@ class ModeBinding extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut(
-      () => ModeViewModel(AppModeService.instance(), CaregiverService.instance()),
+      () =>
+          ModeViewModel(AppModeService.instance(), CaregiverService.instance()),
     );
   }
 }

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/controllers/firebase_auth_controller/firebase_auth_controller.dart';
+import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/services/app_mode_service.dart';
+import 'package:seizure_app/core/services/alert_drill_service.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
@@ -22,6 +24,7 @@ import 'package:seizure_app/features/onboarding/view_models/onboarding_view_mode
 import 'package:seizure_app/features/profile/view_models/profile_view_model.dart';
 import 'package:seizure_app/features/profile/views/profile_view.dart';
 import 'package:seizure_app/features/root/widgets/floating_bottom_nav_widget.dart';
+import 'package:seizure_app/features/root/widgets/mode_badge.dart';
 import 'package:seizure_app/features/seizure_log/seizure_log_view.dart';
 import 'package:seizure_app/features/seizure_log/view_models/seizure_log_view_model.dart';
 import 'package:seizure_app/features/sos/sos_view.dart';
@@ -44,6 +47,7 @@ class RootBinding extends Bindings {
       () => ContactsViewModel(
         FirestoreService.instance(),
         CircleInviteService.instance(),
+        AlertDrillService.instance(),
       ),
       fenix: true,
     );
@@ -74,6 +78,8 @@ class RootViewModel extends GetxController {
   final currentIndex = 2.obs;
   final RxBool ready = false.obs;
   final RxBool widgetSosRequested = false.obs;
+  final RxBool switchingMode = false.obs;
+  bool _widgetSosDialogOpen = false;
   Worker? _widgetActionWorker;
 
   @override
@@ -130,10 +136,41 @@ class RootViewModel extends GetxController {
     currentIndex.value = index;
   }
 
+  Future<void> toggleMode() async {
+    if (switchingMode.value) return;
+
+    switchingMode.value = true;
+    final bool enableCaregiverMode = !caregiverMode.value;
+    CaregiverService.instance().invalidateWatchList();
+
+    try {
+      await _appMode.setCaregiverMode(enableCaregiverMode);
+      if (enableCaregiverMode && Get.isRegistered<CaregiverViewModel>()) {
+        final CaregiverViewModel caregiverController =
+            Get.find<CaregiverViewModel>();
+        if (caregiverController.screenState.value !=
+            GenericScreenStates.loading) {
+          await caregiverController.loadPeopleIWatch(forceRefresh: true);
+        }
+      }
+    } finally {
+      switchingMode.value = false;
+    }
+  }
+
   bool consumeWidgetSosRequest() {
     if (!widgetSosRequested.value) return false;
     widgetSosRequested.value = false;
     return true;
+  }
+
+  void completeWidgetSosRequest() {
+    _widgetSosDialogOpen = false;
+  }
+
+  void discardWidgetSosRequest() {
+    widgetSosRequested.value = false;
+    _widgetSosDialogOpen = false;
   }
 
   void _handleWidgetAction() {
@@ -153,6 +190,8 @@ class RootViewModel extends GetxController {
     switch (action) {
       case HomeWidgetAction.sos:
         currentIndex.value = 2;
+        if (_widgetSosDialogOpen || widgetSosRequested.value) return;
+        _widgetSosDialogOpen = true;
         widgetSosRequested.value = true;
         return;
       case HomeWidgetAction.alert:
@@ -197,9 +236,12 @@ class RootView extends GetView<RootViewModel> {
               () => IndexedStack(
                 index: controller.currentIndex.value,
                 children: [
-                  CaregiverView(onOpenProfile: () => controller.changePage(3)),
+                  CaregiverView(
+                    onOpenProfile: () => controller.changePage(2),
+                    onToggleMode: controller.toggleMode,
+                    switchingMode: controller.switchingMode.value,
+                  ),
                   const AlertHistoryView(),
-                  const SeizureLogView(),
                   const ProfileView(),
                 ],
               ),
@@ -219,6 +261,11 @@ class RootView extends GetView<RootViewModel> {
       elevation: 0,
       foregroundColor: Colors.black,
       centerTitle: false,
+      title: ModeBadge(
+        caregiver: false,
+        loading: controller.switchingMode.value,
+        onTap: controller.toggleMode,
+      ),
       actionsPadding: EdgeInsets.only(right: Dimensions.twelve),
       actions: [
         IconButton(

@@ -17,7 +17,12 @@ class OnboardingProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(Dimensions.twentyFour, Dimensions.sixteen, Dimensions.twentyFour, 0),
+    padding: EdgeInsets.fromLTRB(
+      Dimensions.twentyFour,
+      Dimensions.sixteen,
+      Dimensions.twentyFour,
+      0,
+    ),
     child: Semantics(
       label: 'Setup progress',
       value: '$label. Step ${completed + 1} of $total.',
@@ -32,13 +37,17 @@ class OnboardingProgress extends StatelessWidget {
                   child: Text(
                     label,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 SizedBox(width: Dimensions.twelve),
                 Text(
                   '$completed of $total done',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.black45),
                 ),
               ],
             ),

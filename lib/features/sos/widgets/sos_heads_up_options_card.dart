@@ -19,16 +19,25 @@ class SosHeadsUpOptionsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.warning_amber_outlined, size: 20, color: Colors.black54),
+              const Icon(
+                Icons.warning_amber_outlined,
+                size: 20,
+                color: Colors.black54,
+              ),
               SizedBox(width: Dimensions.twelve),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Heads Up', style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      'Heads Up',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                     Text(
                       'Feeling off but not in danger yet',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black45),
                     ),
                   ],
                 ),
@@ -39,8 +48,11 @@ class SosHeadsUpOptionsCard extends StatelessWidget {
           Row(
             spacing: Dimensions.eight,
             children: HeadsUpViewModel.windowOptions.map((int minutes) {
-              final String label =
-                  minutes == 60 ? '1 hr' : minutes == 120 ? '2 hrs' : '30 min';
+              final String label = minutes == 60
+                  ? '1 hr'
+                  : minutes == 120
+                  ? '2 hrs'
+                  : '30 min';
               return Expanded(
                 child: _DurationOption(
                   label: label,
@@ -77,7 +89,9 @@ class _DurationOption extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
         ),
       ),
     );

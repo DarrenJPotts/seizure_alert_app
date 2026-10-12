@@ -46,7 +46,8 @@ class OnboardingViewModel extends GetxController {
 
   final RxInt step = 0.obs;
   final RxBool hasEmergencyContactDetails = false.obs;
-  final RxBool inviteEmergencyContact = false.obs;
+  final RxBool hasCompleteEmergencyContactDetails = false.obs;
+  final RxBool inviteEmergencyContact = true.obs;
   final RxnString phoneNumberError = RxnString();
   final RxnString contactNameError = RxnString();
   final RxnString contactPhoneError = RxnString();
@@ -142,9 +143,9 @@ class OnboardingViewModel extends GetxController {
     hasEmergencyContactDetails.value =
         contactNameController.text.trim().isNotEmpty ||
         contactPhoneController.text.trim().isNotEmpty;
-    if (!hasEmergencyContactDetails.value) {
-      inviteEmergencyContact.value = false;
-    }
+    hasCompleteEmergencyContactDetails.value =
+        contactNameController.text.trim().isNotEmpty &&
+        contactPhoneController.text.trim().isNotEmpty;
   }
 
   String get finishLabel => mode.value == OnboardingMode.completeProfile

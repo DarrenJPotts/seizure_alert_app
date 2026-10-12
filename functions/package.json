@@ -6,14 +6,23 @@
     "node": "22"
   },
   "dependencies": {
-    "firebase-admin": "^13.0.0",
-    "firebase-functions": "^6.0.0"
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0"
   },
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "node --test"
+    "test": "node --test",
+    "test:rules": "node --test test/firestore.rules.test.js"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2"
+  },
+  "overrides": {
+    "jwks-rsa": {
+      "jose": "4.15.9"
+    }
+  }
 }

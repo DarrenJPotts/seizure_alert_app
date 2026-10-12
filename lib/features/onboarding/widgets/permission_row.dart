@@ -17,7 +17,7 @@ class PermissionRow extends StatelessWidget {
   final String description;
   final bool granted;
 
-final bool blocked;
+  final bool blocked;
 
   final VoidCallback? onTap;
 
@@ -46,14 +46,12 @@ final bool blocked;
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: 2,
               children: [
-                Text(label,
-                    style: Theme.of(context).textTheme.bodyMedium),
+                Text(label, style: Theme.of(context).textTheme.bodyMedium),
                 Text(
                   description,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.black54),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                 ),
               ],
             ),
@@ -67,9 +65,13 @@ final bool blocked;
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.black,
                 side: const BorderSide(color: Colors.black26),
-                padding: const EdgeInsets.symmetric(horizontal: Dimensions.twelve, vertical: Dimensions.eight),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Dimensions.twelve,
+                  vertical: Dimensions.eight,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 minimumSize: const Size(48, 48),
                 tapTargetSize: MaterialTapTargetSize.padded,
               ),

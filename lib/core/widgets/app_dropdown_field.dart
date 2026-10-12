@@ -15,29 +15,30 @@ class AppDropdownField<T> extends StatefulWidget {
     this.enabled = true,
     this.loading = false,
   }) : assert(
-         (T == String || T == num) || (displayText != null && valueAccessor != null),
+         (T == String || T == num) ||
+             (displayText != null && valueAccessor != null),
          "If T is not String or num, both displayText and valueAccessor must be provided",
        );
 
-final List<T> items;
+  final List<T> items;
 
-final void Function(T? value) onChangeCallback;
+  final void Function(T? value) onChangeCallback;
 
-final T? value;
+  final T? value;
 
-final dynamic Function(T value)? valueAccessor;
+  final dynamic Function(T value)? valueAccessor;
 
-final String Function(T value)? displayText;
+  final String Function(T value)? displayText;
 
-final String? label;
+  final String? label;
 
-final String? hintText;
+  final String? hintText;
 
-final String? Function(T? value)? validatorCallback;
+  final String? Function(T? value)? validatorCallback;
 
-final bool enabled;
+  final bool enabled;
 
-final bool loading;
+  final bool loading;
 
   @override
   State<AppDropdownField<T>> createState() => _AppDropdownFieldState<T>();
@@ -93,7 +94,9 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
         value: value,
         child: Text(
           _getDisplayText(value),
-          style: context.textTheme.bodyMedium!.copyWith(color: widget.enabled ? Colors.black : Colors.black26),
+          style: context.textTheme.bodyMedium!.copyWith(
+            color: widget.enabled ? Colors.black : Colors.black26,
+          ),
         ),
       );
     }).toList();

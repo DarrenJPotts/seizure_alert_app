@@ -30,27 +30,40 @@ class GenericErrorDialog extends StatelessWidget {
     return showDialog(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: (context) => GenericErrorDialog(title: title, message: message ?? "Something went wrong"),
+      builder: (context) => GenericErrorDialog(
+        title: title,
+        message: message ?? "Something went wrong",
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.sixteen)),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Dimensions.sixteen),
+    ),
     title: Row(
       children: [
         Expanded(
           child: Center(
-            child: Text(title, style: context.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            child: Text(
+              title,
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
       ],
     ),
-    content: Text(message, style: context.textTheme.bodyMedium, textAlign: .center),
+    content: Text(
+      message,
+      style: context.textTheme.bodyMedium,
+      textAlign: .center,
+    ),
     actions: [
       AppButton(
         onTap: () {
-
           primaryCallback?.call();
         },
         buttonStyle: BaseButtonStyle.primaryButton(context: context),

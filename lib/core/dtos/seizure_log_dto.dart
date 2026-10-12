@@ -8,6 +8,13 @@ class SeizureLogDto {
   final double? longitude;
   final String? notes;
   final String? trigger;
+  final String? seizureType;
+  final String? aura;
+  final String? severity;
+  final String? awareness;
+  final String? injuries;
+  final int? recoveryMinutes;
+  final bool rescueMedicationUsed;
   final bool alertFired;
   final String? alertId;
 
@@ -21,6 +28,13 @@ class SeizureLogDto {
     this.longitude,
     this.notes,
     this.trigger,
+    this.seizureType,
+    this.aura,
+    this.severity,
+    this.awareness,
+    this.injuries,
+    this.recoveryMinutes,
+    this.rescueMedicationUsed = false,
     this.alertFired = false,
     this.alertId,
   });
@@ -35,6 +49,13 @@ class SeizureLogDto {
     longitude: (map['longitude'] as num?)?.toDouble(),
     notes: map['notes'] as String?,
     trigger: map['trigger'] as String?,
+    seizureType: map['seizureType'] as String?,
+    aura: map['aura'] as String?,
+    severity: map['severity'] as String?,
+    awareness: map['awareness'] as String?,
+    injuries: map['injuries'] as String?,
+    recoveryMinutes: map['recoveryMinutes'] as int?,
+    rescueMedicationUsed: map['rescueMedicationUsed'] as bool? ?? false,
     alertFired: map['alertFired'] as bool? ?? false,
     alertId: map['alertId'] as String?,
   );
@@ -49,6 +70,13 @@ class SeizureLogDto {
     'longitude': longitude,
     'notes': notes,
     'trigger': trigger,
+    'seizureType': seizureType,
+    'aura': aura,
+    'severity': severity,
+    'awareness': awareness,
+    'injuries': injuries,
+    'recoveryMinutes': recoveryMinutes,
+    'rescueMedicationUsed': rescueMedicationUsed,
     'alertFired': alertFired,
     'alertId': alertId,
   };

@@ -18,7 +18,9 @@ class CircleInviteViewModel extends GetxController {
     isLoading.value = true;
     errorMessage.value = null;
     preview.value = null;
-    final result = await _circleInviteService.previewCircleInvite(code: codeController.text.trim());
+    final result = await _circleInviteService.previewCircleInvite(
+      code: codeController.text.trim(),
+    );
     isLoading.value = false;
     if (result.isSuccess) {
       preview.value = result.data;
@@ -39,12 +41,15 @@ class CircleInviteViewModel extends GetxController {
       Get.back();
       Get.snackbar(
         accept ? 'Invite accepted' : 'Invite declined',
-        accept ? "You'll now receive their alerts." : "You won't be added to their circle.",
+        accept
+            ? "You'll now receive their alerts."
+            : "You won't be added to their circle.",
         snackPosition: SnackPosition.BOTTOM,
         margin: snackbarMargin,
       );
     } else {
-      errorMessage.value = 'This code is no longer available. Ask them to send a new invite.';
+      errorMessage.value =
+          'This code is no longer available. Ask them to send a new invite.';
       preview.value = null;
     }
   }

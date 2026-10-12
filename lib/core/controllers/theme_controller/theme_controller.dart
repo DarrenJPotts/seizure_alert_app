@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/shared_pref_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 class ThemeController extends GetxService {
   ThemeController(this._prefs);
 
   static ThemeController instance() => Get.find<ThemeController>();
 
-static const bool darkModeAvailable = false;
+  static const bool darkModeAvailable = false;
 
-static const ThemeMode defaultMode = ThemeMode.system;
+  static const ThemeMode defaultMode = ThemeMode.system;
 
   final SharedPreferences _prefs;
 
@@ -22,7 +23,7 @@ static const ThemeMode defaultMode = ThemeMode.system;
     return darkModeAvailable ? preferred : ThemeMode.light;
   }
 
-bool get prefersDark => themeMode.value == ThemeMode.dark;
+  bool get prefersDark => themeMode.value == ThemeMode.dark;
 
   Future<void> setThemeMode(ThemeMode mode) async {
     if (themeMode.value == mode) return;
@@ -30,7 +31,7 @@ bool get prefersDark => themeMode.value == ThemeMode.dark;
     await _write(mode);
   }
 
-Future<void> setDarkMode(bool enabled) =>
+  Future<void> setDarkMode(bool enabled) =>
       setThemeMode(enabled ? ThemeMode.dark : defaultMode);
 
   ThemeMode _read() {

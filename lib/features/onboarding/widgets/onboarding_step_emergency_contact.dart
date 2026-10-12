@@ -24,60 +24,83 @@ class OnboardingStepEmergencyContact extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.eight,
             children: [
-              Text('Emergency contact',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Emergency contact',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               Text(
                 'This person will be notified immediately if you send an SOS or Heads Up.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.black54),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
               ),
             ],
           ),
-          Obx(() => OnboardingField(
-            label: 'Their name',
-            controller: vm.contactNameController,
-            hint: 'e.g. Jane Smith',
-            errorText: vm.contactNameError.value,
-            onChanged: (value) {
-              vm.contactNameError.value = null;
-              vm.onEmergencyContactChanged(value);
-            },
-          )),
-          Obx(() => OnboardingField(
-            label: 'Their phone number',
-            controller: vm.contactPhoneController,
-            hint: '+27 82 123 4567',
-            keyboardType: TextInputType.phone,
-            inputFormatters: const <TextInputFormatter>[
-              SouthAfricanPhoneInputFormatter(),
-            ],
-            maxLength: SouthAfricanPhoneInputFormatter.maxLength,
-            errorText: vm.contactPhoneError.value,
-            onChanged: (value) {
-              vm.contactPhoneError.value = null;
-              vm.onEmergencyContactChanged(value);
-            },
-          )),
+          Obx(
+            () => OnboardingField(
+              label: 'Their name',
+              controller: vm.contactNameController,
+              hint: 'e.g. Jane Smith',
+              errorText: vm.contactNameError.value,
+              onChanged: (value) {
+                vm.contactNameError.value = null;
+                vm.onEmergencyContactChanged(value);
+              },
+            ),
+          ),
+          Obx(
+            () => OnboardingField(
+              label: 'Their phone number',
+              controller: vm.contactPhoneController,
+              hint: '+27 82 123 4567',
+              keyboardType: TextInputType.phone,
+              inputFormatters: const <TextInputFormatter>[
+                SouthAfricanPhoneInputFormatter(),
+              ],
+              maxLength: SouthAfricanPhoneInputFormatter.maxLength,
+              errorText: vm.contactPhoneError.value,
+              onChanged: (value) {
+                vm.contactPhoneError.value = null;
+                vm.onEmergencyContactChanged(value);
+              },
+            ),
+          ),
           OnboardingField(
             label: 'Relationship (optional)',
             controller: vm.contactRelationController,
             hint: 'e.g. Partner, Parent, Friend',
           ),
           Obx(() {
-            if (!vm.hasEmergencyContactDetails.value) return const SizedBox.shrink();
-            return SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: Text('Invite them to join your circle', style: Theme.of(context).textTheme.bodyMedium),
-              subtitle: Text(
-                'Create a short code to share by SMS or WhatsApp after setup.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            final bool ready = vm.hasCompleteEmergencyContactDetails.value;
+            return Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black12),
+                borderRadius: BorderRadius.circular(Dimensions.twelve),
               ),
-              value: vm.inviteEmergencyContact.value,
-              activeTrackColor: Colors.black26,
-              activeThumbColor: Colors.black,
-              onChanged: (value) => vm.inviteEmergencyContact.value = value,
+              child: SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: Dimensions.sixteen,
+                  vertical: Dimensions.four,
+                ),
+                title: Text(
+                  'Invite them to join your circle',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                subtitle: Text(
+                  ready
+                      ? 'A short code will be ready to share by SMS or WhatsApp after setup.'
+                      : 'Add their name and phone number to create an invite code.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ),
+                value: ready && vm.inviteEmergencyContact.value,
+                activeTrackColor: Colors.black26,
+                activeThumbColor: Colors.black,
+                onChanged: ready
+                    ? (value) => vm.inviteEmergencyContact.value = value
+                    : null,
+              ),
             );
           }),
         ],

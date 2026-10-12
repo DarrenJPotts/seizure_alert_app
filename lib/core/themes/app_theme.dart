@@ -8,15 +8,15 @@ import 'colors/light_colors.dart';
 abstract class AppTheme {
   static const String fontFamily = 'RedHatDisplay';
 
-static const double radiusStandard = 12;
+  static const double radiusStandard = 12;
 
-static const double radiusOutlinedButton = 10;
+  static const double radiusOutlinedButton = 10;
 
-static const double radiusFeature = 16;
+  static const double radiusFeature = 16;
 
-static const double radiusSheet = 24;
+  static const double radiusSheet = 24;
 
-static const double _disabledOpacity = 0x61 / 255;
+  static const double _disabledOpacity = 0x61 / 255;
 
   static final ThemeData lightTheme = _build(
     AppColorSchemes.light,
@@ -35,8 +35,9 @@ static const double _disabledOpacity = 0x61 / 255;
   );
 
   static ThemeData _build(ColorScheme colorScheme, TextTheme textTheme) {
-    final Color disabled =
-        colorScheme.onSurface.withValues(alpha: _disabledOpacity);
+    final Color disabled = colorScheme.onSurface.withValues(
+      alpha: _disabledOpacity,
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -47,7 +48,7 @@ static const double _disabledOpacity = 0x61 / 255;
       scaffoldBackgroundColor: colorScheme.surface,
       iconTheme: IconThemeData(color: colorScheme.onSurface),
 
-appBarTheme: AppBarThemeData(
+      appBarTheme: AppBarThemeData(
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         surfaceTintColor: Colors.transparent,
@@ -97,7 +98,7 @@ appBarTheme: AppBarThemeData(
         ),
       ),
 
-elevatedButtonTheme: ElevatedButtonThemeData(
+      elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
@@ -113,7 +114,7 @@ elevatedButtonTheme: ElevatedButtonThemeData(
         ),
       ),
 
-filledButtonTheme: FilledButtonThemeData(
+      filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
@@ -159,7 +160,7 @@ filledButtonTheme: FilledButtonThemeData(
         ),
       ),
 
-inputDecorationTheme: InputDecorationThemeData(
+      inputDecorationTheme: InputDecorationThemeData(
         filled: false,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: Dimensions.sixteen,
@@ -245,14 +246,14 @@ inputDecorationTheme: InputDecorationThemeData(
         trackOutlineColor: WidgetStatePropertyAll<Color>(colorScheme.outline),
       ),
 
-snackBarTheme: SnackBarThemeData(
+      snackBarTheme: SnackBarThemeData(
         backgroundColor: colorScheme.inverseSurface,
         contentTextStyle: textTheme.bodyMedium?.copyWith(
           color: colorScheme.onInverseSurface,
         ),
         actionTextColor: colorScheme.onInverseSurface,
 
-behavior: SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.floating,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusStandard),
@@ -299,24 +300,99 @@ behavior: SnackBarBehavior.floating,
         borderSide: BorderSide(color: color, width: width),
       );
 
-static TextTheme _textTheme({
+  static TextTheme _textTheme({
     required Color primary,
     required Color secondary,
   }) => TextTheme(
-    displayLarge: TextStyle(fontFamily: fontFamily, fontSize: 96, fontWeight: FontWeight.w300, color: primary),
-    displayMedium: TextStyle(fontFamily: fontFamily, fontSize: 60, fontWeight: FontWeight.w300, color: primary),
-    displaySmall: TextStyle(fontFamily: fontFamily, fontSize: 48, fontWeight: FontWeight.w400, color: primary),
-    headlineLarge: TextStyle(fontFamily: fontFamily, fontSize: 34, fontWeight: FontWeight.w600, color: primary),
-    headlineMedium: TextStyle(fontFamily: fontFamily, fontSize: 24, fontWeight: FontWeight.w600, color: primary),
-    headlineSmall: TextStyle(fontFamily: fontFamily, fontSize: 20, fontWeight: FontWeight.w500, color: primary),
-    titleLarge: TextStyle(fontFamily: fontFamily, fontSize: 18, fontWeight: FontWeight.w500, color: primary),
-    titleMedium: TextStyle(fontFamily: fontFamily, fontSize: 16, fontWeight: FontWeight.w500, color: primary),
-    titleSmall: TextStyle(fontFamily: fontFamily, fontSize: 14, fontWeight: FontWeight.w500, color: primary),
-    bodyLarge: TextStyle(fontFamily: fontFamily, fontSize: 16, fontWeight: FontWeight.w400, color: primary),
-    bodyMedium: TextStyle(fontFamily: fontFamily, fontSize: 14, fontWeight: FontWeight.w400, color: primary),
-    bodySmall: TextStyle(fontFamily: fontFamily, fontSize: 12, fontWeight: FontWeight.w400, color: secondary),
-    labelLarge: TextStyle(fontFamily: fontFamily, fontSize: 14, fontWeight: FontWeight.w500, color: primary),
-    labelMedium: TextStyle(fontFamily: fontFamily, fontSize: 12, fontWeight: FontWeight.w500, color: secondary),
-    labelSmall: TextStyle(fontFamily: fontFamily, fontSize: 10, fontWeight: FontWeight.w400, color: secondary),
+    displayLarge: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 96,
+      fontWeight: FontWeight.w300,
+      color: primary,
+    ),
+    displayMedium: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 60,
+      fontWeight: FontWeight.w300,
+      color: primary,
+    ),
+    displaySmall: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 48,
+      fontWeight: FontWeight.w400,
+      color: primary,
+    ),
+    headlineLarge: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 34,
+      fontWeight: FontWeight.w600,
+      color: primary,
+    ),
+    headlineMedium: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 24,
+      fontWeight: FontWeight.w600,
+      color: primary,
+    ),
+    headlineSmall: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 20,
+      fontWeight: FontWeight.w500,
+      color: primary,
+    ),
+    titleLarge: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 18,
+      fontWeight: FontWeight.w500,
+      color: primary,
+    ),
+    titleMedium: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: primary,
+    ),
+    titleSmall: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: primary,
+    ),
+    bodyLarge: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      color: primary,
+    ),
+    bodyMedium: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+      color: primary,
+    ),
+    bodySmall: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      color: secondary,
+    ),
+    labelLarge: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: primary,
+    ),
+    labelMedium: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: secondary,
+    ),
+    labelSmall: TextStyle(
+      fontFamily: fontFamily,
+      fontSize: 10,
+      fontWeight: FontWeight.w400,
+      color: secondary,
+    ),
   );
 }

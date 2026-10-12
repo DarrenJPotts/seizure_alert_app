@@ -45,7 +45,12 @@ class SettingsGroup extends StatelessWidget {
     child: Column(
       children: <Widget>[
         for (int i = 0; i < children.length; i++) ...<Widget>[
-          if (i > 0) Divider(height: 1, thickness: 1, color: Colors.black.withValues(alpha: 0.1)),
+          if (i > 0)
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.black.withValues(alpha: 0.1),
+            ),
           children[i],
         ],
       ],
@@ -81,6 +86,7 @@ class SettingsValueRow extends StatelessWidget {
     required this.value,
     this.valueColor,
     this.onTap,
+    this.loading = false,
   });
 
   final IconData icon;
@@ -88,36 +94,57 @@ class SettingsValueRow extends StatelessWidget {
   final String value;
   final Color? valueColor;
   final VoidCallback? onTap;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: _tap(onTap),
+    onTap: loading ? null : _tap(onTap),
     child: Container(
       constraints: const BoxConstraints(minHeight: 64),
-      padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.fourteen),
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.eighteen,
+        vertical: Dimensions.fourteen,
+      ),
       child: Row(
         children: <Widget>[
           Icon(icon, size: 22, color: Colors.black),
           SizedBox(width: Dimensions.fourteen),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
           ),
           SizedBox(width: Dimensions.twelve),
           Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: valueColor ?? Colors.black.withValues(alpha: 0.45),
-              ),
-            ),
+            child: loading
+                ? Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox.square(
+                      dimension: Dimensions.sixteen,
+                      child: const CircularProgressIndicator(
+                        color: Colors.black,
+                        strokeWidth: 1.5,
+                      ),
+                    ),
+                  )
+                : Text(
+                    value,
+                    textAlign: TextAlign.end,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: valueColor ?? Colors.black.withValues(alpha: 0.45),
+                    ),
+                  ),
           ),
-          if (onTap != null) ...<Widget>[
+          if (onTap != null && !loading) ...<Widget>[
             SizedBox(width: Dimensions.six),
-            Icon(Icons.chevron_right, size: 20, color: Colors.black.withValues(alpha: 0.3)),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: Colors.black.withValues(alpha: 0.3),
+            ),
           ],
         ],
       ),
@@ -154,7 +181,10 @@ class SettingsTileRow extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
         child: Row(
           children: <Widget>[
-            if (leading != null) ...<Widget>[leading!, SizedBox(width: Dimensions.twelve)],
+            if (leading != null) ...<Widget>[
+              leading!,
+              SizedBox(width: Dimensions.twelve),
+            ],
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -163,7 +193,9 @@ class SettingsTileRow extends StatelessWidget {
                   Text(
                     title,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   if (subtitle != null) ...<Widget>[
                     SizedBox(height: Dimensions.two),
@@ -179,17 +211,26 @@ class SettingsTileRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null) ...<Widget>[SizedBox(width: Dimensions.eight), trailing!],
+            if (trailing != null) ...<Widget>[
+              SizedBox(width: Dimensions.eight),
+              trailing!,
+            ],
             if (onTap != null) ...<Widget>[
               SizedBox(width: Dimensions.six),
-              Icon(Icons.chevron_right, size: 20, color: Colors.black.withValues(alpha: 0.3)),
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: Colors.black.withValues(alpha: 0.3),
+              ),
             ],
           ],
         ),
       ),
     );
 
-    final Widget tappable = onTap == null ? row : InkWell(onTap: _tap(onTap), child: row);
+    final Widget tappable = onTap == null
+        ? row
+        : InkWell(onTap: _tap(onTap), child: row);
     if (semanticLabel == null) return tappable;
     return Semantics(
       button: onTap != null,
@@ -207,6 +248,7 @@ class SettingsSwitchRow extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.subtitle,
+    this.loading = false,
   });
 
   final IconData icon;
@@ -214,6 +256,7 @@ class SettingsSwitchRow extends StatelessWidget {
   final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -221,13 +264,18 @@ class SettingsSwitchRow extends StatelessWidget {
     label: subtitle == null ? title : '$title. $subtitle',
     child: ExcludeSemantics(
       child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onChanged(!value);
-        },
+        onTap: loading
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                onChanged(!value);
+              },
         child: Container(
           constraints: const BoxConstraints(minHeight: 72),
-          padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.sixteen),
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.eighteen,
+            vertical: Dimensions.sixteen,
+          ),
           child: Row(
             children: <Widget>[
               Icon(icon, size: 22, color: Colors.black),
@@ -238,7 +286,9 @@ class SettingsSwitchRow extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     if (subtitle != null) ...<Widget>[
                       SizedBox(height: Dimensions.two),
@@ -254,7 +304,16 @@ class SettingsSwitchRow extends StatelessWidget {
                 ),
               ),
               SizedBox(width: Dimensions.twelve),
-              _ModeToggle(value: value),
+              if (loading)
+                SizedBox.square(
+                  dimension: Dimensions.twenty,
+                  child: const CircularProgressIndicator(
+                    color: Colors.black,
+                    strokeWidth: 1.5,
+                  ),
+                )
+              else
+                _ModeToggle(value: value),
             ],
           ),
         ),
@@ -278,7 +337,9 @@ class _ModeToggle extends StatelessWidget {
     decoration: BoxDecoration(
       color: value ? Colors.black : Colors.white,
       borderRadius: BorderRadius.circular(Dimensions.circular),
-      border: value ? null : Border.all(color: Colors.black.withValues(alpha: 0.2), width: 1.5),
+      border: value
+          ? null
+          : Border.all(color: Colors.black.withValues(alpha: 0.2), width: 1.5),
     ),
     alignment: value ? Alignment.centerRight : Alignment.centerLeft,
     child: Container(
@@ -299,16 +360,18 @@ class SettingsNavRow extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.trailingText,
+    this.loading = false,
   });
 
   final IconData icon;
   final String title;
   final String? trailingText;
   final VoidCallback onTap;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: _tap(onTap),
+    onTap: loading ? null : _tap(onTap),
     child: SizedBox(
       height: 64,
       child: Padding(
@@ -320,10 +383,20 @@ class SettingsNavRow extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
-            if (trailingText != null)
+            if (loading)
+              SizedBox.square(
+                dimension: Dimensions.sixteen,
+                child: const CircularProgressIndicator(
+                  color: Colors.black,
+                  strokeWidth: 1.5,
+                ),
+              )
+            else if (trailingText != null)
               Text(
                 trailingText!,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -331,7 +404,12 @@ class SettingsNavRow extends StatelessWidget {
                 ),
               ),
             SizedBox(width: Dimensions.six),
-            Icon(Icons.chevron_right, size: 20, color: Colors.black.withValues(alpha: 0.3)),
+            if (!loading)
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: Colors.black.withValues(alpha: 0.3),
+              ),
           ],
         ),
       ),
@@ -340,7 +418,12 @@ class SettingsNavRow extends StatelessWidget {
 }
 
 class SettingsDestructiveRow extends StatelessWidget {
-  const SettingsDestructiveRow({super.key, required this.icon, required this.title, required this.onTap});
+  const SettingsDestructiveRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String title;
@@ -377,7 +460,12 @@ class SettingsDestructiveRow extends StatelessWidget {
 }
 
 class SettingsActionRow extends StatelessWidget {
-  const SettingsActionRow({super.key, required this.title, required this.onTap, this.badgeCount = 0});
+  const SettingsActionRow({
+    super.key,
+    required this.title,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
 
   final String title;
   final VoidCallback onTap;
@@ -398,7 +486,10 @@ class SettingsActionRow extends StatelessWidget {
               height: 34,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.black.withValues(alpha: 0.3), width: 1.5),
+                border: Border.all(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
               ),
               child: const Icon(Icons.add, size: 18, color: Colors.black),
             ),
@@ -406,12 +497,17 @@ class SettingsActionRow extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
             if (badgeCount > 0)
               Container(
-                padding: EdgeInsets.symmetric(horizontal: Dimensions.eight, vertical: Dimensions.three),
+                padding: EdgeInsets.symmetric(
+                  horizontal: Dimensions.eight,
+                  vertical: Dimensions.three,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(Dimensions.circular),
@@ -438,7 +534,10 @@ class SettingsMessageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen, vertical: Dimensions.twenty),
+    padding: EdgeInsets.symmetric(
+      horizontal: Dimensions.eighteen,
+      vertical: Dimensions.twenty,
+    ),
     child: Text(
       message,
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -457,7 +556,10 @@ class SettingsTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(horizontal: Dimensions.eight, vertical: Dimensions.three),
+    padding: EdgeInsets.symmetric(
+      horizontal: Dimensions.eight,
+      vertical: Dimensions.three,
+    ),
     decoration: BoxDecoration(
       color: Colors.black.withValues(alpha: 0.06),
       borderRadius: BorderRadius.circular(Dimensions.circular),

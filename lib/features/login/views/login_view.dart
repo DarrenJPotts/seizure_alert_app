@@ -9,6 +9,7 @@ import 'package:seizure_app/core/widgets/buttons/button_styles/base_button_style
 import 'package:seizure_app/core/widgets/picture.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/features/login/view_models/login_view_model.dart';
+import 'package:seizure_app/features/login/widgets/forgot_password_sheet.dart';
 
 class LoginView extends GetView<LoginViewModel> {
   LoginView({super.key});
@@ -29,7 +30,6 @@ class LoginView extends GetView<LoginViewModel> {
                   spacing: Dimensions.thirtySix,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-
                     Column(
                       spacing: Dimensions.sixteen,
                       children: [
@@ -42,7 +42,7 @@ class LoginView extends GetView<LoginViewModel> {
                       ],
                     ),
 
-Column(
+                    Column(
                       spacing: Dimensions.sixteen,
                       children: [
                         AppTextFormField(
@@ -58,41 +58,65 @@ Column(
                           textInputAction: TextInputAction.done,
                         ),
 
-Obx(() {
+                        Obx(() {
                           final error = controller.errorMessage.value;
-                          if (error == null || error.isEmpty) return SizedBox.shrink();
+                          if (error == null || error.isEmpty) {
+                            return SizedBox.shrink();
+                          }
                           return Text(
                             error,
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                           );
                         }),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => ForgotPasswordSheet.show(
+                              context,
+                              controller.emailController.text,
+                            ),
+                            child: const Text('Forgot password?'),
+                          ),
+                        ),
                       ],
                     ),
 
-Column(
+                    Column(
                       spacing: Dimensions.sixteen,
                       children: [
                         Obx(() {
-                          final isLoading = controller.screenState.value == GenericScreenStates.loading;
+                          final isLoading =
+                              controller.screenState.value ==
+                              GenericScreenStates.loading;
                           return AppButton(
-                            buttonStyle: BaseButtonStyle.primaryButton(context: context),
+                            buttonStyle: BaseButtonStyle.primaryButton(
+                              context: context,
+                            ),
                             buttonText: isLoading ? 'Logging in...' : 'Login',
+                            isLoading: isLoading,
                             onTap: isLoading
                                 ? null
                                 : () {
-                              if (_formKey.currentState?.validate() ?? false) {
-                                controller.login();
-                              }
-                            },
+                                    if (_formKey.currentState?.validate() ??
+                                        false) {
+                                      controller.login();
+                                    }
+                                  },
                           );
                         }),
                         AppButton(
-                          buttonStyle: BaseButtonStyle.secondaryTextButtonStyle(context: context),
+                          buttonStyle: BaseButtonStyle.secondaryTextButtonStyle(
+                            context: context,
+                          ),
                           buttonText: 'Create an account',
-                          onTap: () => Get.toNamed(AppRoutes.signup, arguments: Get.arguments),
+                          onTap: () => Get.toNamed(
+                            AppRoutes.signup,
+                            arguments: Get.arguments,
+                          ),
                         ),
                       ],
                     ),

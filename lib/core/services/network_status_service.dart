@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 
 class NetworkStatusService extends GetxService with WidgetsBindingObserver {
   NetworkStatusService({Connectivity? connectivity})
-      : _connectivity = connectivity ?? Connectivity();
+    : _connectivity = connectivity ?? Connectivity();
 
   final Connectivity _connectivity;
   final RxBool hasNetwork = true.obs;
@@ -17,7 +17,8 @@ class NetworkStatusService extends GetxService with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _subscription = _connectivity.onConnectivityChanged.listen(
       _update,
-      onError: (Object error) => debugPrint('[NetworkStatus] Stream error: $error'),
+      onError: (Object error) =>
+          debugPrint('[NetworkStatus] Stream error: $error'),
     );
     unawaited(_refresh());
     return this;

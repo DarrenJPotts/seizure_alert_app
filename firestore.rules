@@ -29,7 +29,9 @@ function isOwner(uid) {
         ])
         && data.keys().hasOnly([
           'id', 'userId', 'type', 'status', 'latitude', 'longitude',
-          'locationLabel', 'message', 'createdAt', 'resolvedAt'
+          'locationLabel', 'message', 'createdAt', 'resolvedAt',
+          'escalationStage', 'escalatedAt', 'escalatedContactId',
+          'acknowledgedAt', 'acknowledgedBy'
         ])
         && data.id == alertId
         && data.id is string
@@ -108,7 +110,8 @@ match /contacts/{contactId} {
       allow create:       if isOwner(request.resource.data.userId)
                           && hasValidRequiredSaPhone(request.resource.data)
                           && !request.resource.data.keys().hasAny([
-                               'linkedUid', 'inviteStatus', 'inviteExpiresAtMs'
+                               'linkedUid', 'inviteStatus', 'inviteExpiresAtMs',
+                               'lastTestStatus', 'lastTestedAtMs'
                              ]);
 
       allow update:       if isAuthed()
@@ -119,7 +122,8 @@ match /contacts/{contactId} {
                               || hasValidRequiredSaPhone(request.resource.data))
                           && !request.resource.data.diff(resource.data)
                                .affectedKeys().hasAny([
-                                 'linkedUid', 'inviteStatus', 'inviteExpiresAtMs'
+                                 'linkedUid', 'inviteStatus', 'inviteExpiresAtMs',
+                                 'lastTestStatus', 'lastTestedAtMs'
                                ]);
     }
 
@@ -189,6 +193,13 @@ allow create, update: if false;
       allow delete: if isResponder();
     }
 
+    match /alert_deliveries/{deliveryId} {
+      allow read: if isAuthed()
+                  && (resource.data.alertOwnerId == request.auth.uid
+                    || resource.data.responderId == request.auth.uid);
+      allow write: if false;
+    }
+
 match /rate_limits/{limitId} {
       allow read, write: if false;
     }
@@ -198,6 +209,19 @@ match /rate_limits/{limitId} {
     }
 
 match /system/{docId} {
+      allow read, write: if false;
+    }
+
+    match /wearableDevices/{deviceId} {
+      allow read: if isAuthed() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /wearable_pairings/{pairingId} {
+      allow read, write: if false;
+    }
+
+    match /wearable_device_credentials/{deviceId} {
       allow read, write: if false;
     }
   }

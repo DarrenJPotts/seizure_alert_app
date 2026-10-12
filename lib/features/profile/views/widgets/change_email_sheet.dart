@@ -127,7 +127,6 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
             ),
             SizedBox(height: Dimensions.eight),
           ] else ...[
-
             Text(
               'Change Email',
               style: Theme.of(context).textTheme.titleMedium,
@@ -141,7 +140,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-Text(
+            Text(
               'New email address',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -159,7 +158,7 @@ Text(
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-Text(
+            Text(
               'Confirm your password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -176,7 +175,7 @@ Text(
               decoration: InputDecoration(
                 hintText: 'Enter your password',
 
-enabledBorder: _error == null
+                enabledBorder: _error == null
                     ? null
                     : Theme.of(context).inputDecorationTheme.errorBorder,
                 focusedBorder: _error == null
@@ -194,7 +193,7 @@ enabledBorder: _error == null
               ),
             ),
 
-if (_error != null) ...[
+            if (_error != null) ...[
               SizedBox(height: Dimensions.eight),
               Text(
                 _error!,
@@ -205,7 +204,7 @@ if (_error != null) ...[
             ],
             SizedBox(height: Dimensions.twentyFour),
 
-SizedBox(
+            SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isBusy ? null : _confirm,
@@ -232,7 +231,7 @@ SizedBox(
             ),
             SizedBox(height: Dimensions.eight),
 
-SizedBox(
+            SizedBox(
               width: double.infinity,
               child: TextButton(
                 onPressed: _isBusy ? null : () => Get.back(),

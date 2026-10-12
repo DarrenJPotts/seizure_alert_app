@@ -7,19 +7,27 @@ import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/extensions/typed_extensions.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
+import 'package:seizure_app/core/services/alert_drill_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/services/home_widget_service.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 
 class ContactsViewModel extends GetxController {
-  ContactsViewModel(this._firestoreService, this._circleInviteService);
+  ContactsViewModel(
+    this._firestoreService,
+    this._circleInviteService,
+    this._alertDrillService,
+  );
 
   final FirestoreService _firestoreService;
   final CircleInviteService _circleInviteService;
+  final AlertDrillService _alertDrillService;
 
   final RxList<ContactDto> contacts = <ContactDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
   final RxnString invitingContactId = RxnString();
+  final RxBool sendingTestAlert = false.obs;
+  final RxnString lastTestSummary = RxnString();
 
   StreamSubscription<List<ContactDto>>? _contactsSub;
   Timer? _initialLoadTimer;
@@ -104,6 +112,28 @@ class ContactsViewModel extends GetxController {
       );
     } finally {
       invitingContactId.value = null;
+    }
+  }
+
+  Future<ResultDto<AlertDrillResult>> sendTestAlert() async {
+    if (sendingTestAlert.value) {
+      return ResultDto.failure('A test alert is already being sent.');
+    }
+
+    sendingTestAlert.value = true;
+    lastTestSummary.value = null;
+    try {
+      final ResultDto<AlertDrillResult> result = await _alertDrillService
+          .send();
+      final AlertDrillResult? drill = result.data;
+      if (result.isSuccess && drill != null) {
+        final String devices = drill.sentCount == 1 ? 'device' : 'devices';
+        lastTestSummary.value =
+            'Test sent to ${drill.sentCount} caregiver $devices.';
+      }
+      return result;
+    } finally {
+      sendingTestAlert.value = false;
     }
   }
 

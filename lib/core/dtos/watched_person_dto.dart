@@ -29,22 +29,23 @@ class WatchedPersonDto {
     this.lastAlertAt,
   });
 
-  factory WatchedPersonDto.fromMap(Map<String, dynamic> map) => WatchedPersonDto(
-    ownerId: map['ownerId'] as String,
-    ownerName: map['ownerName'] as String,
-    ownerPhone: map['ownerPhone'] as String?,
-    contactId: map['contactId'] as String,
-    status: WatchedPersonStatus.values.firstWhere(
-      (e) => e.name == map['status'],
-      orElse: () => WatchedPersonStatus.monitoring,
-    ),
-    activeAlertId: map['activeAlertId'] as String?,
-    headsUpNote: map['headsUpNote'] as String?,
-    headsUpAt: parseTimestamp(map['headsUpAt']),
-    lastSeizureAt: parseTimestamp(map['lastSeizureAt']),
-    daysSinceLastSeizure: (map['daysSinceLastSeizure'] as num?)?.toInt(),
-    lastAlertAt: parseTimestamp(map['lastAlertAt']),
-  );
+  factory WatchedPersonDto.fromMap(Map<String, dynamic> map) =>
+      WatchedPersonDto(
+        ownerId: map['ownerId'] as String,
+        ownerName: map['ownerName'] as String,
+        ownerPhone: map['ownerPhone'] as String?,
+        contactId: map['contactId'] as String,
+        status: WatchedPersonStatus.values.firstWhere(
+          (e) => e.name == map['status'],
+          orElse: () => WatchedPersonStatus.monitoring,
+        ),
+        activeAlertId: map['activeAlertId'] as String?,
+        headsUpNote: map['headsUpNote'] as String?,
+        headsUpAt: parseTimestamp(map['headsUpAt']),
+        lastSeizureAt: parseTimestamp(map['lastSeizureAt']),
+        daysSinceLastSeizure: (map['daysSinceLastSeizure'] as num?)?.toInt(),
+        lastAlertAt: parseTimestamp(map['lastAlertAt']),
+      );
 }
 
 class WatchActivityDto {
@@ -52,7 +53,11 @@ class WatchActivityDto {
   final String kind;
   final DateTime at;
 
-  WatchActivityDto({required this.personName, required this.kind, required this.at});
+  WatchActivityDto({
+    required this.personName,
+    required this.kind,
+    required this.at,
+  });
 
   static WatchActivityDto? fromMap(Map<String, dynamic> map) {
     final DateTime? at = parseTimestamp(map['at']);
@@ -84,10 +89,14 @@ class WatchListDto {
 
   factory WatchListDto.fromMap(Map<String, dynamic> map) => WatchListDto(
     people: (map['people'] as List? ?? <dynamic>[])
-        .map((e) => WatchedPersonDto.fromMap(Map<String, dynamic>.from(e as Map)))
+        .map(
+          (e) => WatchedPersonDto.fromMap(Map<String, dynamic>.from(e as Map)),
+        )
         .toList(),
     recentActivity: (map['recentActivity'] as List? ?? <dynamic>[])
-        .map((e) => WatchActivityDto.fromMap(Map<String, dynamic>.from(e as Map)))
+        .map(
+          (e) => WatchActivityDto.fromMap(Map<String, dynamic>.from(e as Map)),
+        )
         .whereType<WatchActivityDto>()
         .toList(),
   );

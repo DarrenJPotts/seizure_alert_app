@@ -118,7 +118,8 @@ class ContactsView extends GetView<ContactsViewModel> {
               separatorBuilder: (_, _) => SizedBox(height: Dimensions.twelve),
               itemBuilder: (context, index) => ContactCard(
                 contact: contacts[index],
-                isInviting: controller.invitingContactId.value == contacts[index].id,
+                isInviting:
+                    controller.invitingContactId.value == contacts[index].id,
                 onTap: () => AddContactBottomSheet.show(
                   onAdd: controller.addContact,
                   onUpdate: controller.updateContact,
@@ -128,9 +129,16 @@ class ContactsView extends GetView<ContactsViewModel> {
                 onDelete: () => controller.deleteContact(contacts[index].id),
                 onInvite: () async {
                   final contact = contacts[index];
-                  final result = await controller.createCircleInvite(contactId: contact.id);
+                  final result = await controller.createCircleInvite(
+                    contactId: contact.id,
+                  );
+                  if (!context.mounted) return;
                   if (!result.isSuccess || result.data == null) {
-                    Get.snackbar('Invite unavailable', result.error ?? 'The invite could not be created. Please try again.');
+                    Get.snackbar(
+                      'Invite unavailable',
+                      result.error ??
+                          'The invite could not be created. Please try again.',
+                    );
                     return;
                   }
                   AppBottomSheet.show(
@@ -139,7 +147,10 @@ class ContactsView extends GetView<ContactsViewModel> {
                       phone: contact.phone,
                       contactName: contact.name,
                       code: result.data!,
-                      onRegenerate: () => controller.createCircleInvite(contactId: contact.id, regenerate: true),
+                      onRegenerate: () => controller.createCircleInvite(
+                        contactId: contact.id,
+                        regenerate: true,
+                      ),
                     ),
                   );
                 },

@@ -1,0 +1,4 @@
+storeFile=C:/Users/your-name/.android-keys/seizure-alert-upload.jks
+storePassword=your-keystore-password
+keyAlias=seizure-alert-upload
+keyPassword=your-key-password

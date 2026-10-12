@@ -7,7 +7,10 @@ import '../support/pump.dart';
 /// The surrounding MaterialApp/Scaffold contributes its own identity
 /// `Transform`s, so the ring has to be located inside the widget under test
 /// rather than by type alone.
-final Finder _ring = find.descendant(of: find.byType(LiveIndicator), matching: find.byType(Transform));
+final Finder _ring = find.descendant(
+  of: find.byType(LiveIndicator),
+  matching: find.byType(Transform),
+);
 
 /// [LiveIndicator] replaced the app's green monitoring dot, which means
 /// motion — not colour — is now the only thing that says "live". That makes
@@ -29,9 +32,14 @@ void main() {
     await tester.pumpWidget(wrap(const SizedBox.shrink()));
   });
 
-  testWidgets('holds a static ring when the platform asks for reduced motion', (WidgetTester tester) async {
+  testWidgets('holds a static ring when the platform asks for reduced motion', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
-      MediaQuery(data: const MediaQueryData(disableAnimations: true), child: wrap(const LiveIndicator())),
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: wrap(const LiveIndicator()),
+      ),
     );
 
     final Transform first = tester.widget<Transform>(_ring);
@@ -44,9 +52,14 @@ void main() {
     expect(_ring, findsOneWidget);
   });
 
-  testWidgets('scales the dot with the indicator size', (WidgetTester tester) async {
+  testWidgets('scales the dot with the indicator size', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
-      MediaQuery(data: const MediaQueryData(disableAnimations: true), child: wrap(const LiveIndicator(size: 28))),
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: wrap(const LiveIndicator(size: 28)),
+      ),
     );
 
     final Size box = tester.getSize(find.byType(LiveIndicator));
@@ -56,7 +69,9 @@ void main() {
   });
 
   group('LiveStatusLabel', () {
-    testWidgets('renders its label beside the indicator', (WidgetTester tester) async {
+    testWidgets('renders its label beside the indicator', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MediaQuery(
           data: const MediaQueryData(disableAnimations: true),
@@ -68,7 +83,9 @@ void main() {
       expect(find.byType(LiveIndicator), findsOneWidget);
     });
 
-    testWidgets('announces itself as live to a screen reader', (WidgetTester tester) async {
+    testWidgets('announces itself as live to a screen reader', (
+      WidgetTester tester,
+    ) async {
       // The pulsing ring conveys nothing to a screen reader, so the word
       // "Live" has to be in the semantics label or the state is invisible
       // to anyone using one.
@@ -85,12 +102,19 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('truncates a long label instead of overflowing', (WidgetTester tester) async {
+    testWidgets('truncates a long label instead of overflowing', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MediaQuery(
           data: const MediaQueryData(disableAnimations: true),
           child: wrapBounded(
-            const SizedBox(width: 120, child: LiveStatusLabel(label: 'LIVE · STARTED 1:04:37 AGO, 3.2 km from you')),
+            const SizedBox(
+              width: 120,
+              child: LiveStatusLabel(
+                label: 'LIVE · STARTED 1:04:37 AGO, 3.2 km from you',
+              ),
+            ),
           ),
         ),
       );

@@ -4,7 +4,11 @@ import 'package:get/get_utils/src/extensions/context_extensions.dart';
 import 'package:latlong2/latlong.dart';
 
 class AlertMapWidget extends StatelessWidget {
-  const AlertMapWidget({super.key, required this.latitude, required this.longitude});
+  const AlertMapWidget({
+    super.key,
+    required this.latitude,
+    required this.longitude,
+  });
 
   final double latitude;
   final double longitude;
@@ -19,10 +23,15 @@ class AlertMapWidget extends StatelessWidget {
         options: MapOptions(
           initialCenter: point,
           initialZoom: 15.0,
-          interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.none,
+          ),
         ),
         children: [
-          TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'seizure_app'),
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'seizure_app',
+          ),
           MarkerLayer(
             markers: [
               Marker(
@@ -35,7 +44,11 @@ class AlertMapWidget extends StatelessWidget {
                     color: Colors.black,
                     border: Border.all(color: Colors.white, width: 2.5),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 6, offset: const Offset(0, 2)),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
                     ],
                   ),
                 ),
@@ -45,7 +58,9 @@ class AlertMapWidget extends StatelessWidget {
           SimpleAttributionWidget(
             source: Text(
               '© OpenStreetMap contributors',
-              style: context.theme.textTheme.labelSmall?.copyWith(color: Colors.black45),
+              style: context.theme.textTheme.labelSmall?.copyWith(
+                color: Colors.black45,
+              ),
             ),
           ),
         ],
@@ -70,8 +85,17 @@ class AlertMapPlaceholder extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           spacing: 8,
           children: [
-            const Icon(Icons.location_off_outlined, color: Colors.black26, size: 28),
-            Text('Location unavailable', style: context.theme.textTheme.bodySmall?.copyWith(color: Colors.black38)),
+            const Icon(
+              Icons.location_off_outlined,
+              color: Colors.black26,
+              size: 28,
+            ),
+            Text(
+              'Location unavailable',
+              style: context.theme.textTheme.bodySmall?.copyWith(
+                color: Colors.black38,
+              ),
+            ),
           ],
         ),
       ),

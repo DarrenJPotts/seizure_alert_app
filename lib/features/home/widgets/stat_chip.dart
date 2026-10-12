@@ -30,10 +30,9 @@ class StatChip extends StatelessWidget {
           ),
           Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.black45),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.black45),
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:home_widget/home_widget.dart';
@@ -16,6 +17,8 @@ enum HomeWidgetSafetyState { allClear, headsUp, sos, setupRequired, signedOut }
 
 class HomeWidgetService extends GetxService with WidgetsBindingObserver {
   static const String androidProviderName = 'SeizureAlertWidgetProvider';
+  static const String iosWidgetName = 'SeizureAlertWidget';
+  static const String iosAppGroupId = 'group.com.darren.potts.seizureApp';
 
   static const String _activeSosKey = 'active_sos';
   static const String _activeHeadsUpKey = 'active_heads_up';
@@ -38,14 +41,23 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
 
   Future<HomeWidgetService> init() async {
     WidgetsBinding.instance.addObserver(this);
-    _setupReady =
-        await HomeWidget.getWidgetData<bool>(
-          _setupReadyKey,
-          defaultValue: false,
-        ) ??
-        false;
+    try {
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+        await HomeWidget.setAppGroupId(iosAppGroupId);
+      }
+      _setupReady =
+          await HomeWidget.getWidgetData<bool>(
+            _setupReadyKey,
+            defaultValue: false,
+          ) ??
+          false;
+    } catch (error) {
+      _setupReady = false;
+      debugPrint(
+        '[HomeWidgetService] Could not initialise widget data: $error',
+      );
+    }
 
-    _clickSubscription = HomeWidget.widgetClicked.listen(_handleWidgetUri);
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((_) {
       unawaited(syncCurrentState());
     });
@@ -54,6 +66,7 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
     });
 
     _handleWidgetUri(await HomeWidget.initiallyLaunchedFromHomeWidget());
+    _clickSubscription = HomeWidget.widgetClicked.listen(_handleWidgetUri);
     await syncCurrentState();
     return this;
   }
@@ -107,7 +120,10 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
           snapshot.actionUri.toString(),
         ),
       ]);
-      await HomeWidget.updateWidget(androidName: androidProviderName);
+      await HomeWidget.updateWidget(
+        androidName: androidProviderName,
+        iOSName: iosWidgetName,
+      );
     } catch (error) {
       debugPrint('[HomeWidgetService] Could not update widget: $error');
     }

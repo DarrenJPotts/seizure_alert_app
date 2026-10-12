@@ -187,6 +187,7 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
       AppRoutes.alertHistory,
       AppRoutes.mode,
       AppRoutes.root,
+      AppRoutes.safetyPlan,
     };
     return route != null && navigableRoutes.contains(route) ? route : null;
   }
@@ -208,12 +209,7 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
   }
 
   String _foregroundPayload(Map<String, dynamic> data) {
-    if (data['alertType'] == 'sos' &&
-        data['alertStatus'] == 'sent' &&
-        data['alertId'] != null) {
-      return '${AppRoutes.incomingAlert}?alertId=${Uri.encodeQueryComponent(data['alertId'].toString())}';
-    }
-    return data.toString();
+    return _notificationRoute(data) ?? data.toString();
   }
 
   void _onMessageOpenedApp(RemoteMessage message) {

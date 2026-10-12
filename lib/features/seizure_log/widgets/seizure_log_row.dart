@@ -27,14 +27,19 @@ class SeizureLogRow extends StatelessWidget {
       subtitle: subtitle,
       trailing: log.alertFired ? const SettingsTag('Alert sent') : null,
       onTap: onTap,
-      semanticLabel: '$title. $subtitle.${log.alertFired ? ' Alert sent.' : ''}',
+      semanticLabel:
+          '$title. $subtitle.${log.alertFired ? ' Alert sent.' : ''}',
     );
   }
 }
 
 String formatLogDate(DateTime at, {DateTime? now}) {
   final DateTime reference = now ?? DateTime.now();
-  final DateTime today = DateTime(reference.year, reference.month, reference.day);
+  final DateTime today = DateTime(
+    reference.year,
+    reference.month,
+    reference.day,
+  );
   final DateTime date = DateTime(at.year, at.month, at.day);
   final int days = today.difference(date).inDays;
   final String time = _formatTime(at);
@@ -48,10 +53,24 @@ String logSubtitle(SeizureLogDto log) {
   final List<String> parts = <String>[];
 
   final int? seconds = log.durationSeconds;
-  if (seconds != null && seconds > 0) parts.add(formatLogDuration(seconds));
+  if (seconds != null && seconds > 0) {
+    parts.add(formatLogDuration(seconds));
+  }
 
   final String? location = log.location;
-  if (location != null && location.trim().isNotEmpty) parts.add(location.trim());
+  if (location != null && location.trim().isNotEmpty) {
+    parts.add(location.trim());
+  }
+
+  final String? type = log.seizureType;
+  if (type != null && type.trim().isNotEmpty) {
+    parts.add(type.trim());
+  }
+
+  final String? severity = log.severity;
+  if (severity != null && severity.trim().isNotEmpty) {
+    parts.add(severity.trim());
+  }
 
   return parts.isEmpty ? 'No details recorded' : parts.join(' · ');
 }
@@ -66,7 +85,9 @@ String formatLogDuration(int totalSeconds) {
 
 String formatLogMonth(DateTime at, {DateTime? now}) {
   final DateTime reference = now ?? DateTime.now();
-  if (at.year == reference.year && at.month == reference.month) return 'This month';
+  if (at.year == reference.year && at.month == reference.month) {
+    return 'This month';
+  }
   if (at.year == reference.year) return _monthNames[at.month - 1];
   return '${_monthNames[at.month - 1]} ${at.year}';
 }
@@ -79,11 +100,31 @@ String _formatTime(DateTime at) {
 }
 
 const List<String> _monthAbbreviations = <String>[
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 const List<String> _monthNames = <String>[
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];

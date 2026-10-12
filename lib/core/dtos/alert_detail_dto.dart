@@ -1,5 +1,6 @@
 import 'package:seizure_app/core/dtos/alert_dto.dart';
-import 'package:seizure_app/core/dtos/watched_person_dto.dart' show parseTimestamp;
+import 'package:seizure_app/core/dtos/watched_person_dto.dart'
+    show parseTimestamp;
 
 class OwnerProfileDto {
   final String displayName;
@@ -7,6 +8,9 @@ class OwnerProfileDto {
   final String? bloodType;
   final String? seizureType;
   final String? emergencyNote;
+  final String? seizureActionPlan;
+  final String? rescueMedication;
+  final int callEmergencyAfterMinutes;
 
   final List<String> medications;
 
@@ -18,16 +22,24 @@ class OwnerProfileDto {
     this.bloodType,
     this.seizureType,
     this.emergencyNote,
+    this.seizureActionPlan,
+    this.rescueMedication,
+    this.callEmergencyAfterMinutes = 5,
     this.medications = const <String>[],
     this.daysSinceLastSeizure,
   });
 
   List<String> get carePlanSteps {
-    final String? note = emergencyNote;
+    final String? note = seizureActionPlan?.trim().isNotEmpty == true
+        ? seizureActionPlan
+        : emergencyNote;
     if (note == null || note.trim().isEmpty) return const <String>[];
     return note
         .split(RegExp(r'[\r\n]+'))
-        .map((String line) => line.replaceFirst(RegExp(r'^\s*(?:\d+[.)]|[-*•])\s*'), '').trim())
+        .map(
+          (String line) =>
+              line.replaceFirst(RegExp(r'^\s*(?:\d+[.)]|[-*•])\s*'), '').trim(),
+        )
         .where((String line) => line.isNotEmpty)
         .toList();
   }
@@ -38,7 +50,13 @@ class OwnerProfileDto {
     bloodType: map['bloodType'] as String?,
     seizureType: map['seizureType'] as String?,
     emergencyNote: map['emergencyNote'] as String?,
-    medications: (map['medications'] as List? ?? <dynamic>[]).map((e) => e.toString()).toList(),
+    seizureActionPlan: map['seizureActionPlan'] as String?,
+    rescueMedication: map['rescueMedication'] as String?,
+    callEmergencyAfterMinutes:
+        (map['callEmergencyAfterMinutes'] as num?)?.toInt() ?? 5,
+    medications: (map['medications'] as List? ?? <dynamic>[])
+        .map((e) => e.toString())
+        .toList(),
     daysSinceLastSeizure: (map['daysSinceLastSeizure'] as num?)?.toInt(),
   );
 }
@@ -68,17 +86,18 @@ class AlertResponderDto {
     this.note,
   });
 
-  factory AlertResponderDto.fromMap(Map<String, dynamic> map) => AlertResponderDto(
-    contactId: map['contactId'] as String?,
-    contactName: map['contactName'] as String? ?? 'Someone',
-    responderId: map['responderId'] as String?,
-    isCaller: map['isCaller'] as bool? ?? false,
-    seen: map['seen'] as bool? ?? false,
-    responding: map['responding'] as bool? ?? false,
-    seenAt: parseTimestamp(map['seenAt']),
-    respondedAt: parseTimestamp(map['respondedAt']),
-    note: map['note'] as String?,
-  );
+  factory AlertResponderDto.fromMap(Map<String, dynamic> map) =>
+      AlertResponderDto(
+        contactId: map['contactId'] as String?,
+        contactName: map['contactName'] as String? ?? 'Someone',
+        responderId: map['responderId'] as String?,
+        isCaller: map['isCaller'] as bool? ?? false,
+        seen: map['seen'] as bool? ?? false,
+        responding: map['responding'] as bool? ?? false,
+        seenAt: parseTimestamp(map['seenAt']),
+        respondedAt: parseTimestamp(map['respondedAt']),
+        note: map['note'] as String?,
+      );
 }
 
 class AlertDetailDto {
@@ -107,7 +126,8 @@ class AlertDetailDto {
     return null;
   }
 
-  List<AlertResponderDto> get otherResponders => responders.where((AlertResponderDto r) => !r.isCaller).toList();
+  List<AlertResponderDto> get otherResponders =>
+      responders.where((AlertResponderDto r) => !r.isCaller).toList();
 
   factory AlertDetailDto.fromMap(Map<String, dynamic> map) => AlertDetailDto(
     alert: AlertDto.fromMap(_asStringMap(map['alert'])),
@@ -121,4 +141,5 @@ class AlertDetailDto {
   );
 }
 
-Map<String, dynamic> _asStringMap(dynamic value) => Map<String, dynamic>.from(value as Map);
+Map<String, dynamic> _asStringMap(dynamic value) =>
+    Map<String, dynamic>.from(value as Map);
