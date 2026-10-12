@@ -129,24 +129,13 @@ class ContactsView extends GetView<ContactsViewModel> {
                 onDelete: () => controller.deleteContact(contacts[index].id),
                 onInvite: () async {
                   final contact = contacts[index];
-                  final result = await controller.createCircleInvite(
-                    contactId: contact.id,
-                  );
-                  if (!context.mounted) return;
-                  if (!result.isSuccess || result.data == null) {
-                    Get.snackbar(
-                      'Invite unavailable',
-                      result.error ??
-                          'The invite could not be created. Please try again.',
-                    );
-                    return;
-                  }
                   AppBottomSheet.show(
                     context: context,
                     builder: (_) => InvitePickerSheet(
                       phone: contact.phone,
                       contactName: contact.name,
-                      code: result.data!,
+                      loadCode: () =>
+                          controller.createCircleInvite(contactId: contact.id),
                       onRegenerate: () => controller.createCircleInvite(
                         contactId: contact.id,
                         regenerate: true,

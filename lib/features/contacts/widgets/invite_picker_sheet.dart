@@ -16,13 +16,15 @@ class InvitePickerSheet extends StatefulWidget {
     super.key,
     required this.phone,
     required this.contactName,
-    required this.code,
+    this.code,
+    this.loadCode,
     this.onRegenerate,
-  });
+  }) : assert(code != null || loadCode != null);
 
   final String phone;
   final String contactName;
-  final String code;
+  final String? code;
+  final RegenerateInviteCallback? loadCode;
   final RegenerateInviteCallback? onRegenerate;
 
   static void showAfterNavigation(OnboardingInviteDto invite) {
@@ -49,7 +51,40 @@ class InvitePickerSheet extends StatefulWidget {
 }
 
 class _InvitePickerSheetState extends State<InvitePickerSheet> {
-  late String _code = widget.code;
+  late String? _code = widget.code;
+  bool _isLoadingCode = false;
+  String? _loadError;
+
+  bool get _codeReady => _code != null && !_isLoadingCode && !_isRegenerating;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_code == null) _loadCode();
+  }
+
+  Future<void> _loadCode() async {
+    setState(() {
+      _isLoadingCode = true;
+      _loadError = null;
+    });
+    try {
+      final result = await widget.loadCode!();
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCode = false;
+        _code = result.isSuccess ? result.data : null;
+        if (_code == null) _loadError = result.error ?? 'Please try again.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCode = false;
+        _loadError = 'Could not load the invite code. Please try again.';
+      });
+    }
+  }
+
   bool _isRegenerating = false;
 
   Future<void> _regenerate() async {
@@ -89,7 +124,8 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
   }
 
   Future<void> _copyCode() async {
-    await Clipboard.setData(ClipboardData(text: _code));
+    if (!_codeReady) return;
+    await Clipboard.setData(ClipboardData(text: _code!));
     if (!mounted) return;
     Get.snackbar(
       'Code copied',
@@ -127,28 +163,51 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
               border: Border.all(color: Colors.black12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      _code,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 4,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
+            child: _isLoadingCode || _isRegenerating
+                ? Center(
+                    child: SizedBox(
+                      width: Dimensions.twentyFour,
+                      height: Dimensions.twentyFour,
+                      child: const CircularProgressIndicator(
+                        color: Colors.black,
+                        strokeWidth: 2,
+                      ),
                     ),
+                  )
+                : _loadError != null
+                ? Column(
+                    children: [
+                      Text(_loadError!, textAlign: TextAlign.center),
+                      TextButton(
+                        onPressed: _loadCode,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            _code ?? '',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 4,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Copy code',
+                        onPressed: _codeReady ? _copyCode : null,
+                        icon: const Icon(Icons.copy_outlined),
+                      ),
+                    ],
                   ),
-                ),
-                IconButton(
-                  tooltip: 'Copy code',
-                  onPressed: _isRegenerating ? null : _copyCode,
-                  icon: const Icon(Icons.copy_outlined),
-                ),
-              ],
-            ),
           ),
           SizedBox(height: Dimensions.twentyFour),
           Text(
@@ -161,22 +220,24 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
           _ChannelRow(
             icon: Icons.sms_outlined,
             label: 'Via SMS',
+            enabled: _codeReady,
             onTap: () {
-              if (_isRegenerating) return;
+              if (!_codeReady) return;
               Get.back();
-              InviteService.sendSmsInvite(phone: widget.phone, code: _code);
+              InviteService.sendSmsInvite(phone: widget.phone, code: _code!);
             },
           ),
           SizedBox(height: Dimensions.twelve),
           _ChannelRow(
             icon: Icons.chat_bubble_outline_rounded,
             label: 'Via WhatsApp',
+            enabled: _codeReady,
             onTap: () {
-              if (_isRegenerating) return;
+              if (!_codeReady) return;
               Get.back();
               InviteService.sendWhatsAppInvite(
                 phone: widget.phone,
-                code: _code,
+                code: _code!,
               );
             },
           ),
@@ -185,7 +246,7 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: _isRegenerating ? null : _regenerate,
+                onPressed: _codeReady ? _regenerate : null,
                 icon: _isRegenerating
                     ? const SizedBox(
                         width: 16,
@@ -219,15 +280,17 @@ class _ChannelRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.enabled = true,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
+    onTap: enabled ? onTap : null,
     borderRadius: BorderRadius.circular(12),
     child: Container(
       padding: EdgeInsets.all(Dimensions.sixteen),
@@ -248,7 +311,12 @@ class _ChannelRow extends StatelessWidget {
           ),
           SizedBox(width: Dimensions.twelve),
           Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: enabled ? Colors.black : Colors.black26,
+              ),
+            ),
           ),
           const Icon(Icons.chevron_right, color: Colors.black26),
         ],

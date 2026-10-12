@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/formatters/south_african_phone_input_formatter.dart';
 import 'package:seizure_app/core/helpers/phone_number.dart';
-import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
@@ -74,7 +73,6 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
   bool _notifyViaPush = true;
   bool _sendInvite = true;
   bool _isSaving = false;
-  bool _isCreatingInvite = false;
 
   bool get _isEditing => widget.existingContact != null;
 
@@ -133,29 +131,14 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
     if (success) {
       final contactToInvite = createdContact;
       if (!_isEditing && _sendInvite && contactToInvite != null) {
-        setState(() {
-          _isSaving = false;
-          _isCreatingInvite = true;
-        });
-        final result = await widget.onSendInvite(contactId: contactToInvite.id);
-        if (!mounted) return;
+        final sendInvite = widget.onSendInvite;
         Get.back();
-        if (!result.isSuccess || result.data == null) {
-          Get.snackbar(
-            'Invite unavailable',
-            result.error ??
-                'The invite could not be created. Please try again.',
-            snackPosition: SnackPosition.BOTTOM,
-            margin: snackbarMargin,
-          );
-          return;
-        }
         AppBottomSheet.show(
           context: Get.context!,
           builder: (_) => InvitePickerSheet(
             phone: contactToInvite.phone,
             contactName: contactToInvite.name,
-            code: result.data!,
+            loadCode: () => sendInvite(contactId: contactToInvite.id),
             onRegenerate: () =>
                 CircleInviteService.instance().createCircleInvite(
                   contactId: contactToInvite.id,
@@ -176,25 +159,6 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isCreatingInvite) {
-      return AppBottomSheetContent(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: Dimensions.thirtyTwo),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: Colors.black),
-              SizedBox(height: Dimensions.sixteen),
-              Text(
-                'Creating invite…',
-                style: context.theme.textTheme.bodyMedium,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return AppBottomSheetContent(
       child: Form(
         key: _formKey,

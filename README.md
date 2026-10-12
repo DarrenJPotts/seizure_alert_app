@@ -89,6 +89,25 @@ An active Apple Developer membership is required to register the App Group and
 sign the extension. The native WidgetKit target must receive its final build
 verification on macOS with Xcode.
 
+## Android toolchain and support configuration
+
+Android builds use Gradle 9.3.1, Android Gradle Plugin 9.1.0, Kotlin 2.4.0,
+and Java 17. The Flutter compatibility flags in `android/gradle.properties`
+retain the legacy Kotlin plugin and Android DSL for dependencies that still
+require them. Debug and release builds use the same toolchain; release signing
+is configured through the existing local key properties or environment values.
+
+`lib/core/constants/support_config.dart` supplies temporary support defaults:
+`potts.darren@gmaul.com` and `https://example.com/seizure-alert/privacy`.
+The privacy URL is a placeholder. Override them without editing source:
+
+```powershell
+flutter build apk --release --dart-define=SUPPORT_EMAIL=your-support-address --dart-define=PRIVACY_URL=https://your-domain/privacy
+```
+
+For the Windows Java socket-directory workaround, see
+`docs/production/validation-2026-10-12.md`.
+
 ## Safety readiness and Garmin companion
 
 The Profile screen includes **Safety readiness**. It checks this phone's

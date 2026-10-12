@@ -54,6 +54,7 @@ class AppBottomSheetContent extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Padding(
             padding: EdgeInsets.only(top: Dimensions.twelve),

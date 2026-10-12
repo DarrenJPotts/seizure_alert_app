@@ -11,6 +11,7 @@ import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/services/home_widget_service.dart';
+import 'package:seizure_app/core/services/local_notifications_service.dart';
 import 'package:seizure_app/core/widgets/offline_banner.dart';
 import 'package:seizure_app/features/alert_history/alert_history_view.dart';
 import 'package:seizure_app/features/alert_history/view_models/alert_history_view_model.dart';
@@ -112,6 +113,20 @@ class RootViewModel extends GetxController {
 
     try {
       final result = await FirestoreService.instance().getUser(uid);
+      if (FirebaseAuth.instance.currentUser?.uid != uid) return;
+      if (result.isSuccess &&
+          result.data != null &&
+          Get.isRegistered<LocalNotificationsService>()) {
+        try {
+          await Get.find<LocalNotificationsService>()
+              .replaceMedicationReminders(
+                previous: const [],
+                current: result.data!.medicationReminders,
+              );
+        } catch (_) {
+          debugPrint('[RootViewModel] Could not restore medication schedules');
+        }
+      }
       if (!result.isSuccess && result.error == 'User not found') {
         Get.offAllNamed(
           AppRoutes.onboarding,

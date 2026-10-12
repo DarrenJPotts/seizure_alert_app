@@ -1,11 +1,16 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/dtos/medication_reminder_dto.dart';
+import 'package:seizure_app/core/helpers/medication_schedule.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
-class LocalNotificationsService extends GetxService {
+class LocalNotificationsService extends GetxService
+    with WidgetsBindingObserver {
   late FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
 
   final _androidInitializationSettings = const AndroidInitializationSettings(
@@ -44,6 +49,8 @@ class LocalNotificationsService extends GetxService {
   );
 
   bool _isFlutterLocalNotificationInitialized = false;
+  List<MedicationReminderDto> _medicationReminders = <MedicationReminderDto>[];
+  Future<void> _reminderOperations = Future<void>.value();
 
   int _notificationIdCounter = 0;
 
@@ -80,9 +87,8 @@ class LocalNotificationsService extends GetxService {
           ?.createNotificationChannel(_medicationChannel);
 
       tz_data.initializeTimeZones();
-      tz.setLocalLocation(tz.getLocation('Africa/Johannesburg'));
-
       _isFlutterLocalNotificationInitialized = true;
+      WidgetsBinding.instance.addObserver(this);
     } catch (e) {
       debugPrint('[LocalNotificationsService] Error initializing: $e');
     }
@@ -201,38 +207,77 @@ class LocalNotificationsService extends GetxService {
   Future<void> replaceMedicationReminders({
     required List<MedicationReminderDto> previous,
     required List<MedicationReminderDto> current,
+  }) {
+    final savedPrevious = List<MedicationReminderDto>.of(previous);
+    final savedCurrent = List<MedicationReminderDto>.of(current);
+    return _queueReminderOperation(
+      () => _replaceMedicationReminders(
+        previous: savedPrevious,
+        current: savedCurrent,
+      ),
+    );
+  }
+
+  Future<void> _queueReminderOperation(Future<void> Function() operation) {
+    final result = _reminderOperations.then((_) => operation());
+    _reminderOperations = result.catchError((Object _) {});
+    return result;
+  }
+
+  Future<void> _replaceMedicationReminders({
+    required List<MedicationReminderDto> previous,
+    required List<MedicationReminderDto> current,
   }) async {
-    if (!_isFlutterLocalNotificationInitialized) return;
-    for (final MedicationReminderDto reminder in <MedicationReminderDto>{
-      ...previous,
-      ...current,
-    }) {
-      await _flutterLocalNotificationsPlugin.cancel(
-        id: _medicationNotificationId(reminder.id),
-      );
+    if (!_isFlutterLocalNotificationInitialized) {
+      throw StateError('Local notifications are unavailable');
     }
+    if (current.any((reminder) => reminder.enabled)) {
+      final deviceZone = await FlutterTimezone.getLocalTimezone();
+      // Resolve before cancelling existing reminders. Never silently use UTC
+      // or a fixed regional timezone when device detection fails.
+      tz.setLocalLocation(tz.getLocation(deviceZone.identifier));
+    }
+    final now = tz.TZDateTime.now(tz.local);
+    final scheduleDates = <String, tz.TZDateTime>{
+      for (final reminder in current)
+        if (reminder.enabled)
+          reminder.id: nextMedicationReminder(
+            now: now,
+            hour: reminder.hour,
+            minute: reminder.minute,
+          ),
+    };
+    final ids = <int>{
+      for (final reminder in <MedicationReminderDto>{
+        ...previous,
+        ..._medicationReminders,
+        ...current,
+      })
+        _medicationNotificationId(reminder.id),
+    };
+    // Native schedules survive process restarts. Cancel stale medication IDs
+    // without touching emergency notifications or writing another health cache.
+    final pending = await _flutterLocalNotificationsPlugin
+        .pendingNotificationRequests();
+    ids.addAll(
+      pending
+          .where((item) => item.id >= 100000 && item.id < 800000)
+          .map((item) => item.id),
+    );
+    for (final id in ids) {
+      await _flutterLocalNotificationsPlugin.cancel(id: id);
+    }
+    _medicationReminders = List<MedicationReminderDto>.of(current);
 
     for (final MedicationReminderDto reminder in current) {
       if (!reminder.enabled) continue;
-      final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-      tz.TZDateTime scheduled = tz.TZDateTime(
-        tz.local,
-        now.year,
-        now.month,
-        now.day,
-        reminder.hour,
-        reminder.minute,
-      );
-      if (!scheduled.isAfter(now)) {
-        scheduled = scheduled.add(const Duration(days: 1));
-      }
       await _flutterLocalNotificationsPlugin.zonedSchedule(
         id: _medicationNotificationId(reminder.id),
         title: 'Medication reminder',
         body: reminder.dose?.trim().isNotEmpty == true
             ? '${reminder.name} — ${reminder.dose!.trim()}'
             : reminder.name,
-        scheduledDate: scheduled,
+        scheduledDate: scheduleDates[reminder.id]!,
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             medicationChannelId,
@@ -259,6 +304,35 @@ class LocalNotificationsService extends GetxService {
     return 100000 + hash % 700000;
   }
 
+  Future<void> clearMedicationReminders() => _queueReminderOperation(() async {
+    if (!_isFlutterLocalNotificationInitialized) {
+      _medicationReminders = <MedicationReminderDto>[];
+      return;
+    }
+    await _replaceMedicationReminders(
+      previous: _medicationReminders,
+      current: const <MedicationReminderDto>[],
+    );
+  });
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    unawaited(
+      _queueReminderOperation(() async {
+        if (_medicationReminders.isEmpty) return;
+        await _replaceMedicationReminders(
+          previous: _medicationReminders,
+          current: _medicationReminders,
+        );
+      }).catchError((Object _) {
+        debugPrint(
+          '[LocalNotificationsService] Could not refresh medication schedules',
+        );
+      }),
+    );
+  }
+
   Future<void> cancelAllNotifications() async {
     try {
       await _flutterLocalNotificationsPlugin.cancelAll();
@@ -272,6 +346,7 @@ class LocalNotificationsService extends GetxService {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     debugPrint('[LocalNotificationsService] closing');
     super.onClose();
   }

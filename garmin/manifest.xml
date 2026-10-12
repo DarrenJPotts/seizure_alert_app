@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+  <iq:application
+      id="B4D4B83563B74286A72E19C401571EAA"
+      type="watch-app"
+      name="@Strings.AppName"
+      entry="SeizureAlertApp"
+      launcherIcon="@Drawables.LauncherIcon"
+      minApiLevel="3.2.0">
+    <iq:products>
+      <iq:product id="fenix7"/>
+      <iq:product id="fenix7pro"/>
+      <iq:product id="fr965"/>
+      <iq:product id="venu3"/>
+      <iq:product id="vivoactive5"/>
+    </iq:products>
+    <iq:permissions>
+      <iq:uses-permission id="Communications"/>
+    </iq:permissions>
+    <iq:languages>
+      <iq:language>eng</iq:language>
+    </iq:languages>
+  </iq:application>
+</iq:manifest>

@@ -6,6 +6,7 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/services/alert_drill_service.dart';
+import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
@@ -65,6 +66,13 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
         readyCount > 0 &&
         notificationsAuthorized &&
         tokenReady;
+    final mode = Get.isRegistered<AppModeService>()
+        ? Get.find<AppModeService>() : null;
+    final complete = ready && !sendingTest && !notificationsLoading &&
+        testedCount == readyCount && offlineCount == 0 && failedCount == 0;
+    if (complete && (mode?.hideCompletedSetup.value ?? false)) {
+      return const SizedBox.shrink();
+    }
     final String title;
     final String detail;
     final String actionLabel;
@@ -207,6 +215,15 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
                 ),
               ),
               SizedBox(width: Dimensions.eight),
+              if (complete && mode != null)
+                IconButton(
+                  tooltip: 'Hide completed setup check',
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    mode.setHideCompletedSetup(true);
+                  },
+                  icon: const Icon(Icons.close),
+                ),
               Text(
                 actionLabel,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
