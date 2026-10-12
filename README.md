@@ -50,7 +50,75 @@ current `seizure-alert-app` project it disables emergency alert functions too.
 
 Second-generation functions have no minimum instances and a five-instance
 maximum per function. Callable read/fan-out paths also have per-user rate limits
-in `functions/index.js`. The Heads Up expiry sweep, if deployed, runs once per
-minute and processes at most 200 records per run. The Firestore kill switch at
-`system/functionsConfig` disables function work after its cache expires; it
-does not block Firestore client reads/writes.
+in `functions/index.js`. Each active Heads Up creates one delayed task for its
+expiry; there is no idle scheduler or polling function. The Firestore kill
+switch at `system/functionsConfig` disables function work after its cache
+expires; it does not block Firestore client reads/writes.
+
+The caregiver alert drill is entirely user initiated. It invokes
+`sendCaregiverTestAlert` once, creates no alert or seizure document, records a
+server-owned delivery result on each linked contact, and has no
+timer or background worker. App Check and authentication are required; the
+server selects accepted push-enabled contacts, caps the request at 20 unique
+device tokens, and permits two attempts per user in ten minutes. Test pushes
+expire after five minutes so a delayed notification cannot be mistaken for a
+current drill.
+
+## iOS Home Screen widget
+
+The iOS widget uses WidgetKit and the `home_widget` package. It reads only the
+privacy-safe status written by the app and opens the existing SOS countdown
+through the `seizurealert://widget/sos` link. Its timeline does not poll or run
+on a schedule, so the widget does not create Firebase activity while idle.
+
+Apple requires the shared App Group to be registered before the widget can run
+on a physical device or distribution build:
+
+1. In the Apple Developer portal, create the App Group
+   `group.com.darren.potts.seizureApp`.
+2. Enable that App Group for both App IDs:
+   `com.darren.potts.seizureApp` and
+   `com.darren.potts.seizureApp.SeizureAlertWidget`.
+3. On a Mac, open `ios/Runner.xcworkspace` in Xcode. Select the development team
+   and signing profile for both the `Runner` and `SeizureAlertWidget` targets.
+4. Confirm that both targets show
+   `group.com.darren.potts.seizureApp` under Signing & Capabilities → App Groups.
+5. Run the app once, then add **Seizure Alert** from the iOS widget gallery.
+
+An active Apple Developer membership is required to register the App Group and
+sign the extension. The native WidgetKit target must receive its final build
+verification on macOS with Xcode.
+
+## Safety readiness and Garmin companion
+
+The Profile screen includes **Safety readiness**. It checks this phone's
+network, push registration, location permission, connected caregivers, recent
+caregiver delivery drills, and paired wearables. These checks describe current
+setup state and do not claim guaranteed emergency delivery.
+
+The Connect IQ companion source is in `garmin/`. It supports a user-started SOS
+with a ten-second cancellation window, Heads Up timers, check-in, safety status,
+and battery heartbeat. Pairing uses a short-lived six-digit code. The watch
+exchanges that code for a revocable random credential; only a hash of the
+credential is stored in Firestore.
+
+Build the watch app with the Garmin Connect IQ SDK and a Garmin developer key.
+The SDK is not included in this repository. See `garmin/README.md` for device
+targets and build commands. Automatic seizure detection is intentionally out of
+scope until it has a separately validated clinical and regulatory path.
+
+## Safety plan, medication reminders, and reports
+
+Users can save caregiver instructions, rescue-medication details, an emergency
+call threshold, and daily on-device medication reminders under **Safety plan &
+medication**. Reminders use local notifications and do not invoke Firebase while
+idle. The optional nearby audible SOS notice is also generated locally.
+
+Seizure records support type, severity, awareness, aura, injuries, recovery
+time, and rescue-medication use. The log includes a monthly calendar and 90-day
+summary, and can share a user-entered PDF and CSV report through the operating
+system share sheet.
+
+Unanswered alert escalation is event-driven. An alert schedules one delayed
+task, then at most two further stages when nobody has responded. There is no
+polling function, scheduler, or warm instance.

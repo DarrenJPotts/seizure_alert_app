@@ -25,7 +25,10 @@ void main() {
 
     test('reaches five of six by the account screen', () {
       expect(OnboardingStep.createAccount.completed, 5);
-      expect(OnboardingStep.createAccount.completed, lessThan(OnboardingStep.total));
+      expect(
+        OnboardingStep.createAccount.completed,
+        lessThan(OnboardingStep.total),
+      );
     });
 
     test('runs in flow order with no gaps', () {
@@ -85,7 +88,12 @@ void main() {
       expect(vm.nextLabel, 'Skip for now');
 
       vm.contactNameController.text = 'Naledi';
-      expect(vm.nextLabel, 'Next', reason: 'stops offering to skip once they start');
+      vm.onEmergencyContactChanged('Naledi');
+      expect(
+        vm.nextLabel,
+        'Next',
+        reason: 'stops offering to skip once they start',
+      );
     });
 
     test('lets the permissions step through either way', () {
@@ -166,7 +174,9 @@ void main() {
   });
 
   group('OnboardingProgress', () {
-    testWidgets('fills one segment before the user has done anything', (WidgetTester tester) async {
+    testWidgets('fills one segment before the user has done anything', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         wrap(
           OnboardingProgress(
@@ -182,7 +192,9 @@ void main() {
       expect(_filledSegments(tester), 1);
     });
 
-    testWidgets('fills five by the account screen', (WidgetTester tester) async {
+    testWidgets('fills five by the account screen', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         wrap(
           OnboardingProgress(
@@ -197,14 +209,20 @@ void main() {
       expect(_filledSegments(tester), 5);
     });
 
-    testWidgets('exposes the step position to a screen reader', (WidgetTester tester) async {
+    testWidgets('exposes the step position to a screen reader', (
+      WidgetTester tester,
+    ) async {
       // The bar is purely visual; without this the progress is invisible to
       // anyone using a screen reader.
       final SemanticsHandle handle = tester.ensureSemantics();
 
       await tester.pumpWidget(
         wrap(
-          const OnboardingProgress(completed: 2, total: 6, label: 'Emergency contact'),
+          const OnboardingProgress(
+            completed: 2,
+            total: 6,
+            label: 'Emergency contact',
+          ),
         ),
       );
 
@@ -217,7 +235,13 @@ void main() {
 /// Segments painted black rather than `Colors.black12`.
 int _filledSegments(WidgetTester tester) => tester
     .widgetList<AnimatedContainer>(
-      find.descendant(of: find.byType(OnboardingProgress), matching: find.byType(AnimatedContainer)),
+      find.descendant(
+        of: find.byType(OnboardingProgress),
+        matching: find.byType(AnimatedContainer),
+      ),
     )
-    .where((AnimatedContainer c) => (c.decoration as BoxDecoration?)?.color == Colors.black)
+    .where(
+      (AnimatedContainer c) =>
+          (c.decoration as BoxDecoration?)?.color == Colors.black,
+    )
     .length;

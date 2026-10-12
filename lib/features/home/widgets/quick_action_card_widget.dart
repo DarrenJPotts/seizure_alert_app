@@ -7,7 +7,12 @@ class QuickActionCard extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
 
-  const QuickActionCard({super.key, required this.icon, required this.label, required this.onTap});
+  const QuickActionCard({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   State<QuickActionCard> createState() => _QuickActionCardState();
@@ -39,7 +44,9 @@ class _QuickActionCardState extends State<QuickActionCard> {
           padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
           decoration: BoxDecoration(
             color: _isPressed ? Colors.black : Colors.transparent,
-            border: Border.all(color: _isPressed ? Colors.black : Colors.black12),
+            border: Border.all(
+              color: _isPressed ? Colors.black : Colors.black12,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -48,7 +55,9 @@ class _QuickActionCardState extends State<QuickActionCard> {
               Icon(widget.icon, size: Dimensions.twentyFour, color: foreground),
               Text(
                 widget.label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: foreground),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: foreground),
                 textAlign: TextAlign.center,
               ),
             ],

@@ -27,9 +27,7 @@ class CallService {
 
     try {
       if (await canLaunchUrl(uri) && await launchUrl(uri)) return;
-    } catch (_) {
-
-    }
+    } catch (_) {}
 
     await Clipboard.setData(ClipboardData(text: normalized));
     _notify('Could not open dialler', '$normalized copied to clipboard.');
@@ -42,7 +40,10 @@ class CallService {
       titleText: Text(
         title,
         style: const TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
       ),
       messageText: Text(message, style: const TextStyle(color: Colors.white)),
       snackPosition: SnackPosition.BOTTOM,

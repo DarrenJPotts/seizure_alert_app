@@ -34,7 +34,11 @@ class OnboardingStepConsent extends StatelessWidget {
           'Seizure Alert stores health information about you and shares it with '
           'the emergency contacts you choose. South African law requires your '
           'explicit agreement first.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.55, color: Colors.black54),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontSize: 15,
+            height: 1.55,
+            color: Colors.black54,
+          ),
         ),
         SizedBox(height: Dimensions.twentyFour),
         const _WhatThisMeans(),
@@ -63,14 +67,25 @@ class OnboardingStepConsent extends StatelessWidget {
 class _WhatThisMeans extends StatelessWidget {
   const _WhatThisMeans();
 
-  static const List<({IconData icon, String text})> _points = <({IconData icon, String text})>[
-    (icon: Icons.medical_information_outlined, text: 'Your seizure log and medical details are stored for you.'),
+  static const List<({IconData icon, String text})>
+  _points = <({IconData icon, String text})>[
+    (
+      icon: Icons.medical_information_outlined,
+      text: 'Your seizure log and medical details are stored for you.',
+    ),
     (
       icon: Icons.group_outlined,
-      text: 'Only the contacts you add can see them, and only when you send an alert.',
+      text:
+          'Only the contacts you add can see them, and only when you send an alert.',
     ),
-    (icon: Icons.location_on_outlined, text: 'Your location is captured when you alert — never continuously.'),
-    (icon: Icons.delete_outline, text: 'You can delete your account and everything in it at any time.'),
+    (
+      icon: Icons.location_on_outlined,
+      text: 'Your location is captured when you alert — never continuously.',
+    ),
+    (
+      icon: Icons.delete_outline,
+      text: 'You can delete your account and everything in it at any time.',
+    ),
   ];
 
   @override
@@ -94,7 +109,9 @@ class _WhatThisMeans extends StatelessWidget {
               Expanded(
                 child: Text(
                   _points[i].text,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 14, height: 1.5),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontSize: 14, height: 1.5),
                 ),
               ),
             ],
@@ -131,16 +148,25 @@ class _ConsentCheckbox extends StatelessWidget {
                 height: 24,
                 decoration: BoxDecoration(
                   color: value ? Colors.black : Colors.white,
-                  border: value ? null : Border.all(color: Colors.black.withValues(alpha: 0.3), width: 1.5),
+                  border: value
+                      ? null
+                      : Border.all(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: value ? const Icon(Icons.check, size: 18, color: Colors.white) : null,
+                child: value
+                    ? const Icon(Icons.check, size: 18, color: Colors.white)
+                    : null,
               ),
               SizedBox(width: Dimensions.fourteen),
               Expanded(
                 child: Text(
                   PrivacyNotice.consentSummary,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 14, height: 1.5),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontSize: 14, height: 1.5),
                 ),
               ),
             ],

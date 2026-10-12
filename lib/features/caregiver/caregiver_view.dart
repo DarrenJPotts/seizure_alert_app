@@ -9,22 +9,45 @@ import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/widgets/live_indicator.dart';
 import 'package:seizure_app/features/caregiver/view_models/caregiver_view_model.dart';
 import 'package:seizure_app/features/caregiver/widgets/caregiver_avatar.dart';
+import 'package:seizure_app/features/caregiver/widgets/caregiver_readiness_card.dart';
+import 'package:seizure_app/features/root/widgets/mode_badge.dart';
 
 class CaregiverView extends GetView<CaregiverViewModel> {
-  const CaregiverView({super.key, this.onOpenProfile});
+  const CaregiverView({
+    super.key,
+    this.onOpenProfile,
+    required this.onToggleMode,
+    required this.switchingMode,
+  });
 
   final VoidCallback? onOpenProfile;
+  final VoidCallback onToggleMode;
+  final bool switchingMode;
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _Header(onOpenProfile: onOpenProfile),
+      _Header(
+        onOpenProfile: onOpenProfile,
+        onToggleMode: onToggleMode,
+        switchingMode: switchingMode,
+      ),
+      Padding(
+        padding: EdgeInsets.fromLTRB(
+          Dimensions.twenty,
+          Dimensions.sixteen,
+          Dimensions.twenty,
+          0,
+        ),
+        child: const CaregiverReadinessCard(),
+      ),
       Expanded(
         child: Obx(() {
           final GenericScreenStates state = controller.screenState.value;
 
-          if (state == GenericScreenStates.loading || state == GenericScreenStates.initial) {
+          if (state == GenericScreenStates.loading ||
+              state == GenericScreenStates.initial) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -33,17 +56,23 @@ class CaregiverView extends GetView<CaregiverViewModel> {
               icon: Icons.error_outline,
               message: 'Could not load your watch list',
               action: TextButton(
-                onPressed: () => controller.loadPeopleIWatch(forceRefresh: true),
+                onPressed: () =>
+                    controller.loadPeopleIWatch(forceRefresh: true),
                 child: const Text('Try again'),
               ),
             );
           }
 
           if (state == GenericScreenStates.empty) {
-            return const _EmptyState(
+            return _EmptyState(
               icon: Icons.shield_outlined,
               message: 'You are not watching anyone yet',
-              detail: 'When someone adds you as an emergency contact and you accept, they appear here.',
+              detail:
+                  'When someone adds you as an emergency contact and you accept, they appear here.',
+              action: TextButton(
+                onPressed: () => Get.toNamed(AppRoutes.circleInvite),
+                child: const Text('Enter invite code'),
+              ),
             );
           }
 
@@ -57,11 +86,13 @@ class CaregiverView extends GetView<CaregiverViewModel> {
                 Dimensions.twentyFour,
               ),
               children: <Widget>[
-                for (final WatchedPersonDto person in controller.sortedPeople) ...<Widget>[
+                for (final WatchedPersonDto person
+                    in controller.sortedPeople) ...<Widget>[
                   _PersonCard(person: person),
                   SizedBox(height: Dimensions.twentyTwo),
                 ],
-                if (controller.recentActivity.isNotEmpty) const _RecentActivitySection(),
+                if (controller.recentActivity.isNotEmpty)
+                  const _RecentActivitySection(),
               ],
             ),
           );
@@ -72,16 +103,27 @@ class CaregiverView extends GetView<CaregiverViewModel> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({this.onOpenProfile});
+  const _Header({
+    this.onOpenProfile,
+    required this.onToggleMode,
+    required this.switchingMode,
+  });
 
   final VoidCallback? onOpenProfile;
+  final VoidCallback onToggleMode;
+  final bool switchingMode;
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.eight, Dimensions.twenty, 0),
+      padding: EdgeInsets.fromLTRB(
+        Dimensions.twenty,
+        Dimensions.eight,
+        Dimensions.twenty,
+        0,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
@@ -89,28 +131,10 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: Dimensions.ten, vertical: Dimensions.four),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: scheme.outline),
-                    borderRadius: BorderRadius.circular(Dimensions.circular),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Icon(Icons.shield_outlined, size: 14, color: scheme.onSurface),
-                      SizedBox(width: Dimensions.six),
-                      Text(
-                        'CAREGIVER',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurface,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
-                    ],
-                  ),
+                ModeBadge(
+                  caregiver: true,
+                  loading: switchingMode,
+                  onTap: onToggleMode,
                 ),
                 SizedBox(height: Dimensions.six),
                 Text(
@@ -123,15 +147,16 @@ class _Header extends StatelessWidget {
                   ),
                 ),
                 Obx(() {
-                  final DateTime? at = Get.find<CaregiverViewModel>().lastUpdatedAt.value;
+                  final DateTime? at =
+                      Get.find<CaregiverViewModel>().lastUpdatedAt.value;
                   if (at == null) return const SizedBox.shrink();
                   return Padding(
                     padding: EdgeInsets.only(top: Dimensions.four),
                     child: Text(
                       'Updated ${_relativeLong(at)}  ·  pull to refresh',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   );
                 }),
@@ -141,7 +166,11 @@ class _Header extends StatelessWidget {
           if (onOpenProfile != null)
             GestureDetector(
               onTap: onOpenProfile,
-              child: Semantics(button: true, label: 'Open profile', child: const CaregiverAvatar(name: null, size: 34)),
+              child: Semantics(
+                button: true,
+                label: 'Open profile',
+                child: const CaregiverAvatar(name: null, size: 34),
+              ),
             ),
         ],
       ),
@@ -177,8 +206,12 @@ class _PersonCard extends StatelessWidget {
               CaregiverAvatar(
                 name: person.ownerName,
                 size: 44,
-                background: inverted ? scheme.onInverseSurface : scheme.inverseSurface,
-                foreground: inverted ? scheme.inverseSurface : scheme.onInverseSurface,
+                background: inverted
+                    ? scheme.onInverseSurface
+                    : scheme.inverseSurface,
+                foreground: inverted
+                    ? scheme.inverseSurface
+                    : scheme.onInverseSurface,
               ),
               SizedBox(width: Dimensions.twelve),
               Expanded(
@@ -187,9 +220,11 @@ class _PersonCard extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       person.ownerName,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(color: ink, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: ink,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
+                      ),
                     ),
                     SizedBox(height: Dimensions.three),
                     _StatusLine(person: person, ink: ink),
@@ -209,44 +244,67 @@ class _PersonCard extends StatelessWidget {
                     ? null
                     : () => Get.toNamed(
                         AppRoutes.incomingAlert,
-                        arguments: <String, String?>{'alertId': person.activeAlertId},
+                        arguments: <String, String?>{
+                          'alertId': person.activeAlertId,
+                        },
                       ),
 
-style: ElevatedButton.styleFrom(
+                style: ElevatedButton.styleFrom(
                   backgroundColor: scheme.onInverseSurface,
-                  disabledBackgroundColor: scheme.onInverseSurface.withValues(alpha: 0.24),
+                  disabledBackgroundColor: scheme.onInverseSurface.withValues(
+                    alpha: 0.24,
+                  ),
                   foregroundColor: scheme.inverseSurface,
                   disabledForegroundColor: scheme.inverseSurface,
                   padding: EdgeInsets.symmetric(vertical: Dimensions.fourteen),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text('Open alert'),
               ),
             ),
-          ] else if (person.status == WatchedPersonStatus.headsUp && person.headsUpNote.isNotNullOrEmpty) ...<Widget>[
+          ] else if (person.status == WatchedPersonStatus.headsUp &&
+              person.headsUpNote.isNotNullOrEmpty) ...<Widget>[
             SizedBox(height: Dimensions.fourteen),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: Dimensions.fourteen, vertical: Dimensions.twelve),
+              padding: EdgeInsets.symmetric(
+                horizontal: Dimensions.fourteen,
+                vertical: Dimensions.twelve,
+              ),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHigh,
-                border: Border(left: BorderSide(color: scheme.onSurface, width: 2)),
-                borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+                border: Border(
+                  left: BorderSide(color: scheme.onSurface, width: 2),
+                ),
+                borderRadius: const BorderRadius.horizontal(
+                  right: Radius.circular(10),
+                ),
               ),
               child: Text(
                 '"${person.headsUpNote}"',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 14, height: 1.5),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontSize: 14, height: 1.5),
               ),
             ),
-          ] else if (person.daysSinceLastSeizure != null || person.lastAlertAt != null) ...<Widget>[
+          ] else if (person.daysSinceLastSeizure != null ||
+              person.lastAlertAt != null) ...<Widget>[
             SizedBox(height: Dimensions.sixteen),
             Row(
               spacing: Dimensions.eight,
               children: <Widget>[
                 if (person.daysSinceLastSeizure != null)
-                  _StatChip(label: 'Seizure-free', value: '${person.daysSinceLastSeizure}d'),
+                  _StatChip(
+                    label: 'Seizure-free',
+                    value: '${person.daysSinceLastSeizure}d',
+                  ),
                 if (person.lastAlertAt != null)
-                  _StatChip(label: 'Last alert', value: _relativeShort(person.lastAlertAt!)),
+                  _StatChip(
+                    label: 'Last alert',
+                    value: _relativeShort(person.lastAlertAt!),
+                  ),
               ],
             ),
           ],
@@ -264,18 +322,23 @@ class _StatusLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle? style = Theme.of(
-      context,
-    ).textTheme.bodyLarge?.copyWith(fontSize: 13, color: ink.withValues(alpha: 0.5));
+    final TextStyle? style = Theme.of(context).textTheme.bodyLarge?.copyWith(
+      fontSize: 13,
+      color: ink.withValues(alpha: 0.5),
+    );
 
     switch (person.status) {
       case WatchedPersonStatus.sos:
         return LiveStatusLabel(
-          label: 'SOS sent${person.lastAlertAt == null ? '' : ' · ${_relativeLong(person.lastAlertAt!)}'}',
+          label:
+              'SOS sent${person.lastAlertAt == null ? '' : ' · ${_relativeLong(person.lastAlertAt!)}'}',
           color: ink,
           indicatorSize: 12,
           gap: Dimensions.six,
-          textStyle: style?.copyWith(color: ink.withValues(alpha: 0.7), fontWeight: FontWeight.w600),
+          textStyle: style?.copyWith(
+            color: ink.withValues(alpha: 0.7),
+            fontWeight: FontWeight.w600,
+          ),
         );
 
       case WatchedPersonStatus.headsUp:
@@ -322,9 +385,16 @@ class _CallButton extends StatelessWidget {
         height: 44,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: ink.withValues(alpha: person.ownerPhone == null ? 0.25 : 1), width: 1.5),
+          border: Border.all(
+            color: ink.withValues(alpha: person.ownerPhone == null ? 0.25 : 1),
+            width: 1.5,
+          ),
         ),
-        child: Icon(Icons.call, size: 20, color: ink.withValues(alpha: person.ownerPhone == null ? 0.25 : 1)),
+        child: Icon(
+          Icons.call,
+          size: 20,
+          color: ink.withValues(alpha: person.ownerPhone == null ? 0.25 : 1),
+        ),
       ),
     ),
   );
@@ -352,18 +422,21 @@ class _StatChip extends StatelessWidget {
           children: <Widget>[
             Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(fontSize: 11, color: scheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontSize: 11,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
               ),
             ),
           ],
@@ -384,7 +457,10 @@ class _RecentActivitySection extends GetView<CaregiverViewModel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Padding(
-          padding: EdgeInsets.only(left: Dimensions.two, bottom: Dimensions.ten),
+          padding: EdgeInsets.only(
+            left: Dimensions.two,
+            bottom: Dimensions.ten,
+          ),
           child: Text(
             'RECENT ACTIVITY',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -404,7 +480,11 @@ class _RecentActivitySection extends GetView<CaregiverViewModel> {
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: <Widget>[
-              for (int i = 0; i < controller.recentActivity.length; i++) ...<Widget>[
+              for (
+                int i = 0;
+                i < controller.recentActivity.length;
+                i++
+              ) ...<Widget>[
                 if (i > 0) const Divider(height: 1, thickness: 1),
                 _ActivityRow(event: controller.recentActivity[i]),
               ],
@@ -432,7 +512,9 @@ class _ActivityRow extends StatelessWidget {
         child: Row(
           children: <Widget>[
             Icon(
-              event.kind == 'sos' ? Icons.emergency_outlined : Icons.warning_amber_rounded,
+              event.kind == 'sos'
+                  ? Icons.emergency_outlined
+                  : Icons.warning_amber_rounded,
               size: 20,
               color: scheme.onSurface,
             ),
@@ -441,14 +523,18 @@ class _ActivityRow extends StatelessWidget {
               child: Text(
                 '${event.personName.split(' ').first} · ${event.label}',
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w500),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             Text(
               _clockOrDate(event.at),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(fontSize: 13, color: scheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontSize: 13,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -458,7 +544,12 @@ class _ActivityRow extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.message, this.detail, this.action});
+  const _EmptyState({
+    required this.icon,
+    required this.message,
+    this.detail,
+    this.action,
+  });
 
   final IconData icon;
   final String message;
@@ -480,13 +571,17 @@ class _EmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             if (detail != null)
               Text(
                 detail!,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ?action,
           ],
@@ -513,7 +608,10 @@ String _relativeShort(DateTime at) {
 
 String _clockOrDate(DateTime at) {
   final DateTime now = DateTime.now();
-  final String hhmm = '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
-  if (at.year == now.year && at.month == now.month && at.day == now.day) return hhmm;
+  final String hhmm =
+      '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+  if (at.year == now.year && at.month == now.month && at.day == now.day) {
+    return hhmm;
+  }
   return '${at.day}/${at.month}';
 }

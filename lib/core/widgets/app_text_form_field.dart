@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+
 class AppTextFormField extends StatelessWidget {
   const AppTextFormField({
     super.key,
@@ -33,16 +34,16 @@ class AppTextFormField extends StatelessWidget {
     this.focusNode,
   });
 
-final TextEditingController controller;
+  final TextEditingController controller;
 
-final String labelText;
+  final String labelText;
   final String? hintText;
   final String? helperText;
 
-final String? Function(String?)? validator;
+  final String? Function(String?)? validator;
   final bool isRequired;
 
-final TextInputType? keyboardType;
+  final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
@@ -50,23 +51,23 @@ final TextInputType? keyboardType;
   final int? maxLines;
   final int? minLines;
 
-final bool obscureText;
+  final bool obscureText;
   final bool enableObscureToggle;
 
-final bool enabled;
+  final bool enabled;
   final bool readOnly;
 
-final Widget? prefixIcon;
+  final Widget? prefixIcon;
   final Widget? suffixIcon;
   final String? prefixText;
   final String? suffixText;
 
-final void Function(String)? onChanged;
+  final void Function(String)? onChanged;
   final void Function(String)? onFieldSubmitted;
   final void Function()? onTap;
   final void Function()? onEditingComplete;
 
-final bool autofocus;
+  final bool autofocus;
   final FocusNode? focusNode;
 
   @override

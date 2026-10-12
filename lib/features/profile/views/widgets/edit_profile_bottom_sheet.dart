@@ -140,7 +140,10 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
                 maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 style: Theme.of(context).textTheme.bodyMedium,
                 validator: (value) => PhoneNumber.validationError(value),
-                decoration: _inputDeco(hint: 'Your phone number', counterText: ''),
+                decoration: _inputDeco(
+                  hint: 'Your phone number',
+                  counterText: '',
+                ),
               ),
             ),
 
@@ -253,8 +256,15 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
     );
   }
 
-  InputDecoration _inputDeco({String? hint, String? helper, String? counterText}) =>
-      InputDecoration(hintText: hint, helperText: helper, counterText: counterText);
+  InputDecoration _inputDeco({
+    String? hint,
+    String? helper,
+    String? counterText,
+  }) => InputDecoration(
+    hintText: hint,
+    helperText: helper,
+    counterText: counterText,
+  );
 }
 
 class _LabeledField extends StatelessWidget {

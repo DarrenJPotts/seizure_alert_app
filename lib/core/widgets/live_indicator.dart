@@ -18,8 +18,12 @@ class LiveIndicator extends StatefulWidget {
   State<LiveIndicator> createState() => _LiveIndicatorState();
 }
 
-class _LiveIndicatorState extends State<LiveIndicator> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(vsync: this, duration: widget.period);
+class _LiveIndicatorState extends State<LiveIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.period,
+  );
 
   @override
   void didChangeDependencies() {
@@ -70,14 +74,18 @@ class _LiveIndicatorState extends State<LiveIndicator> with SingleTickerProvider
               AnimatedBuilder(
                 animation: _controller,
                 builder: (BuildContext _, Widget? _) => _ring(
-                  scale: 0.5 + (1.1 * Curves.easeOut.transform(_controller.value)),
+                  scale:
+                      0.5 + (1.1 * Curves.easeOut.transform(_controller.value)),
                   opacity: 0.9 * (1 - _controller.value),
                 ),
               ),
             Container(
               width: dotSize,
               height: dotSize,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: widget.color,
+              ),
             ),
           ],
         ),
@@ -85,17 +93,20 @@ class _LiveIndicatorState extends State<LiveIndicator> with SingleTickerProvider
     );
   }
 
-  Widget _ring({required double scale, required double opacity}) => Transform.scale(
-    scale: scale,
-    child: Container(
-      width: widget.size,
-      height: widget.size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: widget.color.withValues(alpha: 0.35 * opacity)),
-      ),
-    ),
-  );
+  Widget _ring({required double scale, required double opacity}) =>
+      Transform.scale(
+        scale: scale,
+        child: Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: widget.color.withValues(alpha: 0.35 * opacity),
+            ),
+          ),
+        ),
+      );
 }
 
 class LiveStatusLabel extends StatelessWidget {
@@ -130,9 +141,10 @@ class LiveStatusLabel extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style:
                   textStyle ??
-                  Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: color.withValues(alpha: 0.7), fontWeight: FontWeight.w500),
+                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: color.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
         ],

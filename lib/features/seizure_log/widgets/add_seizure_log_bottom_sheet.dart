@@ -12,6 +12,13 @@ typedef AddSeizureLogCallback =
       String? location,
       String? trigger,
       String? notes,
+      String? seizureType,
+      String? aura,
+      String? severity,
+      String? awareness,
+      String? injuries,
+      int? recoveryMinutes,
+      bool rescueMedicationUsed,
       bool alertFired,
     });
 
@@ -23,6 +30,13 @@ typedef UpdateSeizureLogCallback =
       String? location,
       String? trigger,
       String? notes,
+      String? seizureType,
+      String? aura,
+      String? severity,
+      String? awareness,
+      String? injuries,
+      int? recoveryMinutes,
+      bool rescueMedicationUsed,
       bool alertFired,
     });
 
@@ -65,6 +79,13 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
   final _locationController = TextEditingController();
   final _triggerController = TextEditingController();
   final _notesController = TextEditingController();
+  final _seizureTypeController = TextEditingController();
+  final _auraController = TextEditingController();
+  final _injuriesController = TextEditingController();
+  final _recoveryController = TextEditingController();
+  String? _severity;
+  String? _awareness;
+  bool _rescueMedicationUsed = false;
 
   bool _isSaving = false;
 
@@ -84,6 +105,13 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
       _locationController.text = log.location ?? '';
       _triggerController.text = log.trigger ?? '';
       _notesController.text = log.notes ?? '';
+      _seizureTypeController.text = log.seizureType ?? '';
+      _auraController.text = log.aura ?? '';
+      _injuriesController.text = log.injuries ?? '';
+      _recoveryController.text = log.recoveryMinutes?.toString() ?? '';
+      _severity = log.severity;
+      _awareness = log.awareness;
+      _rescueMedicationUsed = log.rescueMedicationUsed;
     } else {
       _occurredAt = DateTime.now();
     }
@@ -96,10 +124,14 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
     _locationController.dispose();
     _triggerController.dispose();
     _notesController.dispose();
+    _seizureTypeController.dispose();
+    _auraController.dispose();
+    _injuriesController.dispose();
+    _recoveryController.dispose();
     super.dispose();
   }
 
-Future<void> _pickDateTime() async {
+  Future<void> _pickDateTime() async {
     final date = await showDatePicker(
       context: context,
       initialDate: _occurredAt,
@@ -133,6 +165,7 @@ Future<void> _pickDateTime() async {
     final minutes = int.tryParse(_minutesController.text.trim()) ?? 0;
     final seconds = int.tryParse(_secondsController.text.trim()) ?? 0;
     final totalSeconds = (minutes * 60 + seconds).clamp(0, 99999);
+    final int? recoveryMinutes = int.tryParse(_recoveryController.text.trim());
 
     final bool success;
 
@@ -144,6 +177,13 @@ Future<void> _pickDateTime() async {
         location: _locationController.text,
         trigger: _triggerController.text,
         notes: _notesController.text,
+        seizureType: _seizureTypeController.text,
+        aura: _auraController.text,
+        severity: _severity,
+        awareness: _awareness,
+        injuries: _injuriesController.text,
+        recoveryMinutes: recoveryMinutes,
+        rescueMedicationUsed: _rescueMedicationUsed,
         alertFired: widget.existingLog!.alertFired,
       );
     } else {
@@ -153,6 +193,13 @@ Future<void> _pickDateTime() async {
         location: _locationController.text,
         trigger: _triggerController.text,
         notes: _notesController.text,
+        seizureType: _seizureTypeController.text,
+        aura: _auraController.text,
+        severity: _severity,
+        awareness: _awareness,
+        injuries: _injuriesController.text,
+        recoveryMinutes: recoveryMinutes,
+        rescueMedicationUsed: _rescueMedicationUsed,
       );
     }
 
@@ -189,7 +236,7 @@ Future<void> _pickDateTime() async {
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $h:$m $period';
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     return AppBottomSheetContent(
       child: Form(
@@ -198,13 +245,23 @@ Future<void> _pickDateTime() async {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _isEditing ? 'Edit Entry' : 'Add Seizure Entry',
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    _isEditing ? 'Edit Entry' : 'Add Seizure Entry',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _isSaving ? null : () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ],
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-_SectionLabel(label: 'Date & Time'),
+            _SectionLabel(label: 'Date & Time'),
             SizedBox(height: Dimensions.eight),
             InkWell(
               onTap: _pickDateTime,
@@ -243,7 +300,7 @@ _SectionLabel(label: 'Date & Time'),
             ),
             SizedBox(height: Dimensions.sixteen),
 
-_SectionLabel(label: 'Duration (optional)'),
+            _SectionLabel(label: 'Duration (optional)'),
             SizedBox(height: Dimensions.eight),
             Row(
               children: [
@@ -266,7 +323,93 @@ _SectionLabel(label: 'Duration (optional)'),
             ),
             SizedBox(height: Dimensions.sixteen),
 
-_SectionLabel(label: 'Location (optional)'),
+            _SectionLabel(label: 'Clinical details (optional)'),
+            SizedBox(height: Dimensions.eight),
+            _OutlinedTextField(
+              controller: _seizureTypeController,
+              hintText: 'Seizure type',
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            SizedBox(height: Dimensions.twelve),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _severity,
+                    decoration: const InputDecoration(labelText: 'Severity'),
+                    items: const <String>['Mild', 'Moderate', 'Severe']
+                        .map(
+                          (String value) => DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (String? value) =>
+                        setState(() => _severity = value),
+                  ),
+                ),
+                SizedBox(width: Dimensions.twelve),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _awareness,
+                    decoration: const InputDecoration(labelText: 'Awareness'),
+                    items:
+                        const <String>[
+                              'Aware',
+                              'Impaired',
+                              'Unconscious',
+                              'Unknown',
+                            ]
+                            .map(
+                              (String value) => DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              ),
+                            )
+                            .toList(),
+                    onChanged: (String? value) =>
+                        setState(() => _awareness = value),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: Dimensions.twelve),
+            _OutlinedTextField(
+              controller: _auraController,
+              hintText: 'Aura or warning signs',
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            SizedBox(height: Dimensions.twelve),
+            _OutlinedTextField(
+              controller: _injuriesController,
+              hintText: 'Injuries or complications',
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            SizedBox(height: Dimensions.twelve),
+            TextFormField(
+              controller: _recoveryController,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+                const _MaxValueFormatter(1440),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Recovery time in minutes',
+              ),
+            ),
+            SizedBox(height: Dimensions.eight),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              activeTrackColor: Colors.black,
+              title: const Text('Rescue medication used'),
+              value: _rescueMedicationUsed,
+              onChanged: (bool value) =>
+                  setState(() => _rescueMedicationUsed = value),
+            ),
+            SizedBox(height: Dimensions.sixteen),
+
+            _SectionLabel(label: 'Location (optional)'),
             SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _locationController,
@@ -275,7 +418,7 @@ _SectionLabel(label: 'Location (optional)'),
             ),
             SizedBox(height: Dimensions.sixteen),
 
-_SectionLabel(label: 'Trigger (optional)'),
+            _SectionLabel(label: 'Trigger (optional)'),
             SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _triggerController,
@@ -284,7 +427,7 @@ _SectionLabel(label: 'Trigger (optional)'),
             ),
             SizedBox(height: Dimensions.sixteen),
 
-_SectionLabel(label: 'Notes (optional)'),
+            _SectionLabel(label: 'Notes (optional)'),
             SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _notesController,
@@ -294,7 +437,7 @@ _SectionLabel(label: 'Notes (optional)'),
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-SizedBox(
+            SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,

@@ -12,13 +12,13 @@ class PhoneNumber {
   /// number is genuinely ambiguous without it.
   static const String defaultDialCode = '27';
 
-static String? normalize(String? raw) {
+  static String? normalize(String? raw) {
     if (raw == null) return null;
 
     final String trimmed = raw.trim();
     if (trimmed.isEmpty) return null;
 
-final bool isInternational =
+    final bool isInternational =
         trimmed.startsWith('+') || trimmed.startsWith('00');
 
     final String digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
@@ -26,10 +26,8 @@ final bool isInternational =
 
     String national;
     if (isInternational) {
-
-national = trimmed.startsWith('00') ? digits.substring(2) : digits;
+      national = trimmed.startsWith('00') ? digits.substring(2) : digits;
     } else if (digits.startsWith('0')) {
-
       national = '$defaultDialCode${digits.replaceFirst(RegExp(r'^0+'), '')}';
     } else if (digits.startsWith(defaultDialCode)) {
       national = digits;
@@ -37,12 +35,12 @@ national = trimmed.startsWith('00') ? digits.substring(2) : digits;
       national = '$defaultDialCode$digits';
     }
 
-if (national.length < 8) return null;
+    if (national.length < 8) return null;
 
     return '+$national';
   }
 
-static bool isValid(String? raw) {
+  static bool isValid(String? raw) {
     if (raw == null || raw.trim().isEmpty) return false;
     try {
       final parser.PhoneNumber parsed = parser.PhoneNumber.parse(
@@ -62,7 +60,7 @@ static bool isValid(String? raw) {
     return isValid(raw) ? null : 'Enter a valid South African phone number';
   }
 
-static bool matches(String? a, String? b) {
+  static bool matches(String? a, String? b) {
     final String? na = normalize(a);
     final String? nb = normalize(b);
     return na != null && na == nb;

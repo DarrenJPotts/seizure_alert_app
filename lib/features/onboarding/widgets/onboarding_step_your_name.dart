@@ -24,14 +24,12 @@ class OnboardingStepYourName extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.eight,
             children: [
-              Text('About you',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text('About you', style: Theme.of(context).textTheme.titleMedium),
               Text(
                 'Your name helps your circle know who needs help.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.black54),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
               ),
             ],
           ),
@@ -42,19 +40,21 @@ class OnboardingStepYourName extends StatelessWidget {
             autofocus: true,
             onChanged: (_) {},
           ),
-          Obx(() => OnboardingField(
-            label: 'Your phone number',
-            controller: vm.phoneController,
-            hint: '+27 82 123 4567',
-            keyboardType: TextInputType.phone,
-            inputFormatters: const <TextInputFormatter>[
-              SouthAfricanPhoneInputFormatter(),
-            ],
-            maxLength: SouthAfricanPhoneInputFormatter.maxLength,
-            helper: 'Used so contacts with the app can identify you.',
-            errorText: vm.phoneNumberError.value,
-            onChanged: (_) => vm.phoneNumberError.value = null,
-          )),
+          Obx(
+            () => OnboardingField(
+              label: 'Your phone number',
+              controller: vm.phoneController,
+              hint: '+27 82 123 4567',
+              keyboardType: TextInputType.phone,
+              inputFormatters: const <TextInputFormatter>[
+                SouthAfricanPhoneInputFormatter(),
+              ],
+              maxLength: SouthAfricanPhoneInputFormatter.maxLength,
+              helper: 'Used so contacts with the app can identify you.',
+              errorText: vm.phoneNumberError.value,
+              onChanged: (_) => vm.phoneNumberError.value = null,
+            ),
+          ),
         ],
       ),
     );

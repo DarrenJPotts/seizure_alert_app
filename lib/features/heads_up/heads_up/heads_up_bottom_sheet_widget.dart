@@ -22,7 +22,6 @@ class HeadsUpBottomSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Dimensions.twentyFour,
         children: [
-
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.eight,
@@ -37,7 +36,7 @@ class HeadsUpBottomSheet extends StatelessWidget {
             ],
           ),
 
-Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.twelve,
             children: [
@@ -86,7 +85,7 @@ Column(
             ],
           ),
 
-Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.twelve,
             children: [
@@ -105,7 +104,7 @@ Column(
             ],
           ),
 
-Container(
+          Container(
             padding: EdgeInsets.all(Dimensions.sixteen),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.04),
@@ -141,7 +140,7 @@ Container(
             ),
           ),
 
-Obx(
+          Obx(
             () => SizedBox(
               width: double.infinity,
               child: ElevatedButton(

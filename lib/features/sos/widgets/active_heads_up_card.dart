@@ -27,36 +27,36 @@ class ActiveHeadsUpCard extends StatelessWidget {
                   'Heads Up active',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                Obx(() => Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: Dimensions.four,
-                      children: [
-                        Text(
-                          'Expires in ${vm.formattedRemaining()}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.black45),
-                        ),
-                        Text(
-                          switch (vm.delivery.value) {
-                            HeadsUpDelivery.unknown =>
-                              'Delivery could not be confirmed after restart. Check with your circle.',
-                            HeadsUpDelivery.sending => 'Sending alert…',
-                            HeadsUpDelivery.delivered =>
-                              'Alert sent to server. Push notifications may take a moment.',
-                            HeadsUpDelivery.queued =>
-                              'Not confirmed by the server yet. This will keep trying; check with your circle after reconnecting.',
-                            HeadsUpDelivery.failed =>
-                              'At least one part did not save. Check with your circle before relying on this alert.',
-                          },
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.black54),
-                        ),
-                      ],
-                    )),
+                Obx(
+                  () => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: Dimensions.four,
+                    children: [
+                      Text(
+                        'Expires in ${vm.formattedRemaining()}',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                      ),
+                      Text(
+                        switch (vm.delivery.value) {
+                          HeadsUpDelivery.unknown =>
+                            'Delivery could not be confirmed after restart. Check with your circle.',
+                          HeadsUpDelivery.sending => 'Sending alert…',
+                          HeadsUpDelivery.delivered =>
+                            'Alert sent to server. Push notifications may take a moment.',
+                          HeadsUpDelivery.queued =>
+                            'Not confirmed by the server yet. This will keep trying; check with your circle after reconnecting.',
+                          HeadsUpDelivery.failed =>
+                            'At least one part did not save. Check with your circle before relying on this alert.',
+                        },
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -71,7 +71,8 @@ class ActiveHeadsUpCard extends StatelessWidget {
                 vertical: Dimensions.eight,
               ),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Cancel'),
           ),

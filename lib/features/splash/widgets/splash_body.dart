@@ -32,9 +32,10 @@ class SplashBody extends StatelessWidget {
                   SizedBox(height: Dimensions.eight),
                   Text(
                     'Someone is always watching out',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleSmall?.copyWith(color: Colors.white.withValues(alpha: 0.5), letterSpacing: 0.2),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      letterSpacing: 0.2,
+                    ),
                   ),
                 ],
               ),
@@ -53,7 +54,8 @@ class _SplashMark extends StatefulWidget {
   State<_SplashMark> createState() => _SplashMarkState();
 }
 
-class _SplashMarkState extends State<_SplashMark> with SingleTickerProviderStateMixin {
+class _SplashMarkState extends State<_SplashMark>
+    with SingleTickerProviderStateMixin {
   static const double _size = 104;
 
   late final AnimationController _controller = AnimationController(
@@ -97,7 +99,9 @@ class _SplashMarkState extends State<_SplashMark> with SingleTickerProviderState
                 height: _size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.35 * (1 - t))),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35 * (1 - t)),
+                  ),
                 ),
               ),
             );

@@ -53,10 +53,13 @@ void main() {
   });
 
   group('StringX', () {
-    test('capitalizeFirstLetter and lowerCaseFirstLetter invert each other', () {
-      expect('hello'.capitalizeFirstLetter, 'Hello');
-      expect('Hello'.lowerCaseFirstLetter, 'hello');
-    });
+    test(
+      'capitalizeFirstLetter and lowerCaseFirstLetter invert each other',
+      () {
+        expect('hello'.capitalizeFirstLetter, 'Hello');
+        expect('Hello'.lowerCaseFirstLetter, 'hello');
+      },
+    );
 
     test('KNOWN BUG: both throw on an empty non-null string', () {
       // StringX indexes [0] without a length check, so an empty String — which
@@ -74,7 +77,11 @@ void main() {
 
     test('addTrailingDots is idempotent', () {
       expect('Loading'.addTrailingDots(3), 'Loading...');
-      expect('Loading...'.addTrailingDots(3), 'Loading...', reason: 'already suffixed, so nothing is added');
+      expect(
+        'Loading...'.addTrailingDots(3),
+        'Loading...',
+        reason: 'already suffixed, so nothing is added',
+      );
     });
 
     test('removeWhiteSpaces strips every kind of whitespace', () {
@@ -123,13 +130,25 @@ void main() {
     test('darken lowers lightness and lighten raises it', () {
       const Color base = Color(0xFF808080);
 
-      expect(HSLColor.fromColor(base.darken()).lightness, lessThan(HSLColor.fromColor(base).lightness));
-      expect(HSLColor.fromColor(base.lighten()).lightness, greaterThan(HSLColor.fromColor(base).lightness));
+      expect(
+        HSLColor.fromColor(base.darken()).lightness,
+        lessThan(HSLColor.fromColor(base).lightness),
+      );
+      expect(
+        HSLColor.fromColor(base.lighten()).lightness,
+        greaterThan(HSLColor.fromColor(base).lightness),
+      );
     });
 
     test('lightness clamps rather than overflowing at the extremes', () {
-      expect(HSLColor.fromColor(const Color(0xFF000000).darken(0.5)).lightness, 0.0);
-      expect(HSLColor.fromColor(const Color(0xFFFFFFFF).lighten(0.5)).lightness, 1.0);
+      expect(
+        HSLColor.fromColor(const Color(0xFF000000).darken(0.5)).lightness,
+        0.0,
+      );
+      expect(
+        HSLColor.fromColor(const Color(0xFFFFFFFF).lighten(0.5)).lightness,
+        1.0,
+      );
     });
   });
 }

@@ -9,12 +9,16 @@ class ContactStatusRow extends StatelessWidget {
     required this.phone,
     required this.seen,
     required this.responding,
+    this.deliveryStatus,
+    this.escalationStage = 0,
   });
 
   final String name;
   final String phone;
   final bool seen;
   final bool responding;
+  final String? deliveryStatus;
+  final int escalationStage;
 
   @override
   Widget build(BuildContext context) {
@@ -28,16 +32,18 @@ class ContactStatusRow extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: active ? Colors.black : Colors.black.withValues(alpha: 0.06),
+              color: active
+                  ? Colors.black
+                  : Colors.black.withValues(alpha: 0.06),
               border: active ? null : Border.all(color: Colors.black12),
             ),
             child: Center(
               child: Text(
                 _initials(name),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: active ? Colors.white : Colors.black54,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: active ? Colors.white : Colors.black54,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -48,14 +54,10 @@ class ContactStatusRow extends StatelessWidget {
               children: [
                 Text(name, style: Theme.of(context).textTheme.bodyMedium),
                 Text(
-                  responding
-                      ? 'Responding'
-                      : seen
-                          ? 'Seen'
-                          : 'Not seen yet',
+                  _statusLabel(),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: responding ? Colors.black87 : Colors.black45,
-                      ),
+                    color: responding ? Colors.black87 : Colors.black45,
+                  ),
                 ),
               ],
             ),
@@ -74,5 +76,17 @@ class ContactStatusRow extends StatelessWidget {
     if (parts.isEmpty || parts.first.isEmpty) return '?';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+
+  String _statusLabel() {
+    if (responding) return 'Responding';
+    if (seen) return 'Seen';
+    if (deliveryStatus == 'deviceOffline') return 'Device unavailable';
+    if (deliveryStatus == 'failed') return 'Delivery failed';
+    if (deliveryStatus == 'sent' && escalationStage > 0) {
+      return 'Reminder sent';
+    }
+    if (deliveryStatus == 'sent') return 'Alert sent';
+    return 'Sending';
   }
 }

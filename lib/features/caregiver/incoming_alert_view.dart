@@ -138,9 +138,13 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                   owner: owner,
                   medication: controller.primaryMedication,
                 ),
-                if (owner.emergencyNote.isNotNullOrEmpty) ...<Widget>[
+                if (owner.carePlanSteps.isNotEmpty) ...<Widget>[
                   SizedBox(height: Dimensions.twelve),
-                  _EmergencyNote(note: owner.emergencyNote!),
+                  _EmergencyNote(
+                    note: owner.carePlanSteps.join('\n'),
+                    rescueMedication: owner.rescueMedication,
+                    callAfterMinutes: owner.callEmergencyAfterMinutes,
+                  ),
                 ],
                 SizedBox(height: Dimensions.twenty),
               ],
@@ -358,9 +362,15 @@ class _StatCard extends StatelessWidget {
 }
 
 class _EmergencyNote extends StatelessWidget {
-  const _EmergencyNote({required this.note});
+  const _EmergencyNote({
+    required this.note,
+    required this.rescueMedication,
+    required this.callAfterMinutes,
+  });
 
   final String note;
+  final String? rescueMedication;
+  final int callAfterMinutes;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -374,7 +384,7 @@ class _EmergencyNote extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          'EMERGENCY NOTE',
+          'SEIZURE ACTION PLAN',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: _alertInk.withValues(alpha: 0.5),
             fontWeight: FontWeight.w600,
@@ -388,6 +398,23 @@ class _EmergencyNote extends StatelessWidget {
             fontSize: 15,
             height: 1.5,
             color: _alertInk,
+          ),
+        ),
+        if (rescueMedication.isNotNullOrEmpty) ...<Widget>[
+          SizedBox(height: Dimensions.twelve),
+          Text(
+            'Rescue medication: $rescueMedication',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: _alertInk,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+        SizedBox(height: Dimensions.twelve),
+        Text(
+          'Call emergency services after $callAfterMinutes minutes unless the plan says sooner.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: _alertInk.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -473,12 +500,19 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: Text(
-                        "I'm on my way",
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(color: _alertInk),
-                      ),
+                      child: controller.isResponding.value
+                          ? SizedBox.square(
+                              dimension: Dimensions.twenty,
+                              child: const CircularProgressIndicator(
+                                color: _alertInk,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              "I'm on my way",
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(color: _alertInk),
+                            ),
                     ),
                   ),
                 ),

@@ -1,5 +1,5 @@
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { onTaskDispatched } = require("firebase-functions/v2/tasks");
 const { onMessagePublished } = require("firebase-functions/v2/pubsub");
 const { setGlobalOptions } = require("firebase-functions/v2");
@@ -131,6 +131,343 @@ async function enforceRateLimit(uid, action, max, windowMs) {
   });
 }
 
+function hashWearableSecret(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function sendJson(response, status, body) {
+  response.status(status).set("Cache-Control", "no-store").json(body);
+}
+
+async function authenticateWearable(request) {
+  const authorization = request.get("authorization") || "";
+  const match = authorization.match(/^Bearer ([a-f0-9]{64})$/i);
+  if (!match) return null;
+  const tokenHash = hashWearableSecret(match[1].toLowerCase());
+  const snapshot = await db
+    .collection("wearable_device_credentials")
+    .where("tokenHash", "==", tokenHash)
+    .where("revoked", "==", false)
+    .limit(1)
+    .get();
+  return snapshot.empty ? null : snapshot.docs[0];
+}
+
+async function touchWearable(credential, batteryPercent) {
+  const deviceRef = db.collection("wearableDevices").doc(credential.id);
+  const battery = Number(batteryPercent);
+  await deviceRef.set(
+    {
+      lastSeenAtMs: Date.now(),
+      ...(Number.isInteger(battery) && battery >= 0 && battery <= 100
+        ? { batteryPercent: battery }
+        : {}),
+    },
+    { merge: true }
+  );
+}
+
+exports.createWearablePairingCode = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+  const callerUid = request.auth?.uid;
+  if (!callerUid) throw new HttpsError("unauthenticated", "Sign in required.");
+  await enforceRateLimit(callerUid, "wearablePairing", 5, 60 * 60 * 1000);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+    const ref = db.collection("wearable_pairings").doc(hashWearableSecret(code));
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+    try {
+      await ref.create({
+        userId: callerUid,
+        createdAt: FieldValue.serverTimestamp(),
+        expiresAt: new Date(expiresAt),
+        status: "pending",
+      });
+      return { code, expiresAt };
+    } catch (error) {
+      if (error?.code !== 6 && error?.code !== "already-exists") throw error;
+    }
+  }
+  throw new HttpsError("resource-exhausted", "Could not create a pairing code.");
+});
+
+exports.removeWearableDevice = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+  const callerUid = request.auth?.uid;
+  const deviceId = request.data?.deviceId;
+  if (!callerUid) throw new HttpsError("unauthenticated", "Sign in required.");
+  if (typeof deviceId !== "string" || !deviceId) {
+    throw new HttpsError("invalid-argument", "deviceId is required.");
+  }
+  const publicRef = db.collection("wearableDevices").doc(deviceId);
+  const publicDoc = await publicRef.get();
+  if (!publicDoc.exists || publicDoc.data().userId !== callerUid) {
+    throw new HttpsError("not-found", "Wearable not found.");
+  }
+  const batch = db.batch();
+  batch.delete(publicRef);
+  batch.delete(db.collection("wearable_device_credentials").doc(deviceId));
+  await batch.commit();
+  return { ok: true };
+});
+
+exports.wearablePair = onRequest(
+  { invoker: "public", minInstances: 0, maxInstances: 5 },
+  async (request, response) => {
+    if (request.method !== "POST") return sendJson(response, 405, { error: "method" });
+    if (!(await functionsEnabled(db))) {
+      return sendJson(response, 503, { error: "disabled" });
+    }
+    const ipKey = hashWearableSecret(request.ip || "unknown").slice(0, 24);
+    try {
+      await enforceRateLimit(ipKey, "wearablePairAttempt", 20, 60 * 60 * 1000);
+    } catch (_) {
+      return sendJson(response, 429, { error: "rate-limit" });
+    }
+    const code = typeof request.body?.code === "string"
+      ? request.body.code.replace(/\D/g, "")
+      : "";
+    if (!/^\d{6}$/.test(code)) {
+      return sendJson(response, 400, { error: "invalid-code" });
+    }
+    const pairingRef = db.collection("wearable_pairings").doc(hashWearableSecret(code));
+    const token = crypto.randomBytes(32).toString("hex");
+    const deviceId = crypto.randomUUID();
+    const deviceName = typeof request.body?.deviceName === "string"
+      ? request.body.deviceName.trim().slice(0, 80)
+      : "Garmin watch";
+    try {
+      await db.runTransaction(async (tx) => {
+        const pairing = await tx.get(pairingRef);
+        if (
+          !pairing.exists ||
+          pairing.data().status !== "pending" ||
+          pairing.data().expiresAt.toMillis() <= Date.now()
+        ) {
+          throw new Error("invalid-code");
+        }
+        const userId = pairing.data().userId;
+        tx.update(pairingRef, {
+          status: "used",
+          usedAt: FieldValue.serverTimestamp(),
+          deviceId,
+        });
+        tx.create(db.collection("wearable_device_credentials").doc(deviceId), {
+          userId,
+          tokenHash: hashWearableSecret(token),
+          revoked: false,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        tx.create(db.collection("wearableDevices").doc(deviceId), {
+          id: deviceId,
+          userId,
+          platform: "garmin",
+          name: deviceName || "Garmin watch",
+          pairedAt: new Date().toISOString(),
+          lastSeenAtMs: Date.now(),
+          batteryPercent: null,
+        });
+      });
+      return sendJson(response, 200, { deviceId, token });
+    } catch (_) {
+      return sendJson(response, 400, { error: "invalid-code" });
+    }
+  }
+);
+
+exports.wearableStatus = onRequest(
+  { invoker: "public", minInstances: 0, maxInstances: 5 },
+  async (request, response) => {
+    if (request.method !== "GET" && request.method !== "POST") {
+      return sendJson(response, 405, { error: "method" });
+    }
+    if (!(await functionsEnabled(db))) {
+      return sendJson(response, 503, { error: "disabled" });
+    }
+    const credential = await authenticateWearable(request);
+    if (!credential) return sendJson(response, 401, { error: "unauthorized" });
+    await touchWearable(credential, request.body?.batteryPercent);
+    const userId = credential.data().userId;
+    const [alerts, headsUp] = await Promise.all([
+      db
+        .collection("alerts")
+        .where("userId", "==", userId)
+        .where("status", "==", "sent")
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get(),
+      db
+        .collection("headsUp")
+        .where("userId", "==", userId)
+        .where("status", "==", "active")
+        .limit(1)
+        .get(),
+    ]);
+    const alert = alerts.empty ? null : alerts.docs[0].data();
+    const activeHeadsUp = headsUp.empty ? null : headsUp.docs[0].data();
+    return sendJson(response, 200, {
+      state: alert?.type === "sos"
+        ? "sos"
+        : activeHeadsUp
+          ? "headsUp"
+          : "ready",
+      alertId: alert?.type === "sos" ? alerts.docs[0].id : null,
+      headsUpId: activeHeadsUp ? headsUp.docs[0].id : null,
+      headsUpExpiresAtMs: activeHeadsUp?.expiresAtMs || null,
+    });
+  }
+);
+
+exports.wearableAction = onRequest(
+  { invoker: "public", minInstances: 0, maxInstances: 5 },
+  async (request, response) => {
+    if (request.method !== "POST") return sendJson(response, 405, { error: "method" });
+    if (!(await functionsEnabled(db))) {
+      return sendJson(response, 503, { error: "disabled" });
+    }
+    const credential = await authenticateWearable(request);
+    if (!credential) return sendJson(response, 401, { error: "unauthorized" });
+    await touchWearable(credential, request.body?.batteryPercent);
+    const userId = credential.data().userId;
+    const action = request.body?.action;
+
+    if (action === "sos") {
+      const existing = await db
+        .collection("alerts")
+        .where("userId", "==", userId)
+        .where("status", "==", "sent")
+        .orderBy("createdAt", "desc")
+        .limit(5)
+        .get();
+      const activeSos = existing.docs.find((doc) => doc.data().type === "sos");
+      if (activeSos) {
+        return sendJson(response, 200, {
+          ok: true,
+          alertId: activeSos.id,
+          existing: true,
+        });
+      }
+      const alertRef = db.collection("alerts").doc();
+      const logRef = db.collection("seizureLogs").doc();
+      const now = new Date().toISOString();
+      const batch = db.batch();
+      batch.create(alertRef, {
+        id: alertRef.id,
+        userId,
+        type: "sos",
+        status: "sent",
+        latitude: null,
+        longitude: null,
+        locationLabel: "Sent from Garmin watch",
+        message: null,
+        createdAt: now,
+        resolvedAt: null,
+      });
+      batch.create(logRef, {
+        id: logRef.id,
+        userId,
+        occurredAt: now,
+        durationSeconds: null,
+        location: null,
+        latitude: null,
+        longitude: null,
+        notes: "SOS sent from Garmin watch",
+        trigger: null,
+        seizureType: null,
+        aura: null,
+        severity: null,
+        awareness: null,
+        injuries: null,
+        recoveryMinutes: null,
+        rescueMedicationUsed: false,
+        alertFired: true,
+        alertId: alertRef.id,
+      });
+      await batch.commit();
+      return sendJson(response, 200, { ok: true, alertId: alertRef.id });
+    }
+
+    if (action === "cancel") {
+      const alertId = request.body?.alertId;
+      if (typeof alertId !== "string") {
+        return sendJson(response, 400, { error: "alert-required" });
+      }
+      const alertRef = db.collection("alerts").doc(alertId);
+      const alert = await alertRef.get();
+      if (!alert.exists || alert.data().userId !== userId || alert.data().status !== "sent") {
+        return sendJson(response, 404, { error: "alert-not-active" });
+      }
+      await alertRef.update({
+        status: "cancelled",
+        resolvedAt: new Date().toISOString(),
+      });
+      return sendJson(response, 200, { ok: true });
+    }
+
+    if (action === "headsUp") {
+      const durationMinutes = Number(request.body?.durationMinutes);
+      if (![30, 60, 120].includes(durationMinutes)) {
+        return sendJson(response, 400, { error: "duration" });
+      }
+      const headsUpRef = db.collection("headsUp").doc();
+      const alertRef = db.collection("alerts").doc(`${headsUpRef.id}_alert`);
+      const now = Date.now();
+      const expiresAtMs = now + durationMinutes * 60 * 1000;
+      const batch = db.batch();
+      batch.create(headsUpRef, {
+        id: headsUpRef.id,
+        userId,
+        createdAt: new Date(now).toISOString(),
+        expiresAt: new Date(expiresAtMs).toISOString(),
+        expiresAtMs,
+        note: "Started from Garmin watch",
+        status: "active",
+      });
+      batch.create(alertRef, {
+        id: alertRef.id,
+        userId,
+        type: "headsUp",
+        status: "sent",
+        latitude: null,
+        longitude: null,
+        locationLabel: "Started from Garmin watch",
+        message: "Started from Garmin watch",
+        createdAt: new Date(now).toISOString(),
+        resolvedAt: null,
+      });
+      await batch.commit();
+      return sendJson(response, 200, { ok: true, headsUpId: headsUpRef.id });
+    }
+
+    if (action === "checkIn") {
+      const headsUpId = request.body?.headsUpId;
+      if (typeof headsUpId !== "string") {
+        return sendJson(response, 400, { error: "heads-up-required" });
+      }
+      const headsUpRef = db.collection("headsUp").doc(headsUpId);
+      const headsUp = await headsUpRef.get();
+      if (!headsUp.exists || headsUp.data().userId !== userId || headsUp.data().status !== "active") {
+        return sendJson(response, 404, { error: "heads-up-not-active" });
+      }
+      const batch = db.batch();
+      batch.update(headsUpRef, { status: "checkedIn" });
+      batch.update(db.collection("alerts").doc(`${headsUpId}_alert`), {
+        status: "cancelled",
+        resolvedAt: new Date().toISOString(),
+      });
+      await batch.commit();
+      return sendJson(response, 200, { ok: true });
+    }
+
+    return sendJson(response, 400, { error: "unknown-action" });
+  }
+);
+
 function getCreatedCopy(alertType, userName) {
   switch (alertType) {
     case "sos":
@@ -170,16 +507,29 @@ function getCancelledCopy(alertType, userName) {
   }
 }
 
-function buildMessage({ token, title, body, alertId, alertType, alertStatus, userId }) {
-  return {
+function buildMessage({
+  token,
+  title,
+  body,
+  alertId,
+  alertType,
+  alertStatus,
+  userId,
+  route,
+  ttlMs,
+}) {
+  const data = {
+    alertType: String(alertType),
+    alertStatus: String(alertStatus),
+    userId: String(userId),
+  };
+  if (alertId != null) data.alertId = String(alertId);
+  if (typeof route === "string" && route.startsWith("/")) data.route = route;
+
+  const message = {
     token,
     notification: { title, body },
-    data: {
-      alertId: String(alertId),
-      alertType: String(alertType),
-      alertStatus: String(alertStatus),
-      userId: String(userId),
-    },
+    data,
     android: {
       priority: "high",
       notification: { sound: "default" },
@@ -190,9 +540,201 @@ function buildMessage({ token, title, body, alertId, alertType, alertStatus, use
       },
     },
   };
+
+  if (Number.isFinite(ttlMs) && ttlMs > 0) {
+    message.android.ttl = ttlMs;
+    message.apns.headers = {
+      "apns-expiration": String(
+        Math.floor(Date.now() / 1000) + Math.ceil(ttlMs / 1000)
+      ),
+    };
+  }
+
+  return message;
 }
 
-async function notifyContacts(alertUserId, alert, copy) {
+function isStaleMessagingToken(error) {
+  const code = error?.code || error?.errorInfo?.code;
+  return code === "messaging/registration-token-not-registered" ||
+    code === "messaging/invalid-registration-token";
+}
+
+async function clearStaleToken(userRef, attemptedToken) {
+  await db.runTransaction(async (transaction) => {
+    const current = await transaction.get(userRef);
+    if (current.data()?.fcmToken === attemptedToken) {
+      transaction.update(userRef, {
+        fcmToken: FieldValue.delete(),
+        fcmTokenUpdatedAt: FieldValue.delete(),
+      });
+    }
+  });
+}
+
+const TEST_ALERT_RECIPIENT_LIMIT = 20;
+
+async function writeCaregiverTestStatuses(contacts, statusByUid) {
+  if (contacts.length === 0) return;
+
+  const batch = db.batch();
+  const testedAtMs = Date.now();
+  contacts.forEach((contactDoc) => {
+    const linkedUid = contactDoc.data().linkedUid;
+    batch.set(
+      contactDoc.ref,
+      {
+        lastTestStatus: statusByUid.get(linkedUid) || "failed",
+        lastTestedAtMs: testedAtMs,
+      },
+      { merge: true }
+    );
+  });
+  await batch.commit();
+}
+
+exports.sendCaregiverTestAlert = onCall(CALLABLE_OPTIONS, async (request) => {
+  if (!(await functionsEnabled(db))) {
+    throw new HttpsError("unavailable", "This feature is temporarily disabled.");
+  }
+
+  const callerUid = request.auth?.uid;
+  if (!callerUid) {
+    throw new HttpsError("unauthenticated", "Sign in required.");
+  }
+
+  await enforceRateLimit(callerUid, "caregiverTest", 2, 10 * 60 * 1000);
+
+  const [ownerDoc, contactsSnap] = await Promise.all([
+    db.collection("users").doc(callerUid).get(),
+    db
+      .collection("contacts")
+      .where("userId", "==", callerUid)
+      .where("notifyViaPush", "==", true)
+      .limit(TEST_ALERT_RECIPIENT_LIMIT + 1)
+      .get(),
+  ]);
+
+  if (!ownerDoc.exists) {
+    throw new HttpsError("failed-precondition", "Complete your profile first.");
+  }
+
+  const contacts = contactsSnap.docs
+    .filter((doc) => {
+      const contact = doc.data();
+      return (
+        contact.status !== "pending" &&
+        typeof contact.linkedUid === "string" &&
+        contact.linkedUid.length > 0
+      );
+    })
+    .slice(0, TEST_ALERT_RECIPIENT_LIMIT);
+
+  const linkedUids = [...new Set(contacts.map((doc) => doc.data().linkedUid))];
+  const recipientDocs = await Promise.all(
+    linkedUids.map((uid) => db.collection("users").doc(uid).get())
+  );
+  const statusByUid = new Map(linkedUids.map((uid) => [uid, "deviceOffline"]));
+  const recipientsByToken = new Map();
+  recipientDocs.forEach((doc, index) => {
+    if (!doc.exists) return;
+    const token = doc.data().fcmToken;
+    if (typeof token !== "string" || token.length === 0) return;
+
+    const uid = linkedUids[index];
+    const recipient = recipientsByToken.get(token) || { token, users: [] };
+    recipient.users.push({ uid, doc });
+    recipientsByToken.set(token, recipient);
+  });
+  const recipients = [...recipientsByToken.values()];
+
+  if (recipients.length === 0) {
+    await writeCaregiverTestStatuses(contacts, statusByUid);
+    throw new HttpsError(
+      "failed-precondition",
+      "No connected caregivers are ready for push alerts."
+    );
+  }
+
+  const ownerName = ownerDoc.data().displayName || "Someone in your circle";
+  const sends = await Promise.allSettled(
+    recipients.map(({ token }) =>
+      messaging.send(
+        buildMessage({
+          token,
+          title: "TEST — Caregiver alert",
+          body: `${ownerName} is testing their alert connection. No action is needed.`,
+          alertType: "test",
+          alertStatus: "test",
+          userId: callerUid,
+          route: "/",
+          ttlMs: 5 * 60 * 1000,
+        })
+      )
+    )
+  );
+
+  const staleRecipients = sends.flatMap((result, index) => {
+    if (result.status !== "rejected") return [];
+    const code = result.reason?.code || result.reason?.errorInfo?.code;
+    return code === "messaging/registration-token-not-registered" ||
+      code === "messaging/invalid-registration-token"
+      ? [recipients[index]]
+      : [];
+  });
+
+  await Promise.allSettled(
+    staleRecipients.flatMap(({ users, token }) =>
+      users.map(({ doc }) =>
+        db.runTransaction(async (transaction) => {
+          const current = await transaction.get(doc.ref);
+          if (current.data()?.fcmToken === token) {
+            transaction.update(doc.ref, { fcmToken: FieldValue.delete() });
+          }
+        })
+      )
+    )
+  );
+
+  sends.forEach((result, index) => {
+    const recipient = recipients[index];
+    const code = result.status === "rejected"
+      ? result.reason?.code || result.reason?.errorInfo?.code
+      : null;
+    const status = result.status === "fulfilled"
+      ? "sent"
+      : code === "messaging/registration-token-not-registered" ||
+          code === "messaging/invalid-registration-token"
+        ? "deviceOffline"
+        : "failed";
+    recipient.users.forEach(({ uid }) => statusByUid.set(uid, status));
+  });
+  await writeCaregiverTestStatuses(contacts, statusByUid);
+
+  const sentCount = sends.filter((result) => result.status === "fulfilled").length;
+  const failedCount = sends.length - sentCount;
+  if (sentCount === 0) {
+    console.error("Every caregiver test notification failed.", sends);
+    if (staleRecipients.length === sends.length) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Connected caregivers need to reopen the app before testing."
+      );
+    }
+    throw new HttpsError(
+      "unavailable",
+      "The test alert could not be sent. Try again later."
+    );
+  }
+
+  return {
+    recipientCount: recipients.length,
+    sentCount,
+    failedCount,
+    capped: contactsSnap.size > TEST_ALERT_RECIPIENT_LIMIT,
+  };
+});
+
+async function notifyContacts(alertUserId, alert, copy, { trackDelivery = false } = {}) {
   const contactsSnap = await db
     .collection("contacts")
     .where("userId", "==", alertUserId)
@@ -201,7 +743,7 @@ async function notifyContacts(alertUserId, alert, copy) {
 
   if (contactsSnap.empty) {
     console.log(`No push-enabled contacts for user ${alertUserId}.`);
-    return;
+    return [];
   }
 
   const sendPromises = contactsSnap.docs.map(async (contactDoc) => {
@@ -210,19 +752,19 @@ async function notifyContacts(alertUserId, alert, copy) {
 
 if (contact.status === "pending" || typeof linkedUid !== "string" || !linkedUid) {
       console.log(`Contact ${contactDoc.id} is not linked; skipping push.`);
-      return;
+      return { contactDoc, linkedUid: null, status: "notLinked" };
     }
 
     const userDoc = await db.collection("users").doc(linkedUid).get();
     if (!userDoc.exists) {
       console.log(`Contact ${contactDoc.id} has no matching account.`);
-      return;
+      return { contactDoc, linkedUid, status: "accountMissing" };
     }
 
     const fcmToken = userDoc.data().fcmToken;
     if (!fcmToken) {
       console.log(`User ${userDoc.id} (contact ${contactDoc.id}) has no fcmToken.`);
-      return;
+      return { contactDoc, linkedUid, status: "deviceOffline" };
     }
 
     const message = buildMessage({
@@ -235,17 +777,182 @@ if (contact.status === "pending" || typeof linkedUid !== "string" || !linkedUid)
       userId: alertUserId,
     });
 
-    const response = await messaging.send(message);
-    console.log(`Notified contact ${contactDoc.id}: ${response}`);
-  });
-
-  const results = await Promise.allSettled(sendPromises);
-  results.forEach((result, i) => {
-    if (result.status === "rejected") {
-      console.error(`Failed to notify contact ${i}:`, result.reason);
+    try {
+      const response = await messaging.send(message);
+      console.log(`Notified contact ${contactDoc.id}: ${response}`);
+      return { contactDoc, linkedUid, status: "sent" };
+    } catch (error) {
+      if (isStaleMessagingToken(error)) {
+        await clearStaleToken(userDoc.ref, fcmToken);
+        return { contactDoc, linkedUid, status: "deviceOffline" };
+      }
+      console.error(`Failed to notify contact ${contactDoc.id}:`, error);
+      return { contactDoc, linkedUid, status: "failed" };
     }
   });
+
+  const deliveries = await Promise.all(sendPromises);
+  if (trackDelivery && alert.id) {
+    const batch = db.batch();
+    const sentAtMs = Date.now();
+    deliveries.forEach(({ contactDoc, linkedUid, status }) => {
+      const ref = db
+        .collection("alert_deliveries")
+        .doc(`${alert.id}_${contactDoc.id}`);
+      batch.set(
+        ref,
+        {
+          id: ref.id,
+          alertId: alert.id,
+          alertOwnerId: alertUserId,
+          contactId: contactDoc.id,
+          contactName: contactDoc.data().name || "Someone",
+          responderId: linkedUid,
+          priority: contactDoc.data().priority || 0,
+          status,
+          sentAtMs,
+        },
+        { merge: true }
+      );
+    });
+    await batch.commit();
+  }
+  return deliveries;
 }
+
+const ALERT_ESCALATION_DELAY_MS = 90 * 1000;
+const ALERT_ESCALATION_MAX_STAGES = 3;
+
+async function enqueueAlertEscalation(alertId, stage) {
+  if (stage >= ALERT_ESCALATION_MAX_STAGES) return;
+  try {
+    await getFunctions()
+      .taskQueue("escalateUnansweredAlert")
+      .enqueue(
+        { alertId, stage },
+        {
+          id: `${alertId}_${stage}`,
+          scheduleTime: new Date(Date.now() + ALERT_ESCALATION_DELAY_MS),
+          dispatchDeadlineSeconds: 60,
+        }
+      );
+  } catch (error) {
+    if (error?.code === "functions/task-already-exists") return;
+    throw error;
+  }
+}
+
+exports.escalateUnansweredAlert = onTaskDispatched(
+  {
+    retryConfig: {
+      maxAttempts: 3,
+      minBackoffSeconds: 30,
+      maxBackoffSeconds: 180,
+      maxDoublings: 2,
+    },
+    rateLimits: { maxConcurrentDispatches: 5, maxDispatchesPerSecond: 5 },
+    timeoutSeconds: 120,
+    minInstances: 0,
+    maxInstances: 5,
+  },
+  async (request) => {
+    if (!(await functionsEnabled(db))) return;
+    const alertId = request.data?.alertId;
+    const stage = Number(request.data?.stage);
+    if (
+      typeof alertId !== "string" ||
+      !Number.isInteger(stage) ||
+      stage < 0 ||
+      stage >= ALERT_ESCALATION_MAX_STAGES
+    ) {
+      return;
+    }
+
+    const alertRef = db.collection("alerts").doc(alertId);
+    const alertDoc = await alertRef.get();
+    if (!alertDoc.exists || alertDoc.data().status !== "sent") return;
+
+    const responding = await db
+      .collection("alert_responses")
+      .where("alertId", "==", alertId)
+      .where("responding", "==", true)
+      .limit(1)
+      .get();
+    if (!responding.empty) {
+      await alertRef.set(
+        {
+          acknowledgedAt: FieldValue.serverTimestamp(),
+          acknowledgedBy: responding.docs[0].data().responderId || null,
+        },
+        { merge: true }
+      );
+      return;
+    }
+
+    const contacts = await db
+      .collection("contacts")
+      .where("userId", "==", alertDoc.data().userId)
+      .orderBy("priority")
+      .get();
+    const ready = contacts.docs.filter((doc) => {
+      const data = doc.data();
+      return data.notifyViaPush === true &&
+        data.status !== "pending" &&
+        typeof data.linkedUid === "string" &&
+        data.linkedUid.length > 0;
+    });
+    if (ready.length === 0 || stage >= ready.length) return;
+
+    const contactDoc = ready[stage];
+    const contact = contactDoc.data();
+    const caregiver = await db.collection("users").doc(contact.linkedUid).get();
+    const token = caregiver.exists ? caregiver.data().fcmToken : null;
+    if (typeof token === "string" && token) {
+      try {
+        await messaging.send(
+          buildMessage({
+            token,
+            title: "No caregiver has responded",
+            body: "Open the active alert and confirm whether you can help.",
+            alertId,
+            alertType: alertDoc.data().type,
+            alertStatus: "sent",
+            userId: alertDoc.data().userId,
+          })
+        );
+        await db
+          .collection("alert_deliveries")
+          .doc(`${alertId}_${contactDoc.id}`)
+          .set(
+            {
+              escalationStage: stage + 1,
+              lastEscalatedAtMs: Date.now(),
+              status: "sent",
+            },
+            { merge: true }
+          );
+      } catch (error) {
+        if (isStaleMessagingToken(error)) {
+          await clearStaleToken(caregiver.ref, token);
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    await alertRef.set(
+      {
+        escalationStage: stage + 1,
+        escalatedAt: FieldValue.serverTimestamp(),
+        escalatedContactId: contactDoc.id,
+      },
+      { merge: true }
+    );
+    if (stage + 1 < ready.length) {
+      await enqueueAlertEscalation(alertId, stage + 1);
+    }
+  }
+);
 
 exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => {
   if (!(await functionsEnabled(db))) {
@@ -275,7 +982,15 @@ exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => 
   const copy = getCreatedCopy(alert.type, userName);
   if (!copy) return;
 
-  await notifyContacts(alertUserId, alert, copy);
+  const deliveries = await notifyContacts(alertUserId, alert, copy, {
+    trackDelivery: alert.type === "sos" || alert.type === "headsUpExpired",
+  });
+  if (
+    (alert.type === "sos" || alert.type === "headsUpExpired") &&
+    deliveries.some((delivery) => delivery.status === "sent")
+  ) {
+    await enqueueAlertEscalation(alert.id, 0);
+  }
 });
 
 exports.onAlertUpdated = onDocumentUpdated("alerts/{alertId}", async (event) => {
@@ -737,6 +1452,11 @@ const [ownerDoc, contactDocs] = await Promise.all([
       bloodType: owner.bloodType || null,
       seizureType: owner.seizureType || null,
       emergencyNote: owner.emergencyNote || null,
+      seizureActionPlan: owner.seizureActionPlan || null,
+      rescueMedication: owner.rescueMedication || null,
+      callEmergencyAfterMinutes: Number.isInteger(owner.callEmergencyAfterMinutes)
+        ? owner.callEmergencyAfterMinutes
+        : 5,
       medications: Array.isArray(owner.medications) ? owner.medications : [],
       daysSinceLastSeizure: daysSince(lastLog?.occurredAt),
     },
@@ -938,17 +1658,25 @@ findLinkedContacts(targetResponderId, [["userId", "==", alertUserId]]),
     ? callerDoc.data().displayName || "A caregiver"
     : "A caregiver";
 
-  await messaging.send(
-    buildMessage({
-      token: fcmToken,
-      title: "Response needed",
-      body: `${callerName} is asking you to respond to ${ownerName}'s SOS.`,
-      alertId,
-      alertType: alert.type || "sos",
-      alertStatus: alert.status || "sent",
-      userId: alertUserId,
-    })
-  );
+  try {
+    await messaging.send(
+      buildMessage({
+        token: fcmToken,
+        title: "Response needed",
+        body: `${callerName} is asking you to respond to ${ownerName}'s SOS.`,
+        alertId,
+        alertType: alert.type || "sos",
+        alertStatus: alert.status || "sent",
+        userId: alertUserId,
+      })
+    );
+  } catch (error) {
+    if (isStaleMessagingToken(error)) {
+      await clearStaleToken(targetDoc.ref, fcmToken);
+      return { delivered: false, reason: "no-token" };
+    }
+    throw error;
+  }
 
   return { delivered: true };
 });
@@ -1031,6 +1759,15 @@ exports.submitAlertResponse = onCall(CALLABLE_OPTIONS, async (request) => {
   };
 
   await responseRef.set(payload, { merge: true });
+  if (responding === true) {
+    await alertDoc.ref.set(
+      {
+        acknowledgedAt: FieldValue.serverTimestamp(),
+        acknowledgedBy: callerUid,
+      },
+      { merge: true }
+    );
+  }
   return { ok: true };
 });
 
@@ -1066,13 +1803,26 @@ exports.deleteMyData = onCall(CALLABLE_OPTIONS, async (request) => {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
 
-const [own, responses, invites, rateLimits, linkedContacts] = await Promise.all([
+const [
+    own,
+    responses,
+    deliveries,
+    invites,
+    rateLimits,
+    linkedContacts,
+    wearableCredentials,
+    wearablePairings,
+  ] = await Promise.all([
     Promise.all(
-      ["contacts", "seizureLogs", "alerts", "headsUp"].map((collection) =>
+      ["contacts", "seizureLogs", "alerts", "headsUp", "wearableDevices"].map((collection) =>
         db.collection(collection).where("userId", "==", callerUid).get()
       )
     ),
     docsMatchingAny("alert_responses", [
+      ["responderId", callerUid],
+      ["alertOwnerId", callerUid],
+    ]),
+    docsMatchingAny("alert_deliveries", [
       ["responderId", callerUid],
       ["alertOwnerId", callerUid],
     ]),
@@ -1083,14 +1833,19 @@ const [own, responses, invites, rateLimits, linkedContacts] = await Promise.all(
     db.collection("rate_limits").where("__name__", ">=", `${callerUid}_`).where("__name__", "<", `${callerUid}_\uf8ff`).get(),
 
     db.collection("contacts").where("linkedUid", "==", callerUid).get(),
+    db.collection("wearable_device_credentials").where("userId", "==", callerUid).get(),
+    db.collection("wearable_pairings").where("userId", "==", callerUid).get(),
   ]);
 
   const deleted = {};
   const ownDocs = own.flatMap((snap) => snap.docs);
   deleted.owned = await deleteDocs(ownDocs);
   deleted.responses = await deleteDocs(responses);
+  deleted.deliveries = await deleteDocs(deliveries);
   deleted.invites = await deleteDocs(invites);
   deleted.rateLimits = await deleteDocs(rateLimits.docs);
+  deleted.wearableCredentials = await deleteDocs(wearableCredentials.docs);
+  deleted.wearablePairings = await deleteDocs(wearablePairings.docs);
 
 const unlinked = linkedContacts.docs;
   for (let i = 0; i < unlinked.length; i += DELETE_BATCH_LIMIT) {

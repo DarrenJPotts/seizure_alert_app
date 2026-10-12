@@ -18,6 +18,11 @@ import 'package:seizure_app/features/mode/mode_view.dart';
 import 'package:seizure_app/features/mode/view_models/mode_view_model.dart';
 import 'package:seizure_app/features/signup/views/signup_view.dart';
 import 'package:seizure_app/features/splash/splash_view.dart';
+import 'package:seizure_app/features/support/support_view.dart';
+import 'package:seizure_app/features/safety_plan/safety_plan_view.dart';
+import 'package:seizure_app/features/safety_plan/view_models/safety_plan_view_model.dart';
+import 'package:seizure_app/features/safety_readiness/safety_readiness_view.dart';
+import 'package:seizure_app/features/safety_readiness/view_models/safety_readiness_view_model.dart';
 
 abstract class AppRoutes {
   static const String splash = '/splash';
@@ -31,6 +36,9 @@ abstract class AppRoutes {
   static const String circleInvite = '/circle-invite';
   static const String mode = '/mode';
   static const String responding = '/responding';
+  static const String support = '/support';
+  static const String safetyPlan = '/safety-plan';
+  static const String safetyReadiness = '/safety-readiness';
   static const String redirectArgument = 'redirectRoute';
 }
 
@@ -44,8 +52,16 @@ final List<GetPage> routes = [
     binding: RootBinding(),
     middlewares: [AuthMiddleware()],
   ),
-  GetPage(name: AppRoutes.login, page: () => LoginView(), binding: LoginBinding()),
-  GetPage(name: AppRoutes.signup, page: () => SignupView(), binding: SignupBinding()),
+  GetPage(
+    name: AppRoutes.login,
+    page: () => LoginView(),
+    binding: LoginBinding(),
+  ),
+  GetPage(
+    name: AppRoutes.signup,
+    page: () => SignupView(),
+    binding: SignupBinding(),
+  ),
   GetPage(
     name: AppRoutes.onboarding,
     page: () => const OnboardingView(),
@@ -69,11 +85,33 @@ final List<GetPage> routes = [
     binding: CircleInviteBinding(),
     middlewares: [AuthMiddleware()],
   ),
-  GetPage(name: AppRoutes.mode, page: () => const ModeView(), binding: ModeBinding(), middlewares: [AuthMiddleware()]),
+  GetPage(
+    name: AppRoutes.mode,
+    page: () => const ModeView(),
+    binding: ModeBinding(),
+    middlewares: [AuthMiddleware()],
+  ),
   GetPage(
     name: AppRoutes.responding,
     page: () => const RespondingView(),
     binding: RespondingBinding(),
+    middlewares: [AuthMiddleware()],
+  ),
+  GetPage(
+    name: AppRoutes.support,
+    page: () => const SupportView(),
+    middlewares: [AuthMiddleware()],
+  ),
+  GetPage(
+    name: AppRoutes.safetyPlan,
+    page: () => const SafetyPlanView(),
+    binding: SafetyPlanBinding(),
+    middlewares: [AuthMiddleware()],
+  ),
+  GetPage(
+    name: AppRoutes.safetyReadiness,
+    page: () => const SafetyReadinessView(),
+    binding: SafetyReadinessBinding(),
     middlewares: [AuthMiddleware()],
   ),
 ];

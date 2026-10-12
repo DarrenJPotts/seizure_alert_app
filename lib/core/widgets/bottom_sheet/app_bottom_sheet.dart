@@ -48,24 +48,41 @@ class AppBottomSheetContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final body = Padding(
-      padding: EdgeInsets.all(Dimensions.twentyFour),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const AppBottomSheetHandle(),
-          SizedBox(height: Dimensions.twentyFour),
-          child,
-        ],
-      ),
-    );
-
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: scrollable ? SingleChildScrollView(child: body) : body,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.only(top: Dimensions.twelve),
+            child: const AppBottomSheetHandle(),
+          ),
+          SizedBox(height: Dimensions.twelve),
+          Flexible(
+            child: scrollable
+                ? SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      Dimensions.twentyFour,
+                      0,
+                      Dimensions.twentyFour,
+                      Dimensions.twentyFour,
+                    ),
+                    child: child,
+                  )
+                : Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      Dimensions.twentyFour,
+                      0,
+                      Dimensions.twentyFour,
+                      Dimensions.twentyFour,
+                    ),
+                    child: child,
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

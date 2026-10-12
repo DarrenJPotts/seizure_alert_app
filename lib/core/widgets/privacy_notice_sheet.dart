@@ -7,8 +7,10 @@ import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 class PrivacyNoticeSheet extends StatelessWidget {
   const PrivacyNoticeSheet({super.key});
 
-  static Future<void> show(BuildContext context) =>
-      AppBottomSheet.show<void>(context: context, builder: (BuildContext _) => const PrivacyNoticeSheet());
+  static Future<void> show(BuildContext context) => AppBottomSheet.show<void>(
+    context: context,
+    builder: (BuildContext _) => const PrivacyNoticeSheet(),
+  );
 
   @override
   Widget build(BuildContext context) => AppBottomSheetContent(
@@ -17,10 +19,13 @@ class PrivacyNoticeSheet extends StatelessWidget {
       children: <Widget>[
         Text(
           PrivacyNotice.title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         SizedBox(height: Dimensions.twentyFour),
-        for (final PrivacyNoticeSection section in PrivacyNotice.sections) ...<Widget>[
+        for (final PrivacyNoticeSection section
+            in PrivacyNotice.sections) ...<Widget>[
           Text(
             section.heading.toUpperCase(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -33,13 +38,17 @@ class PrivacyNoticeSheet extends StatelessWidget {
           SizedBox(height: Dimensions.eight),
           Text(
             section.body,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.55),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.55),
           ),
           SizedBox(height: Dimensions.twentyFour),
         ],
         Text(
           'Version ${PrivacyNotice.version}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.black45),
         ),
         SizedBox(height: Dimensions.sixteen),
         SizedBox(

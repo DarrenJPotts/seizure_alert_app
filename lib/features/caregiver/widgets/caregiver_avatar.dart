@@ -13,13 +13,14 @@ class CaregiverAvatar extends StatelessWidget {
   final String? name;
   final double size;
 
-final Color? background;
+  final Color? background;
   final Color? foreground;
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
-    final String resolved = name ?? FirebaseAuth.instance.currentUser?.displayName ?? '';
+    final String resolved =
+        name ?? FirebaseAuth.instance.currentUser?.displayName ?? '';
 
     return Container(
       width: size,
@@ -42,7 +43,11 @@ final Color? background;
 }
 
 String initialsOf(String value) {
-  final List<String> parts = value.trim().split(RegExp(r'\s+')).where((String p) => p.isNotEmpty).toList();
+  final List<String> parts = value
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((String p) => p.isNotEmpty)
+      .toList();
   if (parts.isEmpty) return '?';
   if (parts.length == 1) return parts.first[0].toUpperCase();
   return '${parts[0][0]}${parts[1][0]}'.toUpperCase();

@@ -59,8 +59,14 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
         title: const Text('Generate a new code?'),
         content: const Text('The current invite code will stop working.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Generate new code')),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Generate new code'),
+          ),
         ],
       ),
     );
@@ -85,7 +91,11 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
   Future<void> _copyCode() async {
     await Clipboard.setData(ClipboardData(text: _code));
     if (!mounted) return;
-    Get.snackbar('Code copied', 'Share it with ${widget.contactName}.', snackPosition: SnackPosition.BOTTOM);
+    Get.snackbar(
+      'Code copied',
+      'Share it with ${widget.contactName}.',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   @override
@@ -95,16 +105,24 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Invite ${widget.contactName}', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Invite ${widget.contactName}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           SizedBox(height: Dimensions.four),
           Text(
             'This code expires 24 hours after generation. Reopen this invite to resend it.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.black45),
           ),
           SizedBox(height: Dimensions.twentyFour),
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen, horizontal: Dimensions.twenty),
+            padding: EdgeInsets.symmetric(
+              vertical: Dimensions.sixteen,
+              horizontal: Dimensions.twenty,
+            ),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.black12),
               borderRadius: BorderRadius.circular(12),
@@ -115,11 +133,12 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
                   child: Center(
                     child: Text(
                       _code,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 4,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 4,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                     ),
                   ),
                 ),
@@ -132,6 +151,13 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
             ),
           ),
           SizedBox(height: Dimensions.twentyFour),
+          Text(
+            'Share or resend',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: Dimensions.twelve),
           _ChannelRow(
             icon: Icons.sms_outlined,
             label: 'Via SMS',
@@ -148,7 +174,10 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
             onTap: () {
               if (_isRegenerating) return;
               Get.back();
-              InviteService.sendWhatsAppInvite(phone: widget.phone, code: _code);
+              InviteService.sendWhatsAppInvite(
+                phone: widget.phone,
+                code: _code,
+              );
             },
           ),
           if (widget.onRegenerate != null) ...[
@@ -158,9 +187,15 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
               child: OutlinedButton.icon(
                 onPressed: _isRegenerating ? null : _regenerate,
                 icon: _isRegenerating
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.refresh, size: 18),
-                label: Text(_isRegenerating ? 'Generating…' : 'Generate new code'),
+                label: Text(
+                  _isRegenerating ? 'Generating…' : 'Generate new code',
+                ),
               ),
             ),
           ],
@@ -180,7 +215,11 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
 }
 
 class _ChannelRow extends StatelessWidget {
-  const _ChannelRow({required this.icon, required this.label, required this.onTap});
+  const _ChannelRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -192,17 +231,25 @@ class _ChannelRow extends StatelessWidget {
     borderRadius: BorderRadius.circular(12),
     child: Container(
       padding: EdgeInsets.all(Dimensions.sixteen),
-      decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black12),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withValues(alpha: 0.06)),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black.withValues(alpha: 0.06),
+            ),
             child: Icon(icon, size: 20, color: Colors.black54),
           ),
           SizedBox(width: Dimensions.twelve),
-          Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+          Expanded(
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          ),
           const Icon(Icons.chevron_right, color: Colors.black26),
         ],
       ),

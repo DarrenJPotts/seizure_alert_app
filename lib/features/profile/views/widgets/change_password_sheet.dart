@@ -98,9 +98,9 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
     required bool obscure,
     required VoidCallback onToggleObscure,
   }) {
-
-final InputDecorationThemeData fieldTheme =
-        Theme.of(context).inputDecorationTheme;
+    final InputDecorationThemeData fieldTheme = Theme.of(
+      context,
+    ).inputDecorationTheme;
     final bool hasError = _error != null;
 
     return InputDecoration(
@@ -152,14 +152,13 @@ final InputDecorationThemeData fieldTheme =
             ),
             SizedBox(height: Dimensions.eight),
           ] else ...[
-
             Text(
               'Change Password',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-Text(
+            Text(
               'Current password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -182,7 +181,7 @@ Text(
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-Text(
+            Text(
               'New password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -205,7 +204,7 @@ Text(
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-Text(
+            Text(
               'Confirm new password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -227,7 +226,7 @@ Text(
               ),
             ),
 
-if (_error != null) ...[
+            if (_error != null) ...[
               SizedBox(height: Dimensions.eight),
               Text(
                 _error!,
@@ -238,7 +237,7 @@ if (_error != null) ...[
             ],
             SizedBox(height: Dimensions.twentyFour),
 
-SizedBox(
+            SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isBusy ? null : _confirm,
@@ -265,7 +264,7 @@ SizedBox(
             ),
             SizedBox(height: Dimensions.eight),
 
-SizedBox(
+            SizedBox(
               width: double.infinity,
               child: TextButton(
                 onPressed: _isBusy ? null : () => Get.back(),

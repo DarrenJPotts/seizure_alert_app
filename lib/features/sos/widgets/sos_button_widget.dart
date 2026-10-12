@@ -6,7 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
 class SOSButton extends StatefulWidget {
-  const SOSButton({super.key, required this.onPressed, this.hasRecipients = true});
+  const SOSButton({
+    super.key,
+    required this.onPressed,
+    this.hasRecipients = true,
+  });
 
   final VoidCallback onPressed;
   final bool hasRecipients;
@@ -47,7 +51,10 @@ class _SOSButtonState extends State<SOSButton> {
             height: 264,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.black.withValues(alpha: 0.1), width: 1),
+              border: Border.all(
+                color: Colors.black.withValues(alpha: 0.1),
+                width: 1,
+              ),
             ),
             child: Center(
               child: AnimatedContainer(
@@ -91,7 +98,12 @@ class _SOSButtonState extends State<SOSButton> {
 }
 
 class CountdownAlertDialog extends StatefulWidget {
-  const CountdownAlertDialog({required this.onConfirm, required this.onCancel, this.hasRecipients = true, super.key});
+  const CountdownAlertDialog({
+    required this.onConfirm,
+    required this.onCancel,
+    this.hasRecipients = true,
+    super.key,
+  });
 
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
@@ -120,8 +132,7 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
         HapticFeedback.heavyImpact();
         widget.onConfirm();
       } else {
-
-HapticFeedback.selectionClick();
+        HapticFeedback.selectionClick();
         setState(() => _remaining--);
       }
     });
@@ -183,9 +194,10 @@ HapticFeedback.selectionClick();
                           widget.hasRecipients
                               ? 'Your circle will be notified in $_remaining second${_remaining == 1 ? '' : 's'}.'
                               : 'No one will be notified. SOS will be recorded only.',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.7)),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -206,14 +218,19 @@ HapticFeedback.selectionClick();
                     SizedBox(height: Dimensions.twenty),
                     SizedBox(
                       width: double.infinity,
-                      child: _DialogButton(text: 'Cancel', onPressed: widget.onCancel),
+                      child: _DialogButton(
+                        text: 'Cancel',
+                        onPressed: widget.onCancel,
+                      ),
                     ),
                     SizedBox(height: Dimensions.twelve),
                     Text(
-                      widget.hasRecipients ? 'Do nothing and help is on the way' : 'Cancel and review My Circle',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.4)),
+                      widget.hasRecipients
+                          ? 'Do nothing and help is on the way'
+                          : 'Cancel and review My Circle',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -257,7 +274,10 @@ class _DialogButtonState extends State<_DialogButton> {
         padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
         decoration: BoxDecoration(
           color: _isPressed ? Colors.black : Colors.white,
-          border: Border.all(color: _isPressed ? Colors.white24 : Colors.transparent, width: 1.5),
+          border: Border.all(
+            color: _isPressed ? Colors.white24 : Colors.transparent,
+            width: 1.5,
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Center(
@@ -282,13 +302,17 @@ class PulsingSOSCircle extends StatefulWidget {
   State<PulsingSOSCircle> createState() => _PulsingSOSCircleState();
 }
 
-class _PulsingSOSCircleState extends State<PulsingSOSCircle> with SingleTickerProviderStateMixin {
+class _PulsingSOSCircleState extends State<PulsingSOSCircle>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
   }
 
   @override
@@ -322,7 +346,10 @@ class _PulsingSOSCircleState extends State<PulsingSOSCircle> with SingleTickerPr
       child: Container(
         width: 208,
         height: 208,
-        decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -368,7 +395,10 @@ class _Ring extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.black.withValues(alpha: opacity), width: 1.0),
+          border: Border.all(
+            color: Colors.black.withValues(alpha: opacity),
+            width: 1.0,
+          ),
         ),
       ),
     );

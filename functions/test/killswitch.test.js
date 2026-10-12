@@ -50,11 +50,11 @@ test("enabled again once the doc flips back", async () => {
   assert.equal(await functionsEnabled(db, now), true);
 });
 
-test("fails open when the read itself throws", async () => {
+test("fails closed when the read itself throws", async () => {
   const db = fakeDb(async () => {
     throw new Error("Firestore is unreachable");
   });
-  assert.equal(await functionsEnabled(db), true);
+  assert.equal(await functionsEnabled(db), false);
 });
 
 test("caches the result instead of reading on every call", async () => {

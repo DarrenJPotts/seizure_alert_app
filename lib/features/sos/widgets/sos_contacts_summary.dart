@@ -4,12 +4,17 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 
 class SosContactsSummary extends StatelessWidget {
-  const SosContactsSummary({super.key, required this.contacts, this.onAddContact});
+  const SosContactsSummary({
+    super.key,
+    required this.contacts,
+    this.onAddContact,
+  });
 
   final List<ContactDto> contacts;
   final VoidCallback? onAddContact;
 
-  List<ContactDto> get recipients => contacts.where((ContactDto c) => c.isPushReady).toList();
+  List<ContactDto> get recipients =>
+      contacts.where((ContactDto c) => c.isPushReady).toList();
 
   List<ContactDto> get visible => recipients.take(3).toList();
 
@@ -26,13 +31,17 @@ class SosContactsSummary extends StatelessWidget {
                 ? 'No emergency contacts are set up.'
                 : 'No linked contacts are ready for app alerts. Invite a contact or enable push alerts.',
             textAlign: TextAlign.center,
-            style: context.theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+            style: context.theme.textTheme.bodySmall?.copyWith(
+              color: Colors.black54,
+            ),
           ),
           if (onAddContact != null)
             TextButton.icon(
               onPressed: onAddContact,
               icon: const Icon(Icons.person_add_outlined, size: 18),
-              label: Text(contacts.isEmpty ? 'Add emergency contact' : 'Review My Circle'),
+              label: Text(
+                contacts.isEmpty ? 'Add emergency contact' : 'Review My Circle',
+              ),
               style: TextButton.styleFrom(foregroundColor: Colors.black),
             ),
         ],
@@ -52,7 +61,11 @@ class SosContactsSummary extends StatelessWidget {
                   left: i * 24.0,
                   child: _Avatar(contact: visible[i]),
                 ),
-              if (overflow > 0) Positioned(left: visible.length * 24.0, child: _Avatar.overflow(overflow)),
+              if (overflow > 0)
+                Positioned(
+                  left: visible.length * 24.0,
+                  child: _Avatar.overflow(overflow),
+                ),
             ],
           ),
         ),
@@ -66,7 +79,9 @@ class SosContactsSummary extends StatelessWidget {
             ),
             Text(
               'Push notifications only',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.black45),
             ),
           ],
         ),
@@ -97,9 +112,10 @@ class _Avatar extends StatelessWidget {
       child: Center(
         child: Text(
           contact != null ? _initials(contact!.name) : '+$overflowCount',
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(color: muted ? Colors.black54 : Colors.white, fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: muted ? Colors.black54 : Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

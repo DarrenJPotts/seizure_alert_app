@@ -2,6 +2,8 @@ import 'package:seizure_app/core/helpers/phone_number.dart';
 
 enum ContactStatus { active, pending }
 
+enum ContactAlertTestStatus { sent, deviceOffline, failed }
+
 class ContactDto {
   final String id;
   final String userId;
@@ -15,6 +17,8 @@ class ContactDto {
   final String? linkedUid;
   final String? inviteStatus;
   final DateTime? inviteExpiresAt;
+  final ContactAlertTestStatus? lastTestStatus;
+  final DateTime? lastTestedAt;
 
   /// Derived rather than stored so no write path can forget to set it.
   String? get phoneNormalized => PhoneNumber.normalize(phone);
@@ -32,6 +36,8 @@ class ContactDto {
     this.linkedUid,
     this.inviteStatus,
     this.inviteExpiresAt,
+    this.lastTestStatus,
+    this.lastTestedAt,
   });
 
   factory ContactDto.fromMap(Map<String, dynamic> map) => ContactDto(
@@ -50,7 +56,21 @@ class ContactDto {
     linkedUid: map['linkedUid'] as String?,
     inviteStatus: map['inviteStatus'] as String?,
     inviteExpiresAt: map['inviteExpiresAtMs'] is num
-        ? DateTime.fromMillisecondsSinceEpoch((map['inviteExpiresAtMs'] as num).toInt())
+        ? DateTime.fromMillisecondsSinceEpoch(
+            (map['inviteExpiresAtMs'] as num).toInt(),
+            isUtc: true,
+          )
+        : null,
+    lastTestStatus: switch (map['lastTestStatus']) {
+      'sent' => ContactAlertTestStatus.sent,
+      'deviceOffline' => ContactAlertTestStatus.deviceOffline,
+      'failed' => ContactAlertTestStatus.failed,
+      _ => null,
+    },
+    lastTestedAt: map['lastTestedAtMs'] is num
+        ? DateTime.fromMillisecondsSinceEpoch(
+            (map['lastTestedAtMs'] as num).toInt(),
+          )
         : null,
   );
 

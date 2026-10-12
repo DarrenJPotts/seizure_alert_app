@@ -55,10 +55,9 @@ class DaysFreeCard extends StatelessWidget {
           ),
           Text(
             sub,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.white60),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.white60),
           ),
         ],
       ),

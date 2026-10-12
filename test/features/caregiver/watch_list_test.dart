@@ -21,12 +21,13 @@ void main() {
 
     test('leaves every context field null when the server omits it', () {
       // What an older deployed function returns, or a person with no history.
-      final WatchedPersonDto person = WatchedPersonDto.fromMap(<String, dynamic>{
-        'ownerId': 'u',
-        'ownerName': 'Someone',
-        'contactId': 'c',
-        'status': 'monitoring',
-      });
+      final WatchedPersonDto person =
+          WatchedPersonDto.fromMap(<String, dynamic>{
+            'ownerId': 'u',
+            'ownerName': 'Someone',
+            'contactId': 'c',
+            'status': 'monitoring',
+          });
 
       expect(person.headsUpNote, isNull);
       expect(person.headsUpAt, isNull);
@@ -37,13 +38,14 @@ void main() {
     });
 
     test('survives an unparseable timestamp rather than throwing', () {
-      final WatchedPersonDto person = WatchedPersonDto.fromMap(<String, dynamic>{
-        'ownerId': 'u',
-        'ownerName': 'Someone',
-        'contactId': 'c',
-        'status': 'sos',
-        'lastAlertAt': 'not-a-date',
-      });
+      final WatchedPersonDto person =
+          WatchedPersonDto.fromMap(<String, dynamic>{
+            'ownerId': 'u',
+            'ownerName': 'Someone',
+            'contactId': 'c',
+            'status': 'sos',
+            'lastAlertAt': 'not-a-date',
+          });
 
       expect(person.lastAlertAt, isNull);
       expect(person.status, WatchedPersonStatus.sos);
@@ -74,7 +76,11 @@ void main() {
         'people': <dynamic>[],
         'recentActivity': <Map<String, dynamic>>[
           <String, dynamic>{'personName': 'A', 'kind': 'sos', 'at': null},
-          <String, dynamic>{'personName': 'B', 'kind': 'sos', 'at': '2026-03-14T08:00:00.000'},
+          <String, dynamic>{
+            'personName': 'B',
+            'kind': 'sos',
+            'at': '2026-03-14T08:00:00.000',
+          },
         ],
       });
 
@@ -95,4 +101,5 @@ void main() {
   });
 }
 
-String _labelFor(String kind) => WatchActivityDto(personName: 'A', kind: kind, at: DateTime(2026)).label;
+String _labelFor(String kind) =>
+    WatchActivityDto(personName: 'A', kind: kind, at: DateTime(2026)).label;

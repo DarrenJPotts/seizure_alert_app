@@ -9,10 +9,12 @@ import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_response_dto.dart';
+import 'package:seizure_app/core/dtos/alert_delivery_dto.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/core/services/home_widget_service.dart';
+import 'package:seizure_app/core/services/local_notifications_service.dart';
 import 'package:seizure_app/features/seizure_log/view_models/seizure_log_view_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
@@ -34,11 +36,13 @@ class SosViewModel extends GetxController {
   final Rxn<AlertDto> activeSos = Rxn<AlertDto>();
   final Rx<Duration> elapsed = Duration.zero.obs;
   final RxList<AlertResponseDto> alertResponses = <AlertResponseDto>[].obs;
+  final RxList<AlertDeliveryDto> alertDeliveries = <AlertDeliveryDto>[].obs;
   final Rx<SosDelivery> delivery = SosDelivery.delivered.obs;
 
   Timer? _elapsedTimer;
   Timer? _deliveryWatchdog;
   StreamSubscription<List<AlertResponseDto>>? _responsesSub;
+  StreamSubscription<List<AlertDeliveryDto>>? _deliveriesSub;
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
@@ -53,6 +57,7 @@ class SosViewModel extends GetxController {
     _elapsedTimer?.cancel();
     _deliveryWatchdog?.cancel();
     _responsesSub?.cancel();
+    _deliveriesSub?.cancel();
     super.onClose();
   }
 
@@ -112,6 +117,7 @@ class SosViewModel extends GetxController {
       _syncHomeWidget();
       _startElapsed();
       _watchResponses(alert.id);
+      unawaited(_startNearbyAlert());
 
       _trackDelivery(alert.id, FirestoreService.instance().createAlert(alert));
 
@@ -176,6 +182,7 @@ class SosViewModel extends GetxController {
     try {
       _elapsedTimer?.cancel();
       _responsesSub?.cancel();
+      _deliveriesSub?.cancel();
 
       final AlertDto updated = current.copyWith(
         status: AlertStatus.cancelled,
@@ -186,6 +193,12 @@ class SosViewModel extends GetxController {
       _syncHomeWidget();
       elapsed.value = Duration.zero;
       alertResponses.clear();
+      alertDeliveries.clear();
+      if (Get.isRegistered<LocalNotificationsService>()) {
+        unawaited(
+          Get.find<LocalNotificationsService>().cancelNearbyEmergencyAlert(),
+        );
+      }
 
       _deliveryWatchdog?.cancel();
       delivery.value = SosDelivery.delivered;
@@ -233,6 +246,14 @@ class SosViewModel extends GetxController {
           onError: (Object e) =>
               debugPrint('[SosVM] Error watching responses: $e'),
         );
+    _deliveriesSub?.cancel();
+    _deliveriesSub = FirestoreService.instance()
+        .watchAlertDeliveries(alertId)
+        .listen(
+          (List<AlertDeliveryDto> list) => alertDeliveries.value = list,
+          onError: (Object error) =>
+              debugPrint('[SosVM] Error watching deliveries: $error'),
+        );
   }
 
   void _startElapsed() {
@@ -270,6 +291,16 @@ class SosViewModel extends GetxController {
     if (Get.isRegistered<HomeWidgetService>()) {
       unawaited(Get.find<HomeWidgetService>().syncCurrentState());
     }
+  }
+
+  Future<void> _startNearbyAlert() async {
+    if (!Get.isRegistered<LocalNotificationsService>()) return;
+    final result = await FirestoreService.instance().getUser(_uid);
+    final user = result.data;
+    if (!result.isSuccess || user?.nearbyAudibleAlert != true) return;
+    await Get.find<LocalNotificationsService>().showNearbyEmergencyAlert(
+      user?.seizureActionPlan ?? user?.emergencyNote ?? '',
+    );
   }
 
   void _showSnackbar(String title, String message) {

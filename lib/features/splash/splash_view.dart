@@ -24,7 +24,8 @@ class SplashViewModel extends GetxController {
     ]);
 
     final User? user = settled.first as User?;
-    final String? notificationRoute = Get.isRegistered<FirebaseMessagingService>()
+    final String? notificationRoute =
+        Get.isRegistered<FirebaseMessagingService>()
         ? Get.find<FirebaseMessagingService>().takeInitialNotificationRoute()
         : null;
 
@@ -36,13 +37,17 @@ class SplashViewModel extends GetxController {
     if (notificationRoute != null) {
       Get.offAllNamed(
         AppRoutes.login,
-        arguments: <String, String>{AppRoutes.redirectArgument: notificationRoute},
+        arguments: <String, String>{
+          AppRoutes.redirectArgument: notificationRoute,
+        },
       );
       return;
     }
 
     Get.offAllNamed(
-      AppModeService.instance().onboardingCompleted.value ? AppRoutes.login : AppRoutes.onboarding,
+      AppModeService.instance().onboardingCompleted.value
+          ? AppRoutes.login
+          : AppRoutes.onboarding,
     );
   }
 }
@@ -53,5 +58,6 @@ class SplashView extends StatelessWidget {
   final SplashViewModel viewModel = Get.put(SplashViewModel());
 
   @override
-  Widget build(BuildContext context) => const Scaffold(backgroundColor: Colors.black, body: SplashBody());
+  Widget build(BuildContext context) =>
+      const Scaffold(backgroundColor: Colors.black, body: SplashBody());
 }

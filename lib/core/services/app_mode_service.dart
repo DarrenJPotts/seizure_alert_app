@@ -10,9 +10,13 @@ class AppModeService extends GetxService {
 
   final SharedPreferences _prefs;
 
-  late final RxBool caregiverMode = RxBool(_prefs.getBool(SharedPrefKeys.caregiverMode) ?? false);
+  late final RxBool caregiverMode = RxBool(
+    _prefs.getBool(SharedPrefKeys.caregiverMode) ?? false,
+  );
 
-  late final RxBool autoAnswerCalls = RxBool(_prefs.getBool(SharedPrefKeys.autoAnswerCalls) ?? false);
+  late final RxBool autoAnswerCalls = RxBool(
+    _prefs.getBool(SharedPrefKeys.autoAnswerCalls) ?? false,
+  );
 
   late final RxBool onboardingCompleted = RxBool(
     _prefs.getBool(SharedPrefKeys.onboardingCompleted) ?? false,

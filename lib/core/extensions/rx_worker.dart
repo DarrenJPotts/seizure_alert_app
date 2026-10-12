@@ -23,12 +23,16 @@ mixin RxWorkerMixin on GetxController {
     Function? onError,
     void Function()? onDone,
     bool? cancelOnError,
-  }) =>
-      _addWorker(ever<T>(listener, callback,
-          condition: condition,
-          onError: onError,
-          onDone: onDone,
-          cancelOnError: cancelOnError));
+  }) => _addWorker(
+    ever<T>(
+      listener,
+      callback,
+      condition: condition,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    ),
+  );
 
   Worker everAllWithDisposal(
     List<RxInterface> listeners,
@@ -37,10 +41,14 @@ mixin RxWorkerMixin on GetxController {
     Function? onError,
     void Function()? onDone,
     bool? cancelOnError,
-  }) =>
-      _addWorker(everAll(listeners, callback,
-          condition: condition,
-          onError: onError,
-          onDone: onDone,
-          cancelOnError: cancelOnError));
+  }) => _addWorker(
+    everAll(
+      listeners,
+      callback,
+      condition: condition,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    ),
+  );
 }

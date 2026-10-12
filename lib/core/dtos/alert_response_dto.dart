@@ -2,7 +2,7 @@ class AlertResponseDto {
   final String id;
   final String alertId;
 
-final String alertOwnerId;
+  final String alertOwnerId;
 
   final String contactId;
   final String contactName;
@@ -28,19 +28,24 @@ final String alertOwnerId;
     this.note,
   });
 
-  factory AlertResponseDto.fromMap(Map<String, dynamic> map) => AlertResponseDto(
-    id: map['id'] as String,
-    alertId: map['alertId'] as String,
-    alertOwnerId: map['alertOwnerId'] as String? ?? '',
-    contactId: map['contactId'] as String,
-    contactName: map['contactName'] as String,
-    responderId: map['responderId'] as String?,
-    seen: map['seen'] as bool? ?? false,
-    responding: map['responding'] as bool? ?? false,
-    seenAt: map['seenAt'] != null ? DateTime.parse(map['seenAt'] as String) : null,
-    respondedAt: map['respondedAt'] != null ? DateTime.parse(map['respondedAt'] as String) : null,
-    note: map['note'] as String?,
-  );
+  factory AlertResponseDto.fromMap(Map<String, dynamic> map) =>
+      AlertResponseDto(
+        id: map['id'] as String,
+        alertId: map['alertId'] as String,
+        alertOwnerId: map['alertOwnerId'] as String? ?? '',
+        contactId: map['contactId'] as String,
+        contactName: map['contactName'] as String,
+        responderId: map['responderId'] as String?,
+        seen: map['seen'] as bool? ?? false,
+        responding: map['responding'] as bool? ?? false,
+        seenAt: map['seenAt'] != null
+            ? DateTime.parse(map['seenAt'] as String)
+            : null,
+        respondedAt: map['respondedAt'] != null
+            ? DateTime.parse(map['respondedAt'] as String)
+            : null,
+        note: map['note'] as String?,
+      );
 
   Map<String, dynamic> toMap() => {
     'id': id,

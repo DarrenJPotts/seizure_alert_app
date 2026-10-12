@@ -39,11 +39,13 @@ class SignupView extends GetView<SignupViewModel> {
                         spacing: Dimensions.thirtySix,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-
                           Column(
                             spacing: Dimensions.sixteen,
                             children: [
-                              PictureWidget(imagePath: ImageList.appLogo, width: 220),
+                              PictureWidget(
+                                imagePath: ImageList.appLogo,
+                                width: 220,
+                              ),
                               Text(
                                 'Create your account',
                                 textAlign: TextAlign.center,
@@ -52,7 +54,7 @@ class SignupView extends GetView<SignupViewModel> {
                             ],
                           ),
 
-Column(
+                          Column(
                             spacing: Dimensions.sixteen,
                             children: [
                               AppTextFormField(
@@ -71,7 +73,8 @@ Column(
                                 validator: controller.validatePassword,
                               ),
                               AppTextFormField(
-                                controller: controller.confirmPasswordController,
+                                controller:
+                                    controller.confirmPasswordController,
                                 labelText: 'Confirm password',
                                 obscureText: true,
                                 enableObscureToggle: true,
@@ -79,7 +82,7 @@ Column(
                                 validator: controller.validateConfirmPassword,
                               ),
 
-Obx(() {
+                              Obx(() {
                                 final error = controller.errorMessage.value;
                                 if (error == null || error.isEmpty) {
                                   return const SizedBox.shrink();
@@ -87,36 +90,53 @@ Obx(() {
                                 return Text(
                                   error,
                                   textAlign: TextAlign.center,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.error,
+                                      ),
                                 );
                               }),
                             ],
                           ),
 
-Column(
+                          Column(
                             spacing: Dimensions.sixteen,
                             children: [
                               Obx(() {
-                                final isLoading = controller.screenState.value == GenericScreenStates.loading;
+                                final isLoading =
+                                    controller.screenState.value ==
+                                    GenericScreenStates.loading;
                                 return AppButton(
-                                  buttonStyle: BaseButtonStyle.primaryButton(context: context),
-                                  buttonText: isLoading ? 'Creating account...' : 'Create account',
+                                  buttonStyle: BaseButtonStyle.primaryButton(
+                                    context: context,
+                                  ),
+                                  buttonText: isLoading
+                                      ? 'Creating account...'
+                                      : 'Create account',
                                   isLoading: isLoading,
                                   onTap: isLoading
                                       ? null
                                       : () {
-                                          if (_formKey.currentState?.validate() ?? false) {
+                                          if (_formKey.currentState
+                                                  ?.validate() ??
+                                              false) {
                                             controller.register();
                                           }
                                         },
                                 );
                               }),
                               AppButton(
-                                buttonStyle: BaseButtonStyle.secondaryTextButtonStyle(context: context),
+                                buttonStyle:
+                                    BaseButtonStyle.secondaryTextButtonStyle(
+                                      context: context,
+                                    ),
                                 buttonText: 'Already have an account? Sign in',
-                                onTap: () => Get.offNamed(AppRoutes.login, arguments: Get.arguments),
+                                onTap: () => Get.offNamed(
+                                  AppRoutes.login,
+                                  arguments: Get.arguments,
+                                ),
                               ),
                             ],
                           ),

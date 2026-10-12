@@ -21,9 +21,10 @@ class SosStatusBoardHeader extends StatelessWidget {
   final VoidCallback onCancel;
   final SosDelivery delivery;
 
-final VoidCallback onCallForHelp;
+  final VoidCallback onCallForHelp;
 
-  bool get _undelivered => delivery == SosDelivery.queued || delivery == SosDelivery.failed;
+  bool get _undelivered =>
+      delivery == SosDelivery.queued || delivery == SosDelivery.failed;
 
   @override
   Widget build(BuildContext context) {
@@ -65,10 +66,16 @@ final VoidCallback onCallForHelp;
                 final filled = i < seenCount;
                 return Expanded(
                   child: Container(
-                    margin: EdgeInsets.only(right: i == (totalCount == 0 ? 0 : totalCount - 1) ? 0 : Dimensions.four),
+                    margin: EdgeInsets.only(
+                      right: i == (totalCount == 0 ? 0 : totalCount - 1)
+                          ? 0
+                          : Dimensions.four,
+                    ),
                     height: 4,
                     decoration: BoxDecoration(
-                      color: filled ? Colors.white : Colors.white.withValues(alpha: 0.18),
+                      color: filled
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(Dimensions.circular),
                     ),
                   ),
@@ -80,7 +87,9 @@ final VoidCallback onCallForHelp;
               totalCount == 0
                   ? 'No contacts are set to receive alerts'
                   : '$seenCount of $totalCount contacts have seen this',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.6)),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
             ),
           ],
         ],
@@ -96,13 +105,14 @@ class _StatusLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle? style = Theme.of(
-      context,
-    ).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w600, letterSpacing: 3);
+    final TextStyle? style = Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 3,
+    );
 
     return switch (delivery) {
-
-SosDelivery.delivered => Row(
+      SosDelivery.delivered => Row(
         children: <Widget>[
           const LiveIndicator(size: 12, color: Colors.white),
           SizedBox(width: Dimensions.eight),
@@ -114,7 +124,10 @@ SosDelivery.delivered => Row(
           const SizedBox(
             width: 12,
             height: 12,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white,
+            ),
           ),
           SizedBox(width: Dimensions.eight),
           Expanded(child: Text('SENDING…', style: style)),
@@ -160,7 +173,10 @@ class _CancelButton extends StatelessWidget {
         ),
         child: Text(
           'Cancel',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     ),
@@ -197,7 +213,10 @@ class _CancelButton extends StatelessWidget {
 }
 
 class _UndeliveredNotice extends StatelessWidget {
-  const _UndeliveredNotice({required this.delivery, required this.onCallForHelp});
+  const _UndeliveredNotice({
+    required this.delivery,
+    required this.onCallForHelp,
+  });
 
   final SosDelivery delivery;
   final VoidCallback onCallForHelp;
@@ -218,9 +237,11 @@ class _UndeliveredNotice extends StatelessWidget {
           delivery == SosDelivery.queued
               ? 'The server has not confirmed this alert yet. It will keep trying when a connection is available. Call a contact instead if you need help now.'
               : 'This alert could not be sent. Nobody has been notified.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.white, height: 1.5, fontWeight: FontWeight.w500),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.white,
+            height: 1.5,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         SizedBox(height: Dimensions.fourteen),
         SizedBox(
@@ -234,7 +255,9 @@ class _UndeliveredNotice extends StatelessWidget {
               backgroundColor: Colors.white,
               foregroundColor: Colors.black,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),

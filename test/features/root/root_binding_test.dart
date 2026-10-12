@@ -35,7 +35,11 @@ void main() {
     RootBinding().dependencies();
 
     expect(Get.isPrepared<RootViewModel>(), isTrue, reason: 'shell view model');
-    expect(Get.isPrepared<SosViewModel>(), isTrue, reason: 'the one that crashed');
+    expect(
+      Get.isPrepared<SosViewModel>(),
+      isTrue,
+      reason: 'the one that crashed',
+    );
     expect(Get.isPrepared<ProfileViewModel>(), isTrue);
     expect(Get.isPrepared<HomeViewModel>(), isTrue);
     expect(Get.isPrepared<SeizureLogViewModel>(), isTrue);
@@ -75,7 +79,11 @@ void main() {
 
       expect(await Get.delete<_Throwaway>(force: true), isTrue);
       expect(Get.isPrepared<_Throwaway>(), isTrue);
-      expect(Get.find<_Throwaway>(), isA<_Throwaway>(), reason: 'rebuilt on demand');
+      expect(
+        Get.find<_Throwaway>(),
+        isA<_Throwaway>(),
+        reason: 'rebuilt on demand',
+      );
     });
 
     test('a plain lazyPut loses the factory — this was the bug', () async {

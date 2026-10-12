@@ -7,7 +7,7 @@ abstract class AppColorSchemes {
   static const ColorScheme light = ColorScheme(
     brightness: Brightness.light,
 
-primary: Colors.black,
+    primary: Colors.black,
     onPrimary: Colors.white,
     primaryContainer: AppColorsLight.surfaceContainerHighest,
     onPrimaryContainer: Colors.black,
@@ -16,7 +16,7 @@ primary: Colors.black,
     onPrimaryFixed: Colors.black,
     onPrimaryFixedVariant: AppColorsLight.textSecondary,
 
-secondary: AppColorsLight.secondary,
+    secondary: AppColorsLight.secondary,
     onSecondary: Colors.white,
     secondaryContainer: AppColorsLight.surfaceContainerHigh,
     onSecondaryContainer: Colors.black,
@@ -34,12 +34,12 @@ secondary: AppColorsLight.secondary,
     onTertiaryFixed: Colors.black,
     onTertiaryFixedVariant: AppColorsLight.textSecondary,
 
-error: AppColorsLight.accentRed,
+    error: AppColorsLight.accentRed,
     onError: Colors.white,
     errorContainer: AppColorsLight.errorContainer,
     onErrorContainer: AppColorsLight.onErrorContainer,
 
-surface: AppColorsLight.surface,
+    surface: AppColorsLight.surface,
     onSurface: Colors.black,
     onSurfaceVariant: AppColorsLight.textSecondary,
     surfaceDim: AppColorsLight.surfaceDim,
@@ -50,22 +50,22 @@ surface: AppColorsLight.surface,
     surfaceContainerHigh: AppColorsLight.surfaceContainerHigh,
     surfaceContainerHighest: AppColorsLight.surfaceContainerHighest,
 
-surfaceTint: Colors.transparent,
+    surfaceTint: Colors.transparent,
 
-outline: AppColorsLight.outline,
+    outline: AppColorsLight.outline,
     outlineVariant: AppColorsLight.outlineVariant,
     shadow: Colors.black,
     scrim: Colors.black,
 
-inverseSurface: Colors.black,
+    inverseSurface: Colors.black,
     onInverseSurface: Colors.white,
     inversePrimary: Colors.white,
   );
 
-static const ColorScheme dark = ColorScheme(
+  static const ColorScheme dark = ColorScheme(
     brightness: Brightness.dark,
 
-primary: Colors.white,
+    primary: Colors.white,
     onPrimary: Colors.black,
     primaryContainer: AppColorsDark.surfaceContainerHighest,
     onPrimaryContainer: Colors.white,
@@ -74,7 +74,7 @@ primary: Colors.white,
     onPrimaryFixed: Colors.white,
     onPrimaryFixedVariant: AppColorsDark.textSecondary,
 
-secondary: AppColorsDark.secondary,
+    secondary: AppColorsDark.secondary,
     onSecondary: Colors.black,
     secondaryContainer: AppColorsDark.surfaceContainerHigh,
     onSecondaryContainer: Colors.white,
@@ -92,12 +92,12 @@ secondary: AppColorsDark.secondary,
     onTertiaryFixed: Colors.white,
     onTertiaryFixedVariant: AppColorsDark.textSecondary,
 
-error: AppColorsDark.accentRed,
+    error: AppColorsDark.accentRed,
     onError: Colors.black,
     errorContainer: AppColorsDark.errorContainer,
     onErrorContainer: AppColorsDark.onErrorContainer,
 
-surface: AppColorsDark.background,
+    surface: AppColorsDark.background,
     onSurface: Colors.white,
     onSurfaceVariant: AppColorsDark.textSecondary,
     surfaceDim: AppColorsDark.surfaceDim,
@@ -108,14 +108,14 @@ surface: AppColorsDark.background,
     surfaceContainerHigh: AppColorsDark.surfaceContainerHigh,
     surfaceContainerHighest: AppColorsDark.surfaceContainerHighest,
 
-surfaceTint: Colors.transparent,
+    surfaceTint: Colors.transparent,
 
-outline: AppColorsDark.outline,
+    outline: AppColorsDark.outline,
     outlineVariant: AppColorsDark.outlineVariant,
     shadow: Colors.black,
     scrim: Colors.black,
 
-inverseSurface: Colors.white,
+    inverseSurface: Colors.white,
     onInverseSurface: Colors.black,
     inversePrimary: Colors.black,
   );

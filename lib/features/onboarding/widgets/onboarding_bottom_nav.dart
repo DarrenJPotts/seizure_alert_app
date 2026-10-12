@@ -31,10 +31,12 @@ class OnboardingBottomNav extends StatelessWidget {
                     foregroundColor: Colors.black,
                     side: const BorderSide(color: Colors.black26),
                     padding: EdgeInsets.symmetric(
-                        horizontal: Dimensions.twentyFour,
-                        vertical: Dimensions.sixteen),
+                      horizontal: Dimensions.twentyFour,
+                      vertical: Dimensions.sixteen,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: const Text('Back'),
                 ),
@@ -44,30 +46,32 @@ class OnboardingBottomNav extends StatelessWidget {
                 onPressed: vm.isLoading.value
                     ? null
                     : isLast
-                        ? vm.finish
-                        : vm.next,
+                    ? vm.finish
+                    : vm.next,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.black38,
-                  padding:
-                      EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: vm.isLoading.value
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : Text(
                         isLast ? vm.finishLabel : vm.nextLabel,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
               ),
             ),

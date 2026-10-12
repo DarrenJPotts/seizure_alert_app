@@ -3,7 +3,6 @@ import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/core/dtos/alert_response_dto.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/dtos/heads_up_dto.dart';
-import 'package:seizure_app/core/dtos/invite_dto.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
 import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/dtos/alert_detail_dto.dart';
@@ -87,7 +86,10 @@ void main() {
       // This is the SOS flow: the alert is created and sent immediately, then
       // the GPS fix is attached once it resolves.
       final AlertDto original = Fixtures.alert(latitude: null, longitude: null);
-      final AlertDto located = original.copyWith(latitude: -26.2041, longitude: 28.0473);
+      final AlertDto located = original.copyWith(
+        latitude: -26.2041,
+        longitude: 28.0473,
+      );
 
       expect(located.latitude, -26.2041);
       expect(located.longitude, 28.0473);
@@ -105,7 +107,6 @@ void main() {
       expect(decoded.phone, original.phone);
       expect(decoded.relation, original.relation);
       expect(decoded.priority, original.priority);
-      expect(decoded.notifyViaSms, original.notifyViaSms);
       expect(decoded.notifyViaPush, original.notifyViaPush);
       expect(decoded.createdAt, original.createdAt);
       expect(decoded.status, original.status);
@@ -115,32 +116,55 @@ void main() {
       // getPeopleIWatch and getAlertDetail query on phoneNormalized. If toMap
       // stops emitting it, those lookups match nothing and the contact silently
       // receives no alerts.
-      final Map<String, dynamic> map = Fixtures.contact(phone: '082 123 4567').toMap();
+      final Map<String, dynamic> map = Fixtures.contact(
+        phone: '082 123 4567',
+      ).toMap();
 
-      expect(map['phone'], '082 123 4567', reason: 'raw value kept for display');
+      expect(
+        map['phone'],
+        '082 123 4567',
+        reason: 'raw value kept for display',
+      );
       expect(map['phoneNormalized'], '+27821234567');
     });
 
     test('emits a null normalised phone when the raw value is unusable', () {
-      expect(Fixtures.contact(phone: 'not a number').toMap()['phoneNormalized'], isNull);
+      expect(
+        Fixtures.contact(phone: 'not a number').toMap()['phoneNormalized'],
+        isNull,
+      );
     });
 
     test('defaults an unknown status to active rather than throwing', () {
       // A document written by a future version of the app must not crash this
       // one — it is emergency-contact data.
-      final Map<String, dynamic> map = Fixtures.contact().toMap()..['status'] = 'some_future_status';
+      final Map<String, dynamic> map = Fixtures.contact().toMap()
+        ..['status'] = 'some_future_status';
 
       expect(ContactDto.fromMap(map).status, ContactStatus.active);
     });
 
-    test('defaults missing notify flags to true', () {
+    test('defaults a missing push flag to true', () {
       final Map<String, dynamic> map = Fixtures.contact().toMap()
-        ..remove('notifyViaSms')
         ..remove('notifyViaPush');
       final ContactDto decoded = ContactDto.fromMap(map);
 
-      expect(decoded.notifyViaSms, isTrue);
       expect(decoded.notifyViaPush, isTrue);
+    });
+
+    test('decodes invite state written by the Cloud Function', () {
+      final DateTime expiry = Fixtures.at.add(const Duration(days: 7));
+      final ContactDto decoded = ContactDto.fromMap(
+        Fixtures.contact().toMap()
+          ..['linkedUid'] = 'user-2'
+          ..['inviteStatus'] = 'accepted'
+          ..['inviteExpiresAtMs'] = expiry.millisecondsSinceEpoch,
+      );
+
+      expect(decoded.linkedUid, 'user-2');
+      expect(decoded.inviteStatus, 'accepted');
+      expect(decoded.inviteExpiresAt, expiry);
+      expect(decoded.isPushReady, isTrue);
     });
   });
 
@@ -162,7 +186,9 @@ void main() {
     });
 
     test('writes a normalised phone alongside the raw one', () {
-      final Map<String, dynamic> map = Fixtures.user(phone: '0821234567').toMap();
+      final Map<String, dynamic> map = Fixtures.user(
+        phone: '0821234567',
+      ).toMap();
 
       expect(map['phone'], '0821234567');
       expect(map['phoneNormalized'], '+27821234567');
@@ -184,14 +210,19 @@ void main() {
       final Map<String, dynamic> map = Fixtures.user().toMap()
         ..['medications'] = <dynamic>['Lamotrigine', 'Levetiracetam'];
 
-      expect(UserDto.fromMap(map).medications, <String>['Lamotrigine', 'Levetiracetam']);
+      expect(UserDto.fromMap(map).medications, <String>[
+        'Lamotrigine',
+        'Levetiracetam',
+      ]);
     });
   });
 
   group('AlertResponseDto', () {
     test('round-trips every field', () {
       final AlertResponseDto original = Fixtures.alertResponse();
-      final AlertResponseDto decoded = AlertResponseDto.fromMap(original.toMap());
+      final AlertResponseDto decoded = AlertResponseDto.fromMap(
+        original.toMap(),
+      );
 
       expect(decoded.id, original.id);
       expect(decoded.alertId, original.alertId);
@@ -213,7 +244,8 @@ void main() {
     });
 
     test('tolerates a legacy document written before alertOwnerId existed', () {
-      final Map<String, dynamic> map = Fixtures.alertResponse().toMap()..remove('alertOwnerId');
+      final Map<String, dynamic> map = Fixtures.alertResponse().toMap()
+        ..remove('alertOwnerId');
 
       expect(AlertResponseDto.fromMap(map).alertOwnerId, '');
     });
@@ -247,7 +279,9 @@ void main() {
       // carries no timezone — the sweep in functions/index.js cannot compare
       // it to its own clock. expiresAtMs is what the sweep actually queries.
       final DateTime expiry = DateTime.utc(2026, 3, 14, 10, 30);
-      final Map<String, dynamic> map = Fixtures.headsUp(expiresAt: expiry).toMap();
+      final Map<String, dynamic> map = Fixtures.headsUp(
+        expiresAt: expiry,
+      ).toMap();
 
       expect(map['expiresAtMs'], expiry.millisecondsSinceEpoch);
     });
@@ -265,22 +299,39 @@ void main() {
       final DateTime past = DateTime.now().subtract(const Duration(minutes: 1));
 
       expect(Fixtures.headsUp(expiresAt: future).isActive, isTrue);
-      expect(Fixtures.headsUp(expiresAt: past).isActive, isFalse, reason: 'expired windows are not active');
       expect(
-        Fixtures.headsUp(expiresAt: future, status: HeadsUpStatus.checkedIn).isActive,
+        Fixtures.headsUp(expiresAt: past).isActive,
+        isFalse,
+        reason: 'expired windows are not active',
+      );
+      expect(
+        Fixtures.headsUp(
+          expiresAt: future,
+          status: HeadsUpStatus.checkedIn,
+        ).isActive,
         isFalse,
         reason: 'a checked-in window is not active even before expiry',
       );
-      expect(Fixtures.headsUp(expiresAt: future, status: HeadsUpStatus.cancelled).isActive, isFalse);
+      expect(
+        Fixtures.headsUp(
+          expiresAt: future,
+          status: HeadsUpStatus.cancelled,
+        ).isActive,
+        isFalse,
+      );
     });
 
     test('remaining counts down and goes negative past expiry', () {
       expect(
-        Fixtures.headsUp(expiresAt: DateTime.now().add(const Duration(minutes: 30))).remaining.inMinutes,
+        Fixtures.headsUp(
+          expiresAt: DateTime.now().add(const Duration(minutes: 30)),
+        ).remaining.inMinutes,
         closeTo(30, 1),
       );
       expect(
-        Fixtures.headsUp(expiresAt: DateTime.now().subtract(const Duration(minutes: 5))).remaining.isNegative,
+        Fixtures.headsUp(
+          expiresAt: DateTime.now().subtract(const Duration(minutes: 5)),
+        ).remaining.isNegative,
         isTrue,
       );
     });
@@ -326,47 +377,10 @@ void main() {
     });
 
     test('defaults alertFired to false when absent', () {
-      final Map<String, dynamic> map = Fixtures.seizureLog().toMap()..remove('alertFired');
+      final Map<String, dynamic> map = Fixtures.seizureLog().toMap()
+        ..remove('alertFired');
 
       expect(SeizureLogDto.fromMap(map).alertFired, isFalse);
-    });
-  });
-
-  group('InviteDto', () {
-    test('decodes every field', () {
-      final InviteDto decoded = Fixtures.invite();
-
-      expect(decoded.id, 'invite-1');
-      expect(decoded.contactId, 'contact-1');
-      expect(decoded.senderUid, 'user-1');
-      expect(decoded.senderName, 'Darren Potts');
-      expect(decoded.recipientUid, 'user-2');
-      expect(decoded.recipientPhone, '+27829876543');
-      expect(decoded.status, InviteStatus.pending);
-      expect(decoded.createdAt, Fixtures.at);
-      expect(decoded.respondedAt, isNull);
-    });
-
-    test('decodes each status the Cloud Function writes', () {
-      for (final (String name, InviteStatus expected) in <(String, InviteStatus)>[
-        ('pending', InviteStatus.pending),
-        ('accepted', InviteStatus.accepted),
-        ('declined', InviteStatus.declined),
-      ]) {
-        expect(InviteDto.fromMap(Fixtures.inviteMap(status: name)).status, expected);
-      }
-    });
-
-    test('defaults an unknown status to pending', () {
-      expect(InviteDto.fromMap(Fixtures.inviteMap(status: 'weird')).status, InviteStatus.pending);
-    });
-
-    test('decodes respondedAt once the invite is answered', () {
-      final InviteDto decoded = InviteDto.fromMap(
-        Fixtures.inviteMap(status: 'accepted', respondedAt: Fixtures.at.toIso8601String()),
-      );
-
-      expect(decoded.respondedAt, Fixtures.at);
     });
   });
 
@@ -383,17 +397,28 @@ void main() {
     });
 
     test('decodes each status getPeopleIWatch returns', () {
-      for (final (String name, WatchedPersonStatus expected) in <(String, WatchedPersonStatus)>[
-        ('sos', WatchedPersonStatus.sos),
-        ('headsUp', WatchedPersonStatus.headsUp),
-        ('monitoring', WatchedPersonStatus.monitoring),
-      ]) {
-        expect(WatchedPersonDto.fromMap(Fixtures.watchedPersonMap(status: name)).status, expected);
+      for (final (String name, WatchedPersonStatus expected)
+          in <(String, WatchedPersonStatus)>[
+            ('sos', WatchedPersonStatus.sos),
+            ('headsUp', WatchedPersonStatus.headsUp),
+            ('monitoring', WatchedPersonStatus.monitoring),
+          ]) {
+        expect(
+          WatchedPersonDto.fromMap(
+            Fixtures.watchedPersonMap(status: name),
+          ).status,
+          expected,
+        );
       }
     });
 
     test('falls back to monitoring for an unknown status', () {
-      expect(WatchedPersonDto.fromMap(Fixtures.watchedPersonMap(status: '???')).status, WatchedPersonStatus.monitoring);
+      expect(
+        WatchedPersonDto.fromMap(
+          Fixtures.watchedPersonMap(status: '???'),
+        ).status,
+        WatchedPersonStatus.monitoring,
+      );
     });
   });
 
@@ -416,7 +441,9 @@ void main() {
       final Map<String, dynamic> loose = <String, dynamic>{
         ...payload,
         'alert': Map<Object?, Object?>.from(payload['alert'] as Map),
-        'ownerProfile': Map<Object?, Object?>.from(payload['ownerProfile'] as Map),
+        'ownerProfile': Map<Object?, Object?>.from(
+          payload['ownerProfile'] as Map,
+        ),
       };
 
       expect(() => Fixtures.alertDetail(), returnsNormally);

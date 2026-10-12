@@ -28,7 +28,8 @@ typedef UpdateContactCallback =
       bool notifyViaPush,
     });
 
-typedef SendInviteCallback = Future<ResultDto<String>> Function({required String contactId});
+typedef SendInviteCallback =
+    Future<ResultDto<String>> Function({required String contactId});
 
 class AddContactBottomSheet extends StatefulWidget {
   const AddContactBottomSheet({
@@ -110,14 +111,18 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
         existing: widget.existingContact!,
         name: _nameController.text,
         phone: _phoneController.text,
-        relation: _relationController.text.trim().isEmpty ? null : _relationController.text.trim(),
+        relation: _relationController.text.trim().isEmpty
+            ? null
+            : _relationController.text.trim(),
         notifyViaPush: _notifyViaPush,
       );
     } else {
       createdContact = await widget.onAdd(
         name: _nameController.text,
         phone: _phoneController.text,
-        relation: _relationController.text.trim().isEmpty ? null : _relationController.text.trim(),
+        relation: _relationController.text.trim().isEmpty
+            ? null
+            : _relationController.text.trim(),
         notifyViaPush: _notifyViaPush,
       );
       success = createdContact != null;
@@ -138,7 +143,8 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
         if (!result.isSuccess || result.data == null) {
           Get.snackbar(
             'Invite unavailable',
-            result.error ?? 'The invite could not be created. Please try again.',
+            result.error ??
+                'The invite could not be created. Please try again.',
             snackPosition: SnackPosition.BOTTOM,
             margin: snackbarMargin,
           );
@@ -150,10 +156,11 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
             phone: contactToInvite.phone,
             contactName: contactToInvite.name,
             code: result.data!,
-            onRegenerate: () => CircleInviteService.instance().createCircleInvite(
-              contactId: contactToInvite.id,
-              regenerate: true,
-            ),
+            onRegenerate: () =>
+                CircleInviteService.instance().createCircleInvite(
+                  contactId: contactToInvite.id,
+                  regenerate: true,
+                ),
           ),
         );
         return;
@@ -161,7 +168,9 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
       Get.back();
     } else {
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save. Please try again.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save. Please try again.')),
+      );
     }
   }
 
@@ -176,7 +185,10 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
             children: [
               const CircularProgressIndicator(color: Colors.black),
               SizedBox(height: Dimensions.sixteen),
-              Text('Creating invite…', style: context.theme.textTheme.bodyMedium),
+              Text(
+                'Creating invite…',
+                style: context.theme.textTheme.bodyMedium,
+              ),
             ],
           ),
         ),
@@ -190,20 +202,24 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_isEditing ? 'Edit Contact' : 'Add Contact', style: context.theme.textTheme.titleMedium),
+            Text(
+              _isEditing ? 'Edit Contact' : 'Add Contact',
+              style: context.theme.textTheme.titleMedium,
+            ),
             SizedBox(height: Dimensions.twentyFour),
 
-_OutlinedFormField(
+            _OutlinedFormField(
               controller: _nameController,
               label: 'Full Name',
               hintText: 'e.g. Sarah Johnson',
               textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.next,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Name is required' : null,
             ),
             SizedBox(height: Dimensions.sixteen),
 
-_OutlinedFormField(
+            _OutlinedFormField(
               controller: _phoneController,
               label: 'Phone Number',
               hintText: 'e.g. +27 82 123 4567',
@@ -217,7 +233,7 @@ _OutlinedFormField(
             ),
             SizedBox(height: Dimensions.sixteen),
 
-_OutlinedFormField(
+            _OutlinedFormField(
               controller: _relationController,
               label: 'Relationship (optional)',
               hintText: 'e.g. Sister, Neurologist, Partner',
@@ -226,9 +242,12 @@ _OutlinedFormField(
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-Text(
+            Text(
               'Emergency Alerts',
-              style: context.theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: Colors.black54),
+              style: context.theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Colors.black54,
+              ),
             ),
             SizedBox(height: Dimensions.twelve),
             _ToggleRow(
@@ -238,10 +257,13 @@ Text(
             ),
             SizedBox(height: Dimensions.twentyFour),
 
-if (!_isEditing) ...[
+            if (!_isEditing) ...[
               Text(
                 'App Invite',
-                style: context.theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: Colors.black54),
+                style: context.theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
+                ),
               ),
               SizedBox(height: Dimensions.twelve),
               _ToggleRow(
@@ -253,12 +275,14 @@ if (!_isEditing) ...[
               Text(
                 'Creates a one-time code to share by SMS or WhatsApp after saving. '
                 'They sign in and enter the code to accept.',
-                style: context.theme.textTheme.bodySmall?.copyWith(color: Colors.black38),
+                style: context.theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.black38,
+                ),
               ),
               SizedBox(height: Dimensions.twentyFour),
             ],
 
-SizedBox(
+            SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,
@@ -267,13 +291,18 @@ SizedBox(
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.black38,
                   padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: _isSaving
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : Text(_isEditing ? 'Save Changes' : 'Add to Circle'),
               ),
@@ -327,7 +356,11 @@ class _OutlinedFormField extends StatelessWidget {
 }
 
 class _ToggleRow extends StatelessWidget {
-  const _ToggleRow({required this.label, required this.value, required this.onChanged});
+  const _ToggleRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   final String label;
   final bool value;

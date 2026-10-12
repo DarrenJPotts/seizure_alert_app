@@ -20,10 +20,13 @@ class InviteService {
   static String _senderName() =>
       FirebaseAuth.instance.currentUser?.displayName?.trim() ?? 'Your contact';
 
-static String? _waMeDigits(String phone) =>
+  static String? _waMeDigits(String phone) =>
       PhoneNumber.normalize(phone)?.substring(1);
 
-static Future<void> sendSmsInvite({required String phone, required String code}) async {
+  static Future<void> sendSmsInvite({
+    required String phone,
+    required String code,
+  }) async {
     final sender = _senderName();
     final uri = Uri(
       scheme: 'sms',
@@ -42,7 +45,10 @@ static Future<void> sendSmsInvite({required String phone, required String code})
     }
   }
 
-static Future<void> sendWhatsAppInvite({required String phone, required String code}) async {
+  static Future<void> sendWhatsAppInvite({
+    required String phone,
+    required String code,
+  }) async {
     final sender = _senderName();
     final digits = _waMeDigits(phone);
 
@@ -65,15 +71,20 @@ static Future<void> sendWhatsAppInvite({required String phone, required String c
     }
   }
 
-static Future<void> _fallbackCopy(String senderName, String code) async {
-    await Clipboard.setData(ClipboardData(text: _buildMessage(senderName, code)));
+  static Future<void> _fallbackCopy(String senderName, String code) async {
+    await Clipboard.setData(
+      ClipboardData(text: _buildMessage(senderName, code)),
+    );
     Get.snackbar(
       '',
       '',
       titleText: const Text(
         'Could not open app',
         style: TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
       ),
       messageText: const Text(
         'Invite message copied to clipboard.',

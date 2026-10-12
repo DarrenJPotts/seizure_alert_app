@@ -34,6 +34,19 @@ class ProfileViewModel extends GetxController {
   final Rxn<String> errorMessage = Rxn<String>();
   final RxBool isDeleting = false.obs;
   final RxBool isAddingHomeWidget = false.obs;
+  final RxBool isRequestingNotifications = false.obs;
+  final RxBool isRequestingLocation = false.obs;
+  final RxBool isSendingEmailVerification = false.obs;
+
+  bool get emailVerified =>
+      FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+
+  String get homeWidgetActionLabel {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      return 'Available';
+    }
+    return isAddingHomeWidget.value ? 'Adding…' : 'Add';
+  }
 
   final RxBool notificationsEnabled = false.obs;
   final RxBool locationEnabled = false.obs;
@@ -142,53 +155,71 @@ class ProfileViewModel extends GetxController {
           (await Permission.notification.status).isGranted;
     }
 
-    final locationStatus = await Permission.locationWhenInUse.status;
-    locationEnabled.value =
-        locationStatus.isGranted || await Permission.locationAlways.isGranted;
+    locationEnabled.value = await Permission.locationWhenInUse.isGranted;
   }
 
   Future<void> requestNotifications() async {
-    if (kIsWeb) return;
+    if (kIsWeb || isRequestingNotifications.value) return;
 
-    if (Get.isRegistered<FirebaseMessagingService>()) {
-      final messaging = Get.find<FirebaseMessagingService>();
-      await messaging.refreshReadiness();
-      if (messaging.notificationAuthorization.value ==
-          AuthorizationStatus.notDetermined) {
-        await messaging.enableNotifications();
-      } else if (!messaging.notificationsAuthorized) {
-        await messaging.openNotificationSettings();
+    isRequestingNotifications.value = true;
+    try {
+      if (Get.isRegistered<FirebaseMessagingService>()) {
+        final messaging = Get.find<FirebaseMessagingService>();
+        await messaging.refreshReadiness();
+        if (messaging.notificationAuthorization.value ==
+            AuthorizationStatus.notDetermined) {
+          await messaging.enableNotifications();
+        } else if (!messaging.notificationsAuthorized) {
+          await messaging.openNotificationSettings();
+        }
+        await checkPermissions();
+        return;
       }
-      await checkPermissions();
-      return;
-    }
 
-    final status = await Permission.notification.request();
-    notificationsEnabled.value = status.isGranted;
-    if (status.isPermanentlyDenied) {
-      await AppSettings.openAppSettings(type: AppSettingsType.notification);
-      await checkPermissions();
+      final status = await Permission.notification.request();
+      notificationsEnabled.value = status.isGranted;
+      if (status.isPermanentlyDenied) {
+        await AppSettings.openAppSettings(type: AppSettingsType.notification);
+        await checkPermissions();
+      }
+    } finally {
+      isRequestingNotifications.value = false;
     }
   }
 
   Future<void> requestLocation() async {
-    if (kIsWeb) return;
+    if (kIsWeb || isRequestingLocation.value) return;
 
-    final whenInUse = await Permission.locationWhenInUse.request();
-
-    if (whenInUse.isGranted) {
-      final always = await Permission.locationAlways.request();
-      locationEnabled.value = always.isGranted || whenInUse.isGranted;
-    } else {
-      await AppSettings.openAppSettings(type: AppSettingsType.location);
-      await checkPermissions();
+    isRequestingLocation.value = true;
+    try {
+      final whenInUse = await Permission.locationWhenInUse.request();
+      locationEnabled.value = whenInUse.isGranted;
+      if (!whenInUse.isGranted) {
+        await AppSettings.openAppSettings(type: AppSettingsType.location);
+        await checkPermissions();
+      }
+    } finally {
+      isRequestingLocation.value = false;
     }
   }
 
   Future<void> addHomeWidget() async {
-    if (kIsWeb ||
-        defaultTargetPlatform != TargetPlatform.android ||
-        !Get.isRegistered<HomeWidgetService>() ||
+    if (kIsWeb || !Get.isRegistered<HomeWidgetService>()) {
+      return;
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      Get.snackbar(
+        'Add the widget',
+        'Touch and hold the Home Screen, tap +, then choose Seizure Alert.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.black,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (defaultTargetPlatform != TargetPlatform.android ||
         isAddingHomeWidget.value) {
       return;
     }
@@ -215,6 +246,38 @@ class ProfileViewModel extends GetxController {
       );
     } finally {
       isAddingHomeWidget.value = false;
+    }
+  }
+
+  Future<void> sendEmailVerification() async {
+    if (isSendingEmailVerification.value) return;
+
+    isSendingEmailVerification.value = true;
+    try {
+      final result = await FirebaseAuthController.instance()
+          .sendEmailVerification();
+      if (result.isSuccess) {
+        await FirebaseAuth.instance.currentUser?.reload();
+        Get.snackbar(
+          emailVerified ? 'Email verified' : 'Verification sent',
+          emailVerified
+              ? 'Your email address is verified.'
+              : 'Open the link in your email, then return to Profile.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.black,
+          colorText: Colors.white,
+        );
+      } else {
+        Get.snackbar(
+          'Verification unavailable',
+          result.error ?? 'Try again later.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.black,
+          colorText: Colors.white,
+        );
+      }
+    } finally {
+      isSendingEmailVerification.value = false;
     }
   }
 

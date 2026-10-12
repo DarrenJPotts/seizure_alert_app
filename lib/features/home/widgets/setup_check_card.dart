@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
+import 'package:seizure_app/core/constants/snackbar_margin.dart';
+import 'package:seizure_app/core/dtos/contact_dto.dart';
+import 'package:seizure_app/core/services/alert_drill_service.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
@@ -22,6 +25,27 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
     final int readyCount = controller.contacts
         .where((contact) => contact.isPushReady)
         .length;
+    final int testedCount = controller.contacts
+        .where(
+          (contact) =>
+              contact.isPushReady &&
+              contact.lastTestStatus == ContactAlertTestStatus.sent,
+        )
+        .length;
+    final int offlineCount = controller.contacts
+        .where(
+          (contact) =>
+              contact.isPushReady &&
+              contact.lastTestStatus == ContactAlertTestStatus.deviceOffline,
+        )
+        .length;
+    final int failedCount = controller.contacts
+        .where(
+          (contact) =>
+              contact.isPushReady &&
+              contact.lastTestStatus == ContactAlertTestStatus.failed,
+        )
+        .length;
     final bool contactsLoading =
         state == GenericScreenStates.initial ||
         state == GenericScreenStates.loading;
@@ -33,6 +57,8 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
     final bool notificationsAuthorized =
         messaging?.notificationsAuthorized ?? false;
     final bool tokenReady = messaging?.fcmRegistrationReady.value ?? false;
+    final bool sendingTest = controller.sendingTestAlert.value;
+    final String? lastTestSummary = controller.lastTestSummary.value;
     final bool ready =
         !contactsLoading &&
         !contactsFailed &&
@@ -44,7 +70,12 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
     final String actionLabel;
     final VoidCallback action;
 
-    if (notificationsLoading) {
+    if (sendingTest) {
+      title = 'Sending test alert';
+      detail = 'Contacting your connected caregiver devices.';
+      actionLabel = 'Sending…';
+      action = () {};
+    } else if (notificationsLoading) {
       title = 'Checking notification setup';
       detail = 'Confirming this device can receive alerts.';
       actionLabel = 'Checking';
@@ -89,12 +120,31 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
       detail = 'Add a contact who uses the app, or enable push alerts.';
       actionLabel = 'Contacts';
       action = onTap;
-    } else {
+    } else if (offlineCount > 0) {
       title =
-          '$readyCount ${readyCount == 1 ? 'contact is' : 'contacts are'} ready';
-      detail = 'This device and connected contacts can receive alerts.';
-      actionLabel = 'Contacts';
-      action = onTap;
+          '$offlineCount caregiver ${offlineCount == 1 ? 'device needs' : 'devices need'} attention';
+      detail = 'Ask them to reopen the app, then send another test.';
+      actionLabel = 'Test again';
+      action = () => _confirmAndSendTest(context);
+    } else if (testedCount == readyCount) {
+      title = 'Caregiver test successful';
+      detail =
+          'The test reached $testedCount caregiver ${testedCount == 1 ? 'device' : 'devices'}.';
+      actionLabel = 'Test again';
+      action = () => _confirmAndSendTest(context);
+    } else if (failedCount > 0) {
+      title = 'Caregiver test incomplete';
+      detail = 'One or more caregiver devices could not be reached.';
+      actionLabel = 'Test again';
+      action = () => _confirmAndSendTest(context);
+    } else {
+      title = lastTestSummary == null
+          ? '$readyCount ${readyCount == 1 ? 'contact' : 'contacts'} connected'
+          : 'Test alert sent';
+      detail =
+          lastTestSummary ?? 'Send a safe test to confirm caregiver delivery.';
+      actionLabel = lastTestSummary == null ? 'Test' : 'Test again';
+      action = () => _confirmAndSendTest(context);
     }
 
     return Material(
@@ -113,12 +163,21 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
           padding: EdgeInsets.all(Dimensions.sixteen),
           child: Row(
             children: [
-              Icon(
-                ready
-                    ? Icons.check_circle_outline
-                    : Icons.notification_important_outlined,
-                color: Colors.black,
-              ),
+              if (sendingTest)
+                SizedBox.square(
+                  dimension: Dimensions.twentyFour,
+                  child: CircularProgressIndicator(
+                    strokeWidth: Dimensions.two,
+                    color: Colors.black,
+                  ),
+                )
+              else
+                Icon(
+                  ready
+                      ? Icons.check_circle_outline
+                      : Icons.notification_important_outlined,
+                  color: Colors.black,
+                ),
               SizedBox(width: Dimensions.twelve),
               Expanded(
                 child: Column(
@@ -151,13 +210,15 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
               Text(
                 actionLabel,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: notificationsLoading || contactsLoading
+                  color: notificationsLoading || contactsLoading || sendingTest
                       ? Colors.black38
                       : Colors.black,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (!notificationsLoading && !contactsLoading) ...[
+              if (!notificationsLoading &&
+                  !contactsLoading &&
+                  !sendingTest) ...[
                 SizedBox(width: Dimensions.four),
                 const Icon(Icons.chevron_right, color: Colors.black54),
               ],
@@ -167,4 +228,55 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
       ),
     );
   });
+
+  Future<void> _confirmAndSendTest(BuildContext context) async {
+    if (controller.sendingTestAlert.value) return;
+
+    final bool confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) => AlertDialog(
+            title: const Text('Send test alert?'),
+            content: const Text(
+              'Connected caregivers will receive a notification clearly marked as a test. No emergency alert or seizure record will be created.',
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Send test'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+
+    final result = await controller.sendTestAlert();
+    if (!context.mounted) return;
+
+    if (!result.isSuccess || result.data == null) {
+      Get.snackbar(
+        'Test alert not sent',
+        result.error ?? 'Check your connection and try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: snackbarMargin,
+      );
+      return;
+    }
+
+    final AlertDrillResult drill = result.data!;
+    final String message = drill.failedCount == 0
+        ? 'Sent to ${drill.sentCount} caregiver ${drill.sentCount == 1 ? 'device' : 'devices'}.'
+        : 'Sent to ${drill.sentCount} of ${drill.recipientCount} caregiver devices.';
+    Get.snackbar(
+      'Test alert sent',
+      '$message Device settings can still prevent it from appearing.',
+      snackPosition: SnackPosition.BOTTOM,
+      margin: snackbarMargin,
+    );
+  }
 }

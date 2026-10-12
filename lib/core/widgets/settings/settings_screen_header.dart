@@ -25,7 +25,12 @@ class SettingsScreenHeader extends StatelessWidget {
     );
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(Dimensions.twenty, Dimensions.eight, Dimensions.twenty, 0),
+      padding: EdgeInsets.fromLTRB(
+        Dimensions.twenty,
+        Dimensions.eight,
+        Dimensions.twenty,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -40,7 +45,11 @@ class SettingsScreenHeader extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Icon(Icons.arrow_back, size: 20, color: Colors.black.withValues(alpha: 0.55)),
+                      Icon(
+                        Icons.arrow_back,
+                        size: 20,
+                        color: Colors.black.withValues(alpha: 0.55),
+                      ),
                       SizedBox(width: Dimensions.six),
                       Text(
                         backLabel!,
@@ -97,7 +106,9 @@ class SettingsScreenPlaceholder extends StatelessWidget {
       : Text(
           detail!,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.black45),
         );
 
   @override
@@ -112,7 +123,9 @@ class SettingsScreenPlaceholder extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
           ),
           ?_detailText(context),
           ?action,

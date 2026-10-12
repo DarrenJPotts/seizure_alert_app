@@ -1,5 +1,5 @@
 abstract final class PrivacyNotice {
-  static const String version = '2026-08-27.draft-1';
+  static const String version = '2026-10-10.draft-2';
 
   static const String title = 'How your information is used';
 
@@ -46,6 +46,16 @@ abstract final class PrivacyNotice {
           'invitation before they can see anything.\n\n'
           'During an active SOS, a responding contact can see your location, '
           'blood type, seizure type, medications and emergency note.',
+    ),
+    PrivacyNoticeSection(
+      heading: 'Crash diagnostics',
+      body:
+          'Release builds use Firebase Crashlytics to report crashes and '
+          'serious software errors. Reports can include the app version, '
+          'device and operating-system details, and technical stack traces. '
+          'The app does not intentionally attach your name, phone number, '
+          'medical information, invite codes, or precise location to crash '
+          'reports.',
     ),
     PrivacyNoticeSection(
       heading: 'Your emergency contacts',

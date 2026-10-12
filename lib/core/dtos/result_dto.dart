@@ -3,11 +3,7 @@ class ResultDto<T> {
   final String? error;
   final bool isSuccess;
 
-  ResultDto.success(this.data)
-      : error = null,
-        isSuccess = true;
+  ResultDto.success(this.data) : error = null, isSuccess = true;
 
-  ResultDto.failure(this.error)
-      : data = null,
-        isSuccess = false;
+  ResultDto.failure(this.error) : data = null, isSuccess = false;
 }

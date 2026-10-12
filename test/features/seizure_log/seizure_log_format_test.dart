@@ -25,25 +25,49 @@ void main() {
     final DateTime now = DateTime(2026, 3, 14, 18, 0);
 
     test('uses relative wording for today and yesterday', () {
-      expect(formatLogDate(DateTime(2026, 3, 14, 9, 30), now: now), 'Today, 9:30 AM');
-      expect(formatLogDate(DateTime(2026, 3, 13, 23, 5), now: now), 'Yesterday, 11:05 PM');
+      expect(
+        formatLogDate(DateTime(2026, 3, 14, 9, 30), now: now),
+        'Today, 9:30 AM',
+      );
+      expect(
+        formatLogDate(DateTime(2026, 3, 13, 23, 5), now: now),
+        'Yesterday, 11:05 PM',
+      );
     });
 
     test('falls back to an absolute date beyond yesterday', () {
-      expect(formatLogDate(DateTime(2026, 3, 12, 14, 0), now: now), 'Mar 12, 2:00 PM');
-      expect(formatLogDate(DateTime(2025, 12, 1, 7, 45), now: now), 'Dec 1, 7:45 AM');
+      expect(
+        formatLogDate(DateTime(2026, 3, 12, 14, 0), now: now),
+        'Mar 12, 2:00 PM',
+      );
+      expect(
+        formatLogDate(DateTime(2025, 12, 1, 7, 45), now: now),
+        'Dec 1, 7:45 AM',
+      );
     });
 
     test('compares calendar days, not elapsed hours', () {
       // 23:50 last night is "Yesterday" even though it is under 24h ago, and
       // 00:10 this morning is "Today" even though it is barely past midnight.
-      expect(formatLogDate(DateTime(2026, 3, 13, 23, 50), now: now), startsWith('Yesterday'));
-      expect(formatLogDate(DateTime(2026, 3, 14, 0, 10), now: now), startsWith('Today'));
+      expect(
+        formatLogDate(DateTime(2026, 3, 13, 23, 50), now: now),
+        startsWith('Yesterday'),
+      );
+      expect(
+        formatLogDate(DateTime(2026, 3, 14, 0, 10), now: now),
+        startsWith('Today'),
+      );
     });
 
     test('renders midnight and noon as 12, not 0', () {
-      expect(formatLogDate(DateTime(2026, 3, 14, 0, 0), now: now), 'Today, 12:00 AM');
-      expect(formatLogDate(DateTime(2026, 3, 14, 12, 0), now: now), 'Today, 12:00 PM');
+      expect(
+        formatLogDate(DateTime(2026, 3, 14, 0, 0), now: now),
+        'Today, 12:00 AM',
+      );
+      expect(
+        formatLogDate(DateTime(2026, 3, 14, 12, 0), now: now),
+        'Today, 12:00 PM',
+      );
     });
   });
 
@@ -65,7 +89,10 @@ void main() {
 
   group('logSubtitle', () {
     test('joins duration and location', () {
-      expect(logSubtitle(log(durationSeconds: 150, location: 'Kitchen')), '~2m 30s · Kitchen');
+      expect(
+        logSubtitle(log(durationSeconds: 150, location: 'Kitchen')),
+        '~2m 30s · Kitchen',
+      );
     });
 
     test('shows whichever part is recorded', () {
@@ -100,7 +127,10 @@ void main() {
 
     test('does not treat the same month a year earlier as "This month"', () {
       // The bug this guards: matching on month alone.
-      expect(formatLogMonth(DateTime(2025, 3, 14), now: now), isNot('This month'));
+      expect(
+        formatLogMonth(DateTime(2025, 3, 14), now: now),
+        isNot('This month'),
+      );
     });
   });
 }

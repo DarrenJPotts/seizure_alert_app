@@ -7,14 +7,19 @@ import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 
-typedef GridCell = ({DateTime date, bool hasSeizure, bool isFuture, bool isToday});
+typedef GridCell = ({
+  DateTime date,
+  bool hasSeizure,
+  bool isFuture,
+  bool isToday,
+});
 
 class HomeViewModel extends GetxController {
   HomeViewModel(this._firestoreService);
 
   final FirestoreService _firestoreService;
 
-final Rxn<UserDto> user = Rxn<UserDto>();
+  final Rxn<UserDto> user = Rxn<UserDto>();
   final RxList<SeizureLogDto> seizureLogs = <SeizureLogDto>[].obs;
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
 
@@ -22,7 +27,7 @@ final Rxn<UserDto> user = Rxn<UserDto>();
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
-@override
+  @override
   void onInit() {
     super.onInit();
     _init();
@@ -38,17 +43,13 @@ final Rxn<UserDto> user = Rxn<UserDto>();
     final userResult = await _firestoreService.getUser(_uid);
     if (userResult.isSuccess) user.value = userResult.data;
 
-    _seizureLogsSub = _firestoreService.watchSeizureLogs(_uid).listen(
-      (list) {
-        seizureLogs.value = list;
-        screenState.value = GenericScreenStates.loaded;
-      },
-      onError: (_) => screenState.value = GenericScreenStates.error,
-    );
-
+    _seizureLogsSub = _firestoreService.watchSeizureLogs(_uid).listen((list) {
+      seizureLogs.value = list;
+      screenState.value = GenericScreenStates.loaded;
+    }, onError: (_) => screenState.value = GenericScreenStates.error);
   }
 
-String get greeting {
+  String get greeting {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
@@ -57,12 +58,13 @@ String get greeting {
 
   String get firstName {
     final name =
-        user.value?.displayName ?? FirebaseAuth.instance.currentUser?.displayName;
+        user.value?.displayName ??
+        FirebaseAuth.instance.currentUser?.displayName;
     if (name == null || name.trim().isEmpty) return '';
     return name.trim().split(' ').first;
   }
 
-int? get daysSinceLastSeizure {
+  int? get daysSinceLastSeizure {
     if (seizureLogs.isEmpty) return null;
     final today = _today;
     final last = seizureLogs.first.occurredAt;
@@ -81,27 +83,38 @@ int? get daysSinceLastSeizure {
     return seizureLogs.where((l) => !l.occurredAt.isBefore(monthStart)).length;
   }
 
-List<GridCell> get gridData {
+  List<GridCell> get gridData {
     final today = _today;
     final start = _gridStart;
     return List.generate(28, (i) {
       final day = start.add(Duration(days: i));
       final isFuture = day.isAfter(today);
       final isToday = day == today;
-      final hasSeizure = !isFuture && seizureLogs.any((l) {
-        final logDay = DateTime(l.occurredAt.year, l.occurredAt.month, l.occurredAt.day);
-        return logDay == day;
-      });
-      return (date: day, hasSeizure: hasSeizure, isFuture: isFuture, isToday: isToday);
+      final hasSeizure =
+          !isFuture &&
+          seizureLogs.any((l) {
+            final logDay = DateTime(
+              l.occurredAt.year,
+              l.occurredAt.month,
+              l.occurredAt.day,
+            );
+            return logDay == day;
+          });
+      return (
+        date: day,
+        hasSeizure: hasSeizure,
+        isFuture: isFuture,
+        isToday: isToday,
+      );
     });
   }
 
-DateTime get _today {
+  DateTime get _today {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
   }
 
-DateTime get _gridStart {
+  DateTime get _gridStart {
     final daysFromMonday = _today.weekday - 1;
     final thisMonday = _today.subtract(Duration(days: daysFromMonday));
     return thisMonday.subtract(const Duration(days: 21));

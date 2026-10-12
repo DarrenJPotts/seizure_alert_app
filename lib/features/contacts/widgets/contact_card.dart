@@ -26,7 +26,10 @@ class ContactCard extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: Dimensions.twentyFour),
-        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Icon(Icons.delete_outline, color: Colors.red.shade400),
       ),
       confirmDismiss: (_) async => _confirmDelete(context),
@@ -47,7 +50,10 @@ class ContactCard extends StatelessWidget {
                 backgroundColor: Colors.black,
                 child: Text(
                   contact.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               SizedBox(width: Dimensions.twelve),
@@ -73,7 +79,12 @@ class ContactCard extends StatelessWidget {
                         ],
                       ],
                     ),
-                    Text(_subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45)),
+                    Text(
+                      _subtitle,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                    ),
                   ],
                 ),
               ),
@@ -81,19 +92,20 @@ class ContactCard extends StatelessWidget {
               SizedBox(width: Dimensions.four),
               if (contact.linkedUid == null || contact.linkedUid!.isEmpty)
                 Tooltip(
-                  message: 'Send app invite',
-                  child: GestureDetector(
-                    onTap: isInviting ? null : onInvite,
-                    child: Padding(
-                      padding: EdgeInsets.all(Dimensions.four),
-                      child: isInviting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(color: Colors.black, strokeWidth: 1.5),
-                            )
-                          : const Icon(Icons.send_outlined, size: 16, color: Colors.black38),
-                    ),
+                  message: _inviteTooltip,
+                  child: TextButton.icon(
+                    onPressed: isInviting ? null : onInvite,
+                    icon: isInviting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              color: Colors.black,
+                              strokeWidth: 1.5,
+                            ),
+                          )
+                        : Icon(_inviteIcon, size: 16),
+                    label: Text(isInviting ? 'Loading…' : _inviteActionLabel),
                   ),
                 ),
             ],
@@ -111,13 +123,40 @@ class ContactCard extends StatelessWidget {
     return contact.phone;
   }
 
+  bool get _inviteExpired =>
+      contact.inviteStatus == 'pending' &&
+      contact.inviteExpiresAt != null &&
+      contact.inviteExpiresAt!.isBefore(DateTime.now());
+
+  String get _inviteActionLabel {
+    if (_inviteExpired) return 'New code';
+    if (contact.inviteStatus == 'pending') return 'View code';
+    if (contact.inviteStatus == 'declined') return 'Invite again';
+    return 'Invite';
+  }
+
+  String get _inviteTooltip {
+    if (_inviteExpired) return 'Create a new invite code';
+    if (contact.inviteStatus == 'pending') {
+      return 'View or resend invite code';
+    }
+    return 'Create app invite';
+  }
+
+  IconData get _inviteIcon => contact.inviteStatus == 'pending'
+      ? Icons.key_outlined
+      : Icons.send_outlined;
+
   Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Remove contact?'),
       content: Text('${contact.name} will be removed from your circle.'),
       actions: [
-        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Cancel'),
+        ),
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(true),
           style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -137,7 +176,12 @@ class _InviteStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final String label;
     if (contact.linkedUid?.isNotEmpty == true) {
-      label = 'Accepted';
+      label = switch (contact.lastTestStatus) {
+        ContactAlertTestStatus.sent => 'Test successful',
+        ContactAlertTestStatus.deviceOffline => 'Device offline',
+        ContactAlertTestStatus.failed => 'Test failed',
+        null => 'Connected',
+      };
     } else if (contact.inviteStatus == 'pending' &&
         contact.inviteExpiresAt != null &&
         contact.inviteExpiresAt!.isBefore(DateTime.now())) {
@@ -154,8 +198,16 @@ class _InviteStatusBadge extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: Dimensions.eight, vertical: 2),
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(20)),
-      child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black54)),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: Colors.black54),
+      ),
     );
   }
 }
@@ -174,7 +226,11 @@ class _NotifyIcons extends StatelessWidget {
           message: 'Push alerts on',
           child: Padding(
             padding: EdgeInsets.only(left: Dimensions.four),
-            child: Icon(Icons.notifications_outlined, size: 16, color: Colors.black38),
+            child: Icon(
+              Icons.notifications_outlined,
+              size: 16,
+              color: Colors.black38,
+            ),
           ),
         ),
     ],
