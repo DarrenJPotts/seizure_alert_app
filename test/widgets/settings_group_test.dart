@@ -41,6 +41,67 @@ void main() {
   });
 
   group('SettingsValueRow', () {
+    for (final scale in [1.0, 2.0, 3.0]) {
+      testWidgets('long labels and values fit at text scale $scale', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 280,
+                  child: MediaQuery(
+                    data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                    child: SingleChildScrollView(
+                      child: SettingsValueRow(
+                        icon: Icons.emergency_outlined,
+                        label: 'Call emergency services after',
+                        value: '15 minutes unless the safety plan says sooner',
+                        onTap: () {},
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        final label = tester.getRect(
+          find.text('Call emergency services after'),
+        );
+        final value = tester.getRect(
+          find.text('15 minutes unless the safety plan says sooner'),
+        );
+        expect(value.top, greaterThanOrEqualTo(label.bottom));
+        expect(
+          tester.getSize(find.byType(SettingsValueRow)).height,
+          greaterThan(64),
+        );
+      });
+    }
+    testWidgets('long label fits while loading and remains disabled', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(
+          const SizedBox(
+            width: 240,
+            child: SettingsValueRow(
+              icon: Icons.emergency_outlined,
+              label: 'Call emergency services after',
+              value: '',
+              loading: true,
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(tester.widget<InkWell>(find.byType(InkWell)).onTap, isNull);
+    });
+
     testWidgets('shows a chevron only when tappable', (
       WidgetTester tester,
     ) async {

@@ -109,34 +109,62 @@ class SettingsValueRow extends StatelessWidget {
         children: <Widget>[
           Icon(icon, size: 22, color: Colors.black),
           SizedBox(width: Dimensions.fourteen),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-          ),
-          SizedBox(width: Dimensions.twelve),
           Expanded(
-            child: loading
-                ? Align(
-                    alignment: Alignment.centerRight,
-                    child: SizedBox.square(
-                      dimension: Dimensions.sixteen,
-                      child: const CircularProgressIndicator(
-                        color: Colors.black,
-                        strokeWidth: 1.5,
-                      ),
-                    ),
-                  )
-                : Text(
-                    value,
-                    textAlign: TextAlign.end,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: valueColor ?? Colors.black.withValues(alpha: 0.45),
-                    ),
-                  ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final labelStyle = Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
+                final valueStyle = Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(color: valueColor ?? Colors.black45);
+                double textWidth(String text, TextStyle? style) {
+                  final painter = TextPainter(
+                    text: TextSpan(text: text, style: style),
+                    textDirection: Directionality.of(context),
+                    textScaler: MediaQuery.textScalerOf(context),
+                  )..layout();
+                  final width = painter.width;
+                  painter.dispose();
+                  return width;
+                }
+
+                final inline =
+                    !label.contains('\n') &&
+                    !value.contains('\n') &&
+                    textWidth(label, labelStyle) +
+                            Dimensions.twelve +
+                            (loading
+                                ? Dimensions.sixteen
+                                : textWidth(value, valueStyle)) <=
+                        constraints.maxWidth;
+                final valueWidget = loading
+                    ? SizedBox.square(
+                        dimension: Dimensions.sixteen,
+                        child: const CircularProgressIndicator(
+                          color: Colors.black,
+                          strokeWidth: 1.5,
+                        ),
+                      )
+                    : Text(value, style: valueStyle);
+                if (inline) {
+                  return Row(
+                    children: [
+                      Expanded(child: Text(label, style: labelStyle)),
+                      SizedBox(width: Dimensions.twelve),
+                      valueWidget,
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: labelStyle),
+                    SizedBox(height: Dimensions.four),
+                    valueWidget,
+                  ],
+                );
+              },
+            ),
           ),
           if (onTap != null && !loading) ...<Widget>[
             SizedBox(width: Dimensions.six),
