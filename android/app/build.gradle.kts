@@ -7,7 +7,7 @@ plugins {
     id("com.google.firebase.crashlytics")
     // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
-    // Kotlin is applied internally by the Flutter Gradle Plugin (Built-in Kotlin).
+    // Flutter applies the Kotlin plugin while built-in Kotlin is disabled.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -67,10 +67,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.darren.potts.seizure_app"
@@ -100,6 +96,12 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 

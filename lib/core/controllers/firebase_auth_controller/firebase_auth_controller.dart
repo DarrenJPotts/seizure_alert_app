@@ -7,6 +7,9 @@ import 'package:seizure_app/core/constants/shared_pref_keys.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
+import 'package:seizure_app/core/services/local_notifications_service.dart';
+import 'package:seizure_app/core/services/app_mode_service.dart';
+import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthController extends GetxController {
@@ -90,6 +93,7 @@ class FirebaseAuthController extends GetxController {
   }
 
   Future<void> registerUser(String emailAddress, String password) async {
+    await _clearData();
     await FirebaseAuth.instance.signOut();
     final UserCredential credential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(
@@ -323,9 +327,21 @@ class FirebaseAuthController extends GetxController {
   }
 
   Future<void> _clearData() async {
+    if (Get.isRegistered<LocalNotificationsService>()) {
+      await Get.find<LocalNotificationsService>().clearMedicationReminders();
+    }
     final SharedPreferences sharedPreferences =
         await SharedPreferences.getInstance();
     await sharedPreferences.clear();
+    if (Get.isRegistered<AppModeService>()) {
+      Get.find<AppModeService>().resetSessionPreferences();
+    }
+    if (Get.isRegistered<CircleInviteService>()) {
+      Get.find<CircleInviteService>().clearCache();
+    }
+    if (Get.isRegistered<CaregiverService>()) {
+      Get.find<CaregiverService>().invalidateWatchList();
+    }
     user.value = null;
     isLoggedIn.value = false;
   }

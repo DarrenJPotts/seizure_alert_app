@@ -10,6 +10,7 @@ import 'package:seizure_app/core/widgets/picture.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/features/login/view_models/login_view_model.dart';
 import 'package:seizure_app/features/login/widgets/forgot_password_sheet.dart';
+import 'package:seizure_app/features/onboarding/view_models/onboarding_view_model.dart';
 
 class LoginView extends GetView<LoginViewModel> {
   LoginView({super.key});
@@ -113,10 +114,12 @@ class LoginView extends GetView<LoginViewModel> {
                             context: context,
                           ),
                           buttonText: 'Create an account',
-                          onTap: () => Get.toNamed(
-                            AppRoutes.signup,
-                            arguments: Get.arguments,
-                          ),
+                            onTap: () async {
+                              await OnboardingViewModel.discardDraft();
+                              Get.toNamed(AppRoutes.onboarding, arguments: {
+                                'mode': OnboardingMode.preSignup,
+                              });
+                            },
                         ),
                       ],
                     ),

@@ -361,10 +361,13 @@ class OnboardingViewModel extends GetxController {
   static Future<({bool saved, OnboardingInviteDto? invite})>
   commitAndDisposeDraft() async {
     if (!Get.isRegistered<OnboardingViewModel>()) {
-      return (saved: true, invite: null);
+      return (saved: false, invite: null);
     }
 
     final OnboardingViewModel vm = Get.find<OnboardingViewModel>();
+    if (!vm.hasDraft || !vm.privacyConsentGiven.value) {
+      return (saved: false, invite: null);
+    }
     if (vm.hasDraft) {
       final bool saved = await vm.commitDraft();
       if (!saved) return (saved: false, invite: null);

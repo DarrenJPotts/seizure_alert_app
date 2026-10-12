@@ -58,6 +58,7 @@ class ContactsViewModel extends GetxController {
           (list) {
             _initialLoadTimer?.cancel();
             contacts.value = list;
+            _circleInviteService.syncContacts(list);
             screenState.value = GenericScreenStates.loaded;
             if (Get.isRegistered<HomeWidgetService>()) {
               unawaited(
@@ -159,11 +160,13 @@ class ContactsViewModel extends GetxController {
       inviteExpiresAt: existing.inviteExpiresAt,
     );
     final result = await _firestoreService.upsertContact(contact);
+    if (result.isSuccess) _circleInviteService.invalidateContact(existing.id);
     return result.isSuccess;
   }
 
   Future<bool> deleteContact(String contactId) async {
     final result = await _firestoreService.deleteContact(contactId);
+    if (result.isSuccess) _circleInviteService.invalidateContact(contactId);
     return result.isSuccess;
   }
 

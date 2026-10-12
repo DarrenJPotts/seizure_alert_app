@@ -22,6 +22,7 @@
         android:textStyle="bold" />
 
     <FrameLayout
+        android:id="@+id/widget_ring"
         android:layout_width="148dp"
         android:layout_height="148dp"
         android:layout_marginTop="8dp"
@@ -38,6 +39,10 @@
             android:text="SOS"
             android:textColor="#FF000000"
             android:textSize="31sp"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="10sp"
+            android:autoSizeMaxTextSize="48sp"
+            android:autoSizeStepGranularity="1sp"
             android:textStyle="bold" />
     </FrameLayout>
 

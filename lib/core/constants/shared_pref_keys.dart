@@ -6,4 +6,5 @@ class SharedPrefKeys {
 
   static const String onboardingCompleted = 'onboarding_completed';
   static const String themeMode = 'theme_mode';
+  static const String hideCompletedSetup = 'hide_completed_setup';
 }

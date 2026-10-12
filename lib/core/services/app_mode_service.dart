@@ -21,6 +21,21 @@ class AppModeService extends GetxService {
   late final RxBool onboardingCompleted = RxBool(
     _prefs.getBool(SharedPrefKeys.onboardingCompleted) ?? false,
   );
+  late final RxBool hideCompletedSetup = RxBool(
+    _prefs.getBool(SharedPrefKeys.hideCompletedSetup) ?? false,
+  );
+
+  Future<void> setHideCompletedSetup(bool value) async {
+    hideCompletedSetup.value = value;
+    await _write(SharedPrefKeys.hideCompletedSetup, value);
+  }
+
+  void resetSessionPreferences() {
+    caregiverMode.value = false;
+    autoAnswerCalls.value = false;
+    onboardingCompleted.value = false;
+    hideCompletedSetup.value = false;
+  }
 
   Future<AppModeService> init() async => this;
 
