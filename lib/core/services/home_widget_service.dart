@@ -35,11 +35,14 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
   StreamSubscription<Uri?>? _clickSubscription;
   StreamSubscription<User?>? _authSubscription;
   Worker? _modeWorker;
+  bool _initialized = false;
   bool _setupReady = false;
   String? _lastHandledUri;
   DateTime? _lastHandledAt;
 
   Future<HomeWidgetService> init() async {
+    if (_initialized || isClosed) return this;
+    _initialized = true;
     WidgetsBinding.instance.addObserver(this);
     try {
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
@@ -58,6 +61,7 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
       );
     }
 
+    if (isClosed) return this;
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((_) {
       unawaited(syncCurrentState());
     });
@@ -65,7 +69,9 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
       unawaited(syncCurrentState());
     });
 
-    _handleWidgetUri(await HomeWidget.initiallyLaunchedFromHomeWidget());
+    final launchUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+    if (isClosed) return this;
+    _handleWidgetUri(launchUri);
     _clickSubscription = HomeWidget.widgetClicked.listen(_handleWidgetUri);
     await syncCurrentState();
     return this;
@@ -105,7 +111,9 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
 
   Future<void> syncCurrentState() async {
     try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
       final snapshot = await _buildSnapshot();
+      if (isClosed || FirebaseAuth.instance.currentUser?.uid != uid) return;
       await Future.wait(<Future<bool?>>[
         HomeWidget.saveWidgetData<String>(_stateKey, snapshot.state.name),
         HomeWidget.saveWidgetData<String>(_titleKey, snapshot.title),
@@ -139,7 +147,8 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
     })
   >
   _buildSnapshot() async {
-    if (FirebaseAuth.instance.currentUser == null) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
       return _snapshot(
         state: HomeWidgetSafetyState.signedOut,
         title: 'Sign in required',
@@ -161,7 +170,7 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
 
     final prefs = await SharedPreferences.getInstance();
     final sos = _readSos(prefs.getString(_activeSosKey));
-    if (sos?.status == AlertStatus.sent) {
+    if (sos?.userId == uid && sos?.status == AlertStatus.sent) {
       return _snapshot(
         state: HomeWidgetSafetyState.sos,
         title: 'SOS active',
@@ -172,7 +181,7 @@ class HomeWidgetService extends GetxService with WidgetsBindingObserver {
     }
 
     final headsUp = _readHeadsUp(prefs.getString(_activeHeadsUpKey));
-    if (headsUp?.isActive ?? false) {
+    if (headsUp?.userId == uid && (headsUp?.isActive ?? false)) {
       return _snapshot(
         state: HomeWidgetSafetyState.headsUp,
         title: 'Heads Up active',

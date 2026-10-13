@@ -27,6 +27,7 @@ class IncomingAlertViewModel extends GetxController {
   final Rxn<double> distanceMeters = Rxn<double>();
 
   final Rx<Duration> elapsed = Duration.zero.obs;
+  int _loadGeneration = 0;
   Timer? _ticker;
   Worker? _notificationWorker;
 
@@ -44,6 +45,7 @@ class IncomingAlertViewModel extends GetxController {
 
   @override
   void onClose() {
+    ++_loadGeneration;
     _ticker?.cancel();
     _notificationWorker?.dispose();
     super.onClose();
@@ -57,7 +59,10 @@ class IncomingAlertViewModel extends GetxController {
 
   Future<void> _load({bool showLoading = true}) async {
     if (showLoading) screenState.value = GenericScreenStates.loading;
+    if (isClosed) return;
+    final request = ++_loadGeneration;
     final result = await _caregiverService.getAlertDetail(_alertId);
+    if (isClosed || request != _loadGeneration) return;
     if (!result.isSuccess || result.data == null) {
       screenState.value = GenericScreenStates.error;
       return;
@@ -101,7 +106,9 @@ class IncomingAlertViewModel extends GetxController {
     if (lat == null || lng == null) return;
 
     final position = await LocationService.instance().getCurrentPosition();
-    if (position == null) return;
+    if (isClosed || position == null || detail.value?.alert.id != alert?.id) {
+      return;
+    }
 
     distanceMeters.value = Geolocator.distanceBetween(
       position.latitude,
@@ -193,6 +200,7 @@ class IncomingAlertViewModel extends GetxController {
       alertId: current.alert.id,
       responding: true,
     );
+    if (isClosed) return;
     isResponding.value = false;
 
     if (!result.isSuccess) {

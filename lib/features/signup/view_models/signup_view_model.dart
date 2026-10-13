@@ -59,7 +59,9 @@ class SignupViewModel extends GetxController {
         passwordController.text,
       );
 
+      if (isClosed) return;
       final commit = await OnboardingViewModel.commitAndDisposeDraft();
+      if (isClosed) return;
       if (!commit.saved) {
         screenState.value = GenericScreenStates.loaded;
         Get.offAllNamed(
@@ -73,15 +75,18 @@ class SignupViewModel extends GetxController {
 
       await AppModeService.instance().setOnboardingCompleted(true);
 
+      if (isClosed) return;
       screenState.value = GenericScreenStates.loaded;
       Get.offAllNamed(AppRoutes.root);
       if (commit.invite != null) {
         InvitePickerSheet.showAfterNavigation(commit.invite!);
       }
     } on FirebaseAuthException catch (e) {
+      if (isClosed) return;
       screenState.value = GenericScreenStates.error;
       errorMessage.value = _mapError(e.code);
     } catch (e) {
+      if (isClosed) return;
       screenState.value = GenericScreenStates.error;
       errorMessage.value = 'Something went wrong. Please try again.';
     }

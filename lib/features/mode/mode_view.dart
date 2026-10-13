@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
-import 'package:seizure_app/core/dtos/watched_person_dto.dart';
 import 'package:seizure_app/core/widgets/settings/settings_group.dart';
 import 'package:seizure_app/core/widgets/settings/settings_screen_header.dart';
-import 'package:seizure_app/features/caregiver/widgets/caregiver_avatar.dart';
 import 'package:seizure_app/features/mode/view_models/mode_view_model.dart';
 
 class ModeView extends GetView<ModeViewModel> {
@@ -31,11 +29,7 @@ class ModeView extends GetView<ModeViewModel> {
                 Dimensions.twenty,
                 Dimensions.twentyFour,
               ),
-              children: <Widget>[
-                const _ThisDeviceSection(),
-                SizedBox(height: Dimensions.twentySix),
-                const _WatchingSection(),
-              ],
+              children: <Widget>[const _ThisDeviceSection()],
             ),
           ),
         ],
@@ -64,21 +58,6 @@ class _ThisDeviceSection extends GetView<ModeViewModel> {
               onChanged: controller.setCaregiverMode,
             ),
           ),
-          SettingsNavRow(
-            icon: Icons.notifications_active_outlined,
-            title: 'Alert override',
-            trailingText: 'Ignore silent',
-            onTap: controller.openAlertOverride,
-          ),
-          Obx(
-            () => SettingsSwitchRow(
-              icon: Icons.call_outlined,
-              title: 'Auto-answer calls',
-              value: controller.autoAnswerCalls.value,
-              loading: controller.changingAutoAnswer.value,
-              onChanged: controller.setAutoAnswerCalls,
-            ),
-          ),
         ],
       ),
       SizedBox(height: Dimensions.ten),
@@ -95,38 +74,4 @@ class _ThisDeviceSection extends GetView<ModeViewModel> {
       ),
     ],
   );
-}
-
-class _WatchingSection extends GetView<ModeViewModel> {
-  const _WatchingSection();
-
-  @override
-  Widget build(BuildContext context) => Obx(
-    () => SettingsSection(
-      label: 'Watching',
-      children: <Widget>[
-        if (controller.loadingWatching.value)
-          const SettingsMessageRow('Loading…')
-        else if (controller.watching.isEmpty)
-          const SettingsMessageRow('You are not watching anyone yet')
-        else
-          for (final WatchedPersonDto person in controller.watching)
-            SettingsTileRow(
-              leading: CaregiverAvatar(name: person.ownerName, size: 34),
-              title: person.ownerName,
-              subtitle: _accessLabel(person),
-            ),
-        SettingsActionRow(
-          title: 'Enter invite code',
-          onTap: controller.openInvite,
-        ),
-      ],
-    ),
-  );
-
-  String _accessLabel(WatchedPersonDto person) => switch (person.status) {
-    WatchedPersonStatus.sos => 'SOS active now',
-    WatchedPersonStatus.headsUp => 'Heads Up active',
-    WatchedPersonStatus.monitoring => 'Receiving alerts',
-  };
 }

@@ -532,7 +532,7 @@ function buildMessage({
     data,
     android: {
       priority: "high",
-      notification: { sound: "default" },
+      notification: { sound: "seizure_alert" },
     },
     apns: {
       payload: {

@@ -8,12 +8,14 @@ import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/local_notifications_service.dart';
+import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthController extends GetxController {
-  FirebaseAuthController();
+  FirebaseAuthController({FirebaseAuth? auth})
+    : _auth = auth ?? FirebaseAuth.instance;
 
   static FirebaseAuthController instance() =>
       Get.isRegistered<FirebaseAuthController>()
@@ -23,8 +25,8 @@ class FirebaseAuthController extends GetxController {
           permanent: true,
         );
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  late final StreamSubscription _userDataSubscription;
+  final FirebaseAuth _auth;
+  StreamSubscription<User?>? _userDataSubscription;
   final Rxn<User> user = Rxn<User>();
   final RxBool isLoggedIn = false.obs;
 
@@ -32,9 +34,7 @@ class FirebaseAuthController extends GetxController {
   void onInit() {
     super.onInit();
 
-    _userDataSubscription = FirebaseAuth.instance.userChanges().listen((
-      firebaseUser,
-    ) async {
+    _userDataSubscription = _auth.userChanges().listen((firebaseUser) async {
       if (firebaseUser != null) {
         user.value = firebaseUser;
         isLoggedIn.value = true;
@@ -52,7 +52,7 @@ class FirebaseAuthController extends GetxController {
 
   @override
   void onClose() {
-    _userDataSubscription.cancel();
+    _userDataSubscription?.cancel();
     super.onClose();
   }
 
@@ -93,14 +93,26 @@ class FirebaseAuthController extends GetxController {
   }
 
   Future<void> registerUser(String emailAddress, String password) async {
+    if (_auth.currentUser != null &&
+        Get.isRegistered<FirebaseMessagingService>()) {
+      await Get.find<FirebaseMessagingService>().prepareForSignOut();
+    }
     await _clearData();
-    await FirebaseAuth.instance.signOut();
-    final UserCredential credential = await FirebaseAuth.instance
+    await _auth.signOut();
+    final UserCredential credential = await _auth
         .createUserWithEmailAndPassword(
           email: emailAddress,
           password: password,
         );
-    await credential.user?.sendEmailVerification();
+    try {
+      await credential.user?.sendEmailVerification();
+    } catch (_) {
+      // The account exists. Verification can be resent from settings.
+      Get.snackbar(
+        'Account created',
+        'Verification email could not be sent. Resend it from settings.',
+      );
+    }
   }
 
   Future<ResultDto<void>> sendPasswordReset(String email) async {
@@ -155,8 +167,19 @@ class FirebaseAuthController extends GetxController {
   }
 
   Future<void> signOut() async {
+    try {
+      if (Get.isRegistered<FirebaseMessagingService>()) {
+        await Get.find<FirebaseMessagingService>().prepareForSignOut();
+      }
+    } catch (_) {
+      Get.snackbar(
+        'Could not sign out',
+        'Connect to the internet and try again to disconnect alerts from this device.',
+      );
+      return;
+    }
     await _clearData();
-    await FirebaseAuth.instance.signOut();
+    await _auth.signOut();
     Get.offAllNamed(AppRoutes.login);
   }
 

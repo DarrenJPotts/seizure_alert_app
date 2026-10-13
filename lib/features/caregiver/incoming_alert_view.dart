@@ -138,10 +138,14 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                   owner: owner,
                   medication: controller.primaryMedication,
                 ),
-                if (owner.carePlanSteps.isNotEmpty) ...<Widget>[
+                if (owner.carePlanSteps.isNotEmpty ||
+                    owner.emergencyNote?.trim().isNotEmpty == true ||
+                    owner.rescueMedication?.trim().isNotEmpty == true ||
+                    owner.callEmergencyAfterMinutes > 0) ...<Widget>[
                   SizedBox(height: Dimensions.twelve),
                   _EmergencyNote(
                     note: owner.carePlanSteps.join('\n'),
+                    emergencyNote: owner.emergencyNote,
                     rescueMedication: owner.rescueMedication,
                     callAfterMinutes: owner.callEmergencyAfterMinutes,
                   ),
@@ -364,11 +368,13 @@ class _StatCard extends StatelessWidget {
 class _EmergencyNote extends StatelessWidget {
   const _EmergencyNote({
     required this.note,
+    this.emergencyNote,
     required this.rescueMedication,
     required this.callAfterMinutes,
   });
 
   final String note;
+  final String? emergencyNote;
   final String? rescueMedication;
   final int callAfterMinutes;
 
@@ -392,14 +398,29 @@ class _EmergencyNote extends StatelessWidget {
           ),
         ),
         SizedBox(height: Dimensions.eight),
-        Text(
-          note,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontSize: 15,
-            height: 1.5,
-            color: _alertInk,
+        if (emergencyNote?.trim().isNotEmpty == true) ...[
+          Text(
+            'Emergency note',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-        ),
+          SizedBox(height: Dimensions.four),
+          Text(
+            emergencyNote!.trim(),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          SizedBox(height: Dimensions.twelve),
+        ],
+        if (note.isNotEmpty)
+          Text(
+            note,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              fontSize: 15,
+              height: 1.5,
+              color: _alertInk,
+            ),
+          ),
         if (rescueMedication.isNotNullOrEmpty) ...<Widget>[
           SizedBox(height: Dimensions.twelve),
           Text(

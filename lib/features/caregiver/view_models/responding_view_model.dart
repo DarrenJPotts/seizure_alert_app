@@ -28,6 +28,7 @@ class RespondingViewModel extends GetxController {
   final RxBool isSavingNote = false.obs;
   final RxSet<String> nudging = <String>{}.obs;
 
+  int _loadGeneration = 0;
   Timer? _ticker;
   Timer? _poll;
   Worker? _notificationWorker;
@@ -61,7 +62,10 @@ class RespondingViewModel extends GetxController {
   Future<void> _load({bool initial = false}) async {
     if (initial) screenState.value = GenericScreenStates.loading;
 
+    if (isClosed) return;
+    final request = ++_loadGeneration;
     final result = await _caregiverService.getAlertDetail(_alertId);
+    if (isClosed || request != _loadGeneration) return;
     if (!result.isSuccess || result.data == null) {
       if (initial) screenState.value = GenericScreenStates.error;
       return;
@@ -78,7 +82,7 @@ class RespondingViewModel extends GetxController {
       return;
     }
 
-    if (initial) {
+    if (_ticker == null) {
       _startTicker();
       _poll = Timer.periodic(_pollInterval, (_) => _load());
     }
@@ -175,6 +179,7 @@ class RespondingViewModel extends GetxController {
       alertId: _alertId,
       targetResponderId: targetId,
     );
+    if (isClosed) return;
     nudging.remove(targetId);
 
     if (!result.isSuccess) {
@@ -212,6 +217,7 @@ class RespondingViewModel extends GetxController {
       alertId: current.alert.id,
       note: trimmed,
     );
+    if (isClosed) return false;
     isSavingNote.value = false;
 
     if (!result.isSuccess) {

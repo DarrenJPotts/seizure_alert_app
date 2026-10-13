@@ -67,9 +67,15 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
         notificationsAuthorized &&
         tokenReady;
     final mode = Get.isRegistered<AppModeService>()
-        ? Get.find<AppModeService>() : null;
-    final complete = ready && !sendingTest && !notificationsLoading &&
-        testedCount == readyCount && offlineCount == 0 && failedCount == 0;
+        ? Get.find<AppModeService>()
+        : null;
+    final complete =
+        ready &&
+        !sendingTest &&
+        !notificationsLoading &&
+        testedCount == readyCount &&
+        offlineCount == 0 &&
+        failedCount == 0;
     if (complete && (mode?.hideCompletedSetup.value ?? false)) {
       return const SizedBox.shrink();
     }

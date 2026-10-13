@@ -23,6 +23,7 @@ class SplashViewModel extends GetxController {
       Future<Object?>.delayed(_minimumDisplay),
     ]);
 
+    if (isClosed) return;
     final User? user = settled.first as User?;
     final String? notificationRoute =
         Get.isRegistered<FirebaseMessagingService>()

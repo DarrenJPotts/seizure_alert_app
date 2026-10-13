@@ -31,7 +31,7 @@ class LocalNotificationsService extends GetxService
   /// default channel instead of this one, and lose their max importance —
   /// which for an app whose whole purpose is waking someone up is the
   /// difference between working and not. Keep the two values in sync.
-  static const String alertChannelId = 'seizure_alerts';
+  static const String alertChannelId = 'seizure_alerts_v2';
   static const String medicationChannelId = 'medication_reminders';
   static const int nearbyEmergencyNotificationId = 900001;
   final _androidChannel = const AndroidNotificationChannel(
@@ -40,6 +40,8 @@ class LocalNotificationsService extends GetxService
     description:
         'SOS alerts, Heads Up check-ins, and missed check-ins from your circle.',
     importance: Importance.max,
+    playSound: true,
+    sound: RawResourceAndroidNotificationSound('seizure_alert'),
   );
   final _medicationChannel = const AndroidNotificationChannel(
     medicationChannelId,
@@ -131,6 +133,8 @@ class LocalNotificationsService extends GetxService
         channelDescription: _androidChannel.description,
         importance: Importance.max,
         priority: Priority.high,
+        playSound: true,
+        sound: const RawResourceAndroidNotificationSound('seizure_alert'),
       );
 
       const iosDetails = DarwinNotificationDetails();
@@ -181,6 +185,8 @@ class LocalNotificationsService extends GetxService
                 'SOS alerts, Heads Up check-ins, and missed check-ins from your circle.',
             importance: Importance.max,
             priority: Priority.max,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound('seizure_alert'),
             category: AndroidNotificationCategory.alarm,
             visibility: NotificationVisibility.public,
             ongoing: true,

@@ -8,7 +8,12 @@ import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/core/services/local_notifications_service.dart';
 
 class SafetyPlanViewModel extends GetxController {
-  SafetyPlanViewModel(this._firestore, this._notifications);
+  SafetyPlanViewModel(
+    this._firestore,
+    this._notifications, {
+    String? Function()? currentUid,
+  }) : _currentUid = currentUid;
+  final String? Function()? _currentUid;
 
   final FirestoreService _firestore;
   final LocalNotificationsService? _notifications;
@@ -23,10 +28,16 @@ class SafetyPlanViewModel extends GetxController {
   final RxBool saving = false.obs;
   final RxnString error = RxnString();
 
+  bool get hasLoadedPlan => _user != null;
+
   UserDto? _user;
   List<MedicationReminderDto> _savedReminders = <MedicationReminderDto>[];
 
-  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get _uid =>
+      (_currentUid != null
+          ? _currentUid()
+          : FirebaseAuth.instance.currentUser?.uid) ??
+      '';
 
   @override
   void onInit() {
@@ -37,7 +48,9 @@ class SafetyPlanViewModel extends GetxController {
   Future<void> load() async {
     loading.value = true;
     error.value = null;
-    final result = await _firestore.getUser(_uid);
+    final uid = _uid;
+    final result = await _firestore.getUser(uid);
+    if (isClosed || uid != _uid) return;
     if (!result.isSuccess || result.data == null) {
       error.value = 'Your safety plan could not be loaded.';
       loading.value = false;
@@ -69,10 +82,11 @@ class SafetyPlanViewModel extends GetxController {
 
   Future<bool> save() async {
     if (saving.value || _uid.isEmpty) return false;
+    final uid = _uid;
     saving.value = true;
     error.value = null;
     try {
-      final result = await _firestore.updateSafetyPlan(_uid, <String, dynamic>{
+      final result = await _firestore.updateSafetyPlan(uid, <String, dynamic>{
         'seizureActionPlan': actionPlanController.text.trim(),
         'rescueMedication': rescueMedicationController.text.trim(),
         'callEmergencyAfterMinutes': callEmergencyAfterMinutes.value,
@@ -81,6 +95,7 @@ class SafetyPlanViewModel extends GetxController {
             .map((MedicationReminderDto reminder) => reminder.toMap())
             .toList(),
       });
+      if (isClosed || uid != _uid) return false;
       if (!result.isSuccess) {
         error.value = 'Your safety plan could not be saved.';
         return false;
@@ -95,6 +110,7 @@ class SafetyPlanViewModel extends GetxController {
           : null;
       if (hasEnabledReminder) {
         await messaging?.enableNotifications();
+        if (isClosed || uid != _uid) return false;
         if (messaging?.notificationsAuthorized != true) {
           error.value =
               'Safety plan saved. Enable notifications to receive reminders.';
@@ -123,7 +139,7 @@ class SafetyPlanViewModel extends GetxController {
       _savedReminders = List<MedicationReminderDto>.from(reminders);
       return true;
     } finally {
-      saving.value = false;
+      if (!isClosed) saving.value = false;
     }
   }
 

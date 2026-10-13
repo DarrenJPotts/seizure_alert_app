@@ -84,7 +84,10 @@ class SafetyReadinessViewModel extends GetxController {
   Future<void> refreshReadiness() async {
     loading.value = true;
     await _messaging?.refreshReadiness();
-    locationReady.value = await Permission.locationWhenInUse.isGranted;
+    if (isClosed) return;
+    final granted = await Permission.locationWhenInUse.isGranted;
+    if (isClosed) return;
+    locationReady.value = granted;
     loading.value = false;
   }
 
@@ -96,7 +99,7 @@ class SafetyReadinessViewModel extends GetxController {
     try {
       return await _wearables.createPairingCode();
     } finally {
-      creatingPairingCode.value = false;
+      if (!isClosed) creatingPairingCode.value = false;
     }
   }
 
@@ -107,7 +110,7 @@ class SafetyReadinessViewModel extends GetxController {
       final result = await _wearables.removeDevice(deviceId);
       return result.isSuccess ? null : result.error;
     } finally {
-      removingDeviceId.value = null;
+      if (!isClosed) removingDeviceId.value = null;
     }
   }
 

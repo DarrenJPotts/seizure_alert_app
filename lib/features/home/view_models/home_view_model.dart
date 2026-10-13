@@ -24,6 +24,7 @@ class HomeViewModel extends GetxController {
   final Rx<GenericScreenStates> screenState = GenericScreenStates.initial.obs;
 
   StreamSubscription<List<SeizureLogDto>>? _seizureLogsSub;
+  int _loadGeneration = 0;
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
@@ -33,17 +34,24 @@ class HomeViewModel extends GetxController {
     _init();
   }
 
+  Future<void> retry() => _init();
+
   Future<void> _init() async {
+    final request = ++_loadGeneration;
+    await _seizureLogsSub?.cancel();
+    if (isClosed || request != _loadGeneration) return;
+    final uid = _uid;
     if (_uid.isEmpty) {
       screenState.value = GenericScreenStates.error;
       return;
     }
     screenState.value = GenericScreenStates.loading;
 
-    final userResult = await _firestoreService.getUser(_uid);
+    final userResult = await _firestoreService.getUser(uid);
+    if (isClosed || request != _loadGeneration || _uid != uid) return;
     if (userResult.isSuccess) user.value = userResult.data;
 
-    _seizureLogsSub = _firestoreService.watchSeizureLogs(_uid).listen((list) {
+    _seizureLogsSub = _firestoreService.watchSeizureLogs(uid).listen((list) {
       seizureLogs.value = list;
       screenState.value = GenericScreenStates.loaded;
     }, onError: (_) => screenState.value = GenericScreenStates.error);

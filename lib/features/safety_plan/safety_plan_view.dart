@@ -30,7 +30,7 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
                   child: CircularProgressIndicator(color: Colors.black),
                 );
               }
-              if (controller.error.value != null) {
+              if (controller.error.value != null && !controller.hasLoadedPlan) {
                 return SettingsScreenPlaceholder(
                   icon: Icons.error_outline,
                   message: controller.error.value!,
@@ -48,6 +48,10 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
                   Dimensions.twentyFour,
                 ),
                 children: <Widget>[
+                  if (controller.error.value != null) ...[
+                    SettingsMessageRow(controller.error.value!),
+                    SizedBox(height: Dimensions.twelve),
+                  ],
                   _ActionPlanSection(controller: controller),
                   SizedBox(height: Dimensions.twentyFour),
                   _MedicationSection(controller: controller),
@@ -135,10 +139,13 @@ class _ActionPlanSection extends StatelessWidget {
       Obx(
         () => SettingsValueRow(
           icon: Icons.emergency_outlined,
-          label: 'Call emergency services after',
-          value: '${controller.callEmergencyAfterMinutes.value} minutes',
+          label: 'Emergency call guidance',
+          value: 'After ${controller.callEmergencyAfterMinutes.value} minutes',
           onTap: () => _chooseEmergencyTime(context),
         ),
+      ),
+      const SettingsMessageRow(
+        'This is guidance for caregivers. The app does not call emergency services automatically.',
       ),
       Obx(
         () => SettingsSwitchRow(

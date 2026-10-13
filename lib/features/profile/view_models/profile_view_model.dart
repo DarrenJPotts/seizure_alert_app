@@ -56,7 +56,7 @@ class ProfileViewModel extends GetxController {
     super.onInit();
     fetchProfile();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      checkPermissions();
+      if (!isClosed) checkPermissions();
     });
   }
 
@@ -72,7 +72,9 @@ class ProfileViewModel extends GetxController {
     screenState.value = GenericScreenStates.loading;
     errorMessage.value = null;
 
-    final ResultDto<UserDto> result = await _firestoreService.getUser(_uid);
+    final uid = _uid;
+    final ResultDto<UserDto> result = await _firestoreService.getUser(uid);
+    if (isClosed || uid != _uid) return;
 
     if (result.isSuccess) {
       var fetched = result.data!;
@@ -82,21 +84,14 @@ class ProfileViewModel extends GetxController {
       // FirebaseAuth's record — reconcile it here if it's drifted.
       final authEmail = FirebaseAuth.instance.currentUser?.email;
       if (authEmail != null && authEmail != fetched.email) {
-        fetched = UserDto(
-          uid: fetched.uid,
-          email: authEmail,
-          displayName: fetched.displayName,
-          photoUrl: fetched.photoUrl,
-          phone: fetched.phone,
-          fcmToken: fetched.fcmToken,
-          bloodType: fetched.bloodType,
-          seizureType: fetched.seizureType,
-          medications: fetched.medications,
-          emergencyNote: fetched.emergencyNote,
-        );
-        await _firestoreService.upsertUser(fetched);
+        final values = fetched.toMap()..['email'] = authEmail;
+        fetched = UserDto.fromMap(values);
+        await _firestoreService.updateProfileFields(fetched.uid, {
+          'email': authEmail,
+        });
       }
 
+      if (isClosed || uid != _uid) return;
       user.value = fetched;
       screenState.value = GenericScreenStates.loaded;
     } else {
@@ -121,21 +116,23 @@ class ProfileViewModel extends GetxController {
       return (t == null || t.isEmpty) ? null : t;
     }
 
-    final updated = UserDto(
-      uid: current.uid,
-      email: current.email,
-      displayName: clean(displayName),
-      photoUrl: current.photoUrl,
-      phone: clean(phone),
-      fcmToken: current.fcmToken,
-      bloodType: bloodType,
-      seizureType: clean(seizureType),
-      medications: medications,
-      emergencyNote: clean(emergencyNote),
+    if (displayName.trim().isEmpty) return false;
+    final fields = <String, dynamic>{
+      'displayName': displayName.trim(),
+      'phone': clean(phone),
+      'bloodType': bloodType,
+      'seizureType': clean(seizureType),
+      'medications': medications,
+      'emergencyNote': clean(emergencyNote),
+    };
+    final result = await _firestoreService.updateProfileFields(
+      current.uid,
+      fields,
     );
-
-    final result = await _firestoreService.upsertUser(updated);
-    if (result.isSuccess) user.value = updated;
+    if (isClosed || current.uid != _uid) return result.isSuccess;
+    if (result.isSuccess) {
+      user.value = UserDto.fromMap({...current.toMap(), ...fields});
+    }
     return result.isSuccess;
   }
 
@@ -144,18 +141,20 @@ class ProfileViewModel extends GetxController {
   // those prompts itself via the underlying JS APIs instead, so there's
   // nothing meaningful for this native-style permissions card to check there.
   Future<void> checkPermissions() async {
-    if (kIsWeb) return;
+    if (isClosed || kIsWeb) return;
 
     if (Get.isRegistered<FirebaseMessagingService>()) {
       final messaging = Get.find<FirebaseMessagingService>();
       await messaging.refreshReadiness();
+      if (isClosed) return;
       notificationsEnabled.value = messaging.notificationsAuthorized;
     } else {
       notificationsEnabled.value =
           (await Permission.notification.status).isGranted;
     }
 
-    locationEnabled.value = await Permission.locationWhenInUse.isGranted;
+    final locationGranted = await Permission.locationWhenInUse.isGranted;
+    if (!isClosed) locationEnabled.value = locationGranted;
   }
 
   Future<void> requestNotifications() async {

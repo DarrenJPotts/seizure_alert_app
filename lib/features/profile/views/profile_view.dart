@@ -240,11 +240,16 @@ class _MedicalSection extends StatelessWidget {
           ),
           SettingsNavRow(
             icon: Icons.health_and_safety_outlined,
-            title: 'Safety plan & medication',
+            title: 'Safety plan & reminders',
             trailingText: user.medicationReminders.isEmpty
                 ? 'Set up'
                 : '${user.medicationReminders.length} reminders',
-            onTap: () => Get.toNamed(AppRoutes.safetyPlan),
+            onTap: () async {
+              await Get.toNamed(AppRoutes.safetyPlan);
+              if (Get.isRegistered<ProfileViewModel>()) {
+                await Get.find<ProfileViewModel>().fetchProfile();
+              }
+            },
           ),
         ],
       ),
@@ -252,8 +257,7 @@ class _MedicalSection extends StatelessWidget {
       Padding(
         padding: EdgeInsets.symmetric(horizontal: Dimensions.two),
         child: Text(
-          'Your circle sees this when you send an SOS. The emergency note is also read as your care plan '
-          'by whoever arrives first, so write it as steps.',
+          'Your circle sees this during an SOS. Use the emergency note for first-responder information and the safety plan for caregiver instructions.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             fontSize: 13,
             height: 1.5,

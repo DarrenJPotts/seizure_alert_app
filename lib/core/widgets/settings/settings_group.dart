@@ -146,6 +146,9 @@ class SettingsValueRow extends StatelessWidget {
                         ),
                       )
                     : Text(value, style: valueStyle);
+                if (!loading && value.isEmpty) {
+                  return Text(label, style: labelStyle);
+                }
                 if (inline) {
                   return Row(
                     children: [
@@ -398,50 +401,12 @@ class SettingsNavRow extends StatelessWidget {
   final bool loading;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: loading ? null : _tap(onTap),
-    child: SizedBox(
-      height: 64,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen),
-        child: Row(
-          children: <Widget>[
-            Icon(icon, size: 22, color: Colors.black),
-            SizedBox(width: Dimensions.fourteen),
-            Expanded(
-              child: Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-              ),
-            ),
-            if (loading)
-              SizedBox.square(
-                dimension: Dimensions.sixteen,
-                child: const CircularProgressIndicator(
-                  color: Colors.black,
-                  strokeWidth: 1.5,
-                ),
-              )
-            else if (trailingText != null)
-              Text(
-                trailingText!,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.black.withValues(alpha: 0.45),
-                ),
-              ),
-            SizedBox(width: Dimensions.six),
-            if (!loading)
-              Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: Colors.black.withValues(alpha: 0.3),
-              ),
-          ],
-        ),
-      ),
-    ),
+  Widget build(BuildContext context) => SettingsValueRow(
+    icon: icon,
+    label: title,
+    value: trailingText ?? '',
+    onTap: onTap,
+    loading: loading,
   );
 }
 

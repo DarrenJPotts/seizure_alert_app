@@ -19,7 +19,12 @@ class FloatingBottomNavWidget extends StatelessWidget {
   Widget build(BuildContext context) => SafeArea(
     top: false,
     minimum: EdgeInsets.only(bottom: Dimensions.twenty),
-    child: caregiver ? _buildCaregiverNav() : _buildPatientNav(),
+    child: caregiver
+        ? _buildCaregiverNav()
+        : Padding(
+            padding: EdgeInsets.only(top: Dimensions.thirtyTwo),
+            child: _buildPatientNav(),
+          ),
   );
 
   Widget _buildCaregiverNav() => Container(
