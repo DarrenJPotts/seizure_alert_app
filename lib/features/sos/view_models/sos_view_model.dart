@@ -29,6 +29,8 @@ import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 enum SosDelivery { sending, delivered, queued, failed }
 
 class SosViewModel extends GetxController {
+  SosViewModel({String? Function()? currentUid}) : _currentUid = currentUid;
+  final String? Function()? _currentUid;
   static const _storageKey = 'active_sos';
 
   static const Duration deliveryGrace = Duration(seconds: 8);
@@ -44,7 +46,14 @@ class SosViewModel extends GetxController {
   StreamSubscription<List<AlertResponseDto>>? _responsesSub;
   StreamSubscription<List<AlertDeliveryDto>>? _deliveriesSub;
 
-  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get _uid =>
+      (_currentUid != null
+          ? _currentUid()
+          : FirebaseAuth.instance.currentUser?.uid) ??
+      '';
+  late final String _sessionUid = _uid;
+  bool get _sessionActive =>
+      !isClosed && _sessionUid.isNotEmpty && _uid == _sessionUid;
 
   @override
   void onInit() {
@@ -68,11 +77,14 @@ class SosViewModel extends GetxController {
 
   Future<void> _restoreActiveSos() async {
     try {
+      if (!_sessionActive) return;
       final SharedPreferences prefs = await SharedPreferences.getInstance();
+      if (!_sessionActive) return;
       final String? json = prefs.getString(_storageKey);
       if (json == null) return;
 
       final AlertDto dto = AlertDto.fromMap(jsonDecode(json));
+      if (dto.userId != _sessionUid) return;
       if (dto.status == AlertStatus.sent) {
         activeSos.value = dto;
         _syncHomeWidget();
@@ -94,6 +106,7 @@ class SosViewModel extends GetxController {
   }
 
   Future<void> startSos() async {
+    if (!_sessionActive || activeSos.value != null) return;
     try {
       Get.find<SeizureLogViewModel>().addEntry(
         occurredAt: DateTime.now(),
@@ -113,6 +126,7 @@ class SosViewModel extends GetxController {
       );
 
       await _persist(alert);
+      if (!_sessionActive) return;
       activeSos.value = alert;
       _syncHomeWidget();
       _startElapsed();
@@ -123,7 +137,7 @@ class SosViewModel extends GetxController {
 
       final Position? position = await LocationService.instance()
           .getCurrentPosition();
-      if (position == null) return;
+      if (!_sessionActive || position == null) return;
 
       if (activeSos.value?.id != alert.id) return;
 
@@ -162,7 +176,7 @@ class SosViewModel extends GetxController {
 
     unawaited(
       write.then((ResultDto<void> result) {
-        if (activeSos.value?.id != alertId) return;
+        if (!_sessionActive || activeSos.value?.id != alertId) return;
         _deliveryWatchdog?.cancel();
 
         if (result.isSuccess) {
@@ -177,7 +191,7 @@ class SosViewModel extends GetxController {
 
   Future<void> cancelSos() async {
     final AlertDto? current = activeSos.value;
-    if (current == null) return;
+    if (!_sessionActive || current == null) return;
 
     try {
       _elapsedTimer?.cancel();
@@ -189,6 +203,7 @@ class SosViewModel extends GetxController {
         resolvedAt: DateTime.now(),
       );
       await _persist(updated);
+      if (!_sessionActive) return;
       activeSos.value = null;
       _syncHomeWidget();
       elapsed.value = Duration.zero;
@@ -214,6 +229,7 @@ class SosViewModel extends GetxController {
               onTimeout: () => ResultDto<void>.failure('timed out'),
             )
             .then((ResultDto<void> result) {
+              if (!_sessionActive) return;
               if (result.isSuccess) {
                 _showSnackbar(
                   'Alert cancelled',
@@ -264,7 +280,7 @@ class SosViewModel extends GetxController {
 
   void _tick() {
     final AlertDto? current = activeSos.value;
-    if (current == null) return;
+    if (!_sessionActive || current == null) return;
     elapsed.value = DateTime.now().difference(current.createdAt);
   }
 
@@ -280,6 +296,7 @@ class SosViewModel extends GetxController {
   Future<void> _persist(AlertDto alert) async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
+      if (!_sessionActive || alert.userId != _sessionUid) return;
       await prefs.setString(_storageKey, jsonEncode(alert.toMap()));
     } catch (e) {
       debugPrint('[SosVM] Error persisting active SOS: $e');
@@ -295,7 +312,10 @@ class SosViewModel extends GetxController {
 
   Future<void> _startNearbyAlert() async {
     if (!Get.isRegistered<LocalNotificationsService>()) return;
+    final alertId = activeSos.value?.id;
+    if (!_sessionActive || alertId == null) return;
     final result = await FirestoreService.instance().getUser(_uid);
+    if (!_sessionActive || activeSos.value?.id != alertId) return;
     final user = result.data;
     if (!result.isSuccess || user?.nearbyAudibleAlert != true) return;
     await Get.find<LocalNotificationsService>().showNearbyEmergencyAlert(
@@ -304,6 +324,7 @@ class SosViewModel extends GetxController {
   }
 
   void _showSnackbar(String title, String message) {
+    if (!_sessionActive) return;
     Get.snackbar(
       '',
       '',
@@ -325,6 +346,7 @@ class SosViewModel extends GetxController {
   }
 
   void _showErrorSnackbar(String title, String message) {
+    if (!_sessionActive) return;
     Get.snackbar(
       '',
       '',

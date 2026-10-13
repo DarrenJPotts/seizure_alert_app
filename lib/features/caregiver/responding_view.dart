@@ -319,16 +319,33 @@ class _CarePlanSection extends GetView<RespondingViewModel> {
         const _SectionLabel('Care plan'),
         SizedBox(height: Dimensions.ten),
         _Card(
-          children: steps.isEmpty
-              ? <Widget>[
-                  const _MessageRow(
-                    'No care plan saved. Ask them to add one to their emergency note.',
-                  ),
-                ]
-              : <Widget>[
-                  for (int i = 0; i < steps.length; i++)
-                    _CarePlanStep(number: i + 1, text: steps[i]),
-                ],
+          children: <Widget>[
+            if (controller.detail.value?.ownerProfile.emergencyNote
+                    ?.trim()
+                    .isNotEmpty ==
+                true)
+              _MessageRow(
+                'Emergency note: ${controller.detail.value!.ownerProfile.emergencyNote!.trim()}',
+              ),
+            if (steps.isEmpty)
+              const _MessageRow(
+                'No caregiver instructions saved. Ask them to add a safety plan.',
+              )
+            else
+              for (int i = 0; i < steps.length; i++)
+                _CarePlanStep(number: i + 1, text: steps[i]),
+            if (controller.detail.value?.ownerProfile.rescueMedication
+                    ?.trim()
+                    .isNotEmpty ==
+                true)
+              _MessageRow(
+                'Rescue medication: ${controller.detail.value!.ownerProfile.rescueMedication!.trim()}',
+              ),
+            if (controller.detail.value != null)
+              _MessageRow(
+                'Call emergency services after ${controller.detail.value!.ownerProfile.callEmergencyAfterMinutes} minutes unless the plan says sooner.',
+              ),
+          ],
         ),
       ],
     );

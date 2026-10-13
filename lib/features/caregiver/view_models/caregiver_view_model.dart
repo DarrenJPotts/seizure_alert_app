@@ -25,7 +25,7 @@ class CaregiverViewModel extends GetxController {
   }
 
   Future<void> loadPeopleIWatch({bool forceRefresh = false}) async {
-    if (watchListRefreshing.value) return;
+    if (isClosed || watchListRefreshing.value) return;
 
     watchListRefreshing.value = true;
     watchListRefreshFailed.value = false;
@@ -37,6 +37,7 @@ class CaregiverViewModel extends GetxController {
       final result = await _caregiverService.getPeopleIWatch(
         forceRefresh: forceRefresh,
       );
+      if (isClosed) return;
       if (!result.isSuccess || result.data == null) {
         watchListRefreshFailed.value = true;
         if (people.isEmpty) screenState.value = GenericScreenStates.error;
@@ -50,10 +51,11 @@ class CaregiverViewModel extends GetxController {
           ? GenericScreenStates.empty
           : GenericScreenStates.loaded;
     } catch (_) {
+      if (isClosed) return;
       watchListRefreshFailed.value = true;
       if (people.isEmpty) screenState.value = GenericScreenStates.error;
     } finally {
-      watchListRefreshing.value = false;
+      if (!isClosed) watchListRefreshing.value = false;
     }
   }
 

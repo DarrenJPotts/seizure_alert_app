@@ -45,6 +45,19 @@ class HomeView extends GetView<HomeViewModel> {
               );
             }
 
+            if (state == GenericScreenStates.error) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Your seizure history could not be loaded.'),
+                  TextButton(
+                    onPressed: controller.retry,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              );
+            }
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: Dimensions.sixteen,

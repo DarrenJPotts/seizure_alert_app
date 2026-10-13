@@ -19,6 +19,7 @@ class AlertHistoryViewModel extends GetxController {
 
   StreamSubscription<List<AlertDto>>? _sub;
   Worker? _modeWorker;
+  int _generation = 0;
 
   bool get caregiverMode => _appMode.caregiverMode.value;
 
@@ -30,6 +31,7 @@ class AlertHistoryViewModel extends GetxController {
   }
 
   void _startForMode(bool caregiver) {
+    ++_generation;
     _sub?.cancel();
     _sub = null;
     alerts.clear();
@@ -56,8 +58,9 @@ class AlertHistoryViewModel extends GetxController {
 
   Future<void> _loadCaregiverAlerts() async {
     screenState.value = GenericScreenStates.loading;
+    final request = ++_generation;
     final result = await _caregiverService.getAlertHistory();
-    if (!caregiverMode) return;
+    if (isClosed || request != _generation || !caregiverMode) return;
     if (!result.isSuccess || result.data == null) {
       screenState.value = GenericScreenStates.error;
       return;

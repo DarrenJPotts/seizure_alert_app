@@ -64,6 +64,12 @@ class SosHeadsUpOptionsCard extends StatelessWidget {
               );
             }).toList(),
           ),
+          SizedBox(height: Dimensions.eight),
+          TextButton.icon(
+            onPressed: () => HeadsUpBottomSheet.show(customDuration: true),
+            icon: const Icon(Icons.schedule_outlined),
+            label: const Text('Custom duration'),
+          ),
         ],
       ),
     );

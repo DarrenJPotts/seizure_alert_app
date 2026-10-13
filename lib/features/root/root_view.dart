@@ -19,6 +19,7 @@ import 'package:seizure_app/features/caregiver/caregiver_view.dart';
 import 'package:seizure_app/features/caregiver/view_models/caregiver_view_model.dart';
 import 'package:seizure_app/features/contacts/contacts_view.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
+import 'package:seizure_app/features/heads_up/view_models/heads_up_view_model.dart';
 import 'package:seizure_app/features/home/home_view.dart';
 import 'package:seizure_app/features/home/view_models/home_view_model.dart';
 import 'package:seizure_app/features/onboarding/view_models/onboarding_view_model.dart';
@@ -53,6 +54,7 @@ class RootBinding extends Bindings {
       fenix: true,
     );
     Get.lazyPut(() => SosViewModel(), fenix: true);
+    Get.lazyPut(() => HeadsUpViewModel(), fenix: true);
 
     Get.lazyPut(
       () => CaregiverViewModel(CaregiverService.instance()),
@@ -82,13 +84,14 @@ class RootViewModel extends GetxController {
   final RxBool switchingMode = false.obs;
   bool _widgetSosDialogOpen = false;
   Worker? _widgetActionWorker;
+  Worker? _modeWorker;
 
   @override
   void onInit() {
     super.onInit();
     if (caregiverMode.value) currentIndex.value = 0;
 
-    ever<bool>(
+    _modeWorker = ever<bool>(
       caregiverMode,
       (bool isCaregiver) => currentIndex.value = isCaregiver ? 0 : 2,
     );
@@ -101,6 +104,7 @@ class RootViewModel extends GetxController {
       _handleWidgetAction();
     }
 
+    Get.find<HeadsUpViewModel>();
     _checkOnboarding();
   }
 
@@ -112,8 +116,11 @@ class RootViewModel extends GetxController {
     }
 
     try {
-      final result = await FirestoreService.instance().getUser(uid);
-      if (FirebaseAuth.instance.currentUser?.uid != uid) return;
+      final result = await FirestoreService.instance().getUser(
+        uid,
+        requireCompleteProfile: true,
+      );
+      if (isClosed || FirebaseAuth.instance.currentUser?.uid != uid) return;
       if (result.isSuccess &&
           result.data != null &&
           Get.isRegistered<LocalNotificationsService>()) {
@@ -127,7 +134,10 @@ class RootViewModel extends GetxController {
           debugPrint('[RootViewModel] Could not restore medication schedules');
         }
       }
-      if (!result.isSuccess && result.error == 'User not found') {
+      if (isClosed || FirebaseAuth.instance.currentUser?.uid != uid) return;
+      if (!result.isSuccess &&
+          (result.error == 'User not found' ||
+              result.error == 'Profile incomplete')) {
         Get.offAllNamed(
           AppRoutes.onboarding,
           arguments: <String, OnboardingMode>{
@@ -144,7 +154,9 @@ class RootViewModel extends GetxController {
       debugPrint('[RootViewModel] Could not check profile: $error');
     }
 
-    ready.value = true;
+    if (!isClosed && FirebaseAuth.instance.currentUser?.uid == uid) {
+      ready.value = true;
+    }
   }
 
   void changePage(int index) {
@@ -160,6 +172,7 @@ class RootViewModel extends GetxController {
 
     try {
       await _appMode.setCaregiverMode(enableCaregiverMode);
+      if (isClosed) return;
       if (enableCaregiverMode && Get.isRegistered<CaregiverViewModel>()) {
         final CaregiverViewModel caregiverController =
             Get.find<CaregiverViewModel>();
@@ -169,7 +182,7 @@ class RootViewModel extends GetxController {
         }
       }
     } finally {
-      switchingMode.value = false;
+      if (!isClosed) switchingMode.value = false;
     }
   }
 
@@ -196,7 +209,7 @@ class RootViewModel extends GetxController {
     if (caregiverMode.value) {
       if (action != HomeWidgetAction.openApp) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Get.toNamed(AppRoutes.mode);
+          if (!isClosed) Get.toNamed(AppRoutes.mode);
         });
       }
       return;
@@ -223,6 +236,7 @@ class RootViewModel extends GetxController {
   @override
   void onClose() {
     _widgetActionWorker?.dispose();
+    _modeWorker?.dispose();
     super.onClose();
   }
 }

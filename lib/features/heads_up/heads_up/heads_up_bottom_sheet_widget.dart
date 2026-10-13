@@ -1,21 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 import 'package:seizure_app/features/heads_up/view_models/heads_up_view_model.dart';
 
-class HeadsUpBottomSheet extends StatelessWidget {
-  const HeadsUpBottomSheet({super.key});
+class HeadsUpBottomSheet extends StatefulWidget {
+  const HeadsUpBottomSheet({
+    super.key,
+    this.customDuration = false,
+    this.viewModel,
+  });
+  final bool customDuration;
+  final HeadsUpViewModel? viewModel;
 
-  static Future<void> show() => AppBottomSheet.show(
-    context: Get.context!,
-    builder: (_) => const HeadsUpBottomSheet(),
+  static Future<void> show({bool customDuration = false}) =>
+      AppBottomSheet.show(
+        context: Get.context!,
+        builder: (_) => HeadsUpBottomSheet(customDuration: customDuration),
+      );
+
+  @override
+  State<HeadsUpBottomSheet> createState() => _HeadsUpBottomSheetState();
+}
+
+class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
+  late final HeadsUpViewModel vm =
+      widget.viewModel ?? HeadsUpViewModel.instance();
+  late bool _custom =
+      widget.customDuration ||
+      !HeadsUpViewModel.windowOptions.contains(vm.selectedMinutes.value);
+  late final TextEditingController _minutes = TextEditingController(
+    text: vm.selectedMinutes.value.toString(),
   );
+  @override
+  void dispose() {
+    _minutes.dispose();
+    super.dispose();
+  }
+
+  void _choose(int minutes) {
+    HapticFeedback.selectionClick();
+    vm.selectedMinutes.value = minutes;
+    _minutes.text = minutes.toString();
+    setState(() => _custom = false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final vm = HeadsUpViewModel.instance();
-
     return AppBottomSheetContent(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -44,44 +76,67 @@ class HeadsUpBottomSheet extends StatelessWidget {
                 'Notify if no check-in within',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-              Obx(
-                () => Row(
+              Obx(() {
+                final selectedMinutes = vm.selectedMinutes.value;
+                return Wrap(
                   spacing: Dimensions.eight,
-                  children: HeadsUpViewModel.windowOptions.map((minutes) {
-                    final isSelected = vm.selectedMinutes.value == minutes;
-                    final label = minutes == 60
-                        ? '1 hr'
-                        : minutes == 120
-                        ? '2 hrs'
-                        : '30 min';
-                    return GestureDetector(
-                      onTap: () => vm.selectedMinutes.value = minutes,
-                      child: AnimatedContainer(
-                        duration: Duration(milliseconds: 150),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: Dimensions.sixteen,
-                          vertical: Dimensions.twelve,
+                  runSpacing: Dimensions.eight,
+                  children: [
+                    for (final minutes in HeadsUpViewModel.windowOptions)
+                      ChoiceChip(
+                        label: Text(
+                          minutes < 60 ? '$minutes min' : '${minutes ~/ 60} hr',
                         ),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.black : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected ? Colors.black : Colors.black26,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          label,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: isSelected ? Colors.white : Colors.black,
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
+                        selected: !_custom && selectedMinutes == minutes,
+                        selectedColor: Colors.black,
+                        backgroundColor: Colors.white,
+                        labelStyle: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(
+                              color: !_custom && selectedMinutes == minutes
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                        showCheckmark: false,
+                        onSelected: (_) => _choose(minutes),
                       ),
-                    );
-                  }).toList(),
+                    ChoiceChip(
+                      label: const Text('Custom'),
+                      selected: _custom,
+                      selectedColor: Colors.black,
+                      backgroundColor: Colors.white,
+                      labelStyle: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(
+                            color: _custom ? Colors.white : Colors.black,
+                          ),
+                      showCheckmark: false,
+                      onSelected: (_) {
+                        HapticFeedback.selectionClick();
+                        setState(() => _custom = true);
+                      },
+                    ),
+                  ],
+                );
+              }),
+              if (_custom)
+                Obx(
+                  () => TextField(
+                    controller: _minutes,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: 'Check-in duration (minutes)',
+                      helperText: '1 minute to 24 hours (1,440 minutes)',
+                      errorText:
+                          HeadsUpViewModel.isValidDuration(
+                            vm.selectedMinutes.value,
+                          )
+                          ? null
+                          : 'Enter 1 to 1,440 minutes.',
+                    ),
+                    onChanged: (value) =>
+                        vm.selectedMinutes.value = int.tryParse(value) ?? 0,
+                  ),
                 ),
-              ),
             ],
           ),
 
@@ -144,7 +199,13 @@ class HeadsUpBottomSheet extends StatelessWidget {
             () => SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: vm.isLoading.value ? null : vm.startHeadsUp,
+                onPressed:
+                    vm.isLoading.value ||
+                        !HeadsUpViewModel.isValidDuration(
+                          vm.selectedMinutes.value,
+                        )
+                    ? null
+                    : vm.startHeadsUp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,

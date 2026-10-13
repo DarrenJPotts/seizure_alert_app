@@ -30,9 +30,7 @@ class OwnerProfileDto {
   });
 
   List<String> get carePlanSteps {
-    final String? note = seizureActionPlan?.trim().isNotEmpty == true
-        ? seizureActionPlan
-        : emergencyNote;
+    final String? note = seizureActionPlan;
     if (note == null || note.trim().isEmpty) return const <String>[];
     return note
         .split(RegExp(r'[\r\n]+'))

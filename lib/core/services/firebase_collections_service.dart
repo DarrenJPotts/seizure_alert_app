@@ -25,30 +25,97 @@ class FirestoreService {
   String newDocumentId(String collection) =>
       _db.collection(collection).doc().id;
 
-  Future<ResultDto<void>> upsertUser(UserDto user) async {
+  Future<ResultDto<void>> upsertUser(
+    UserDto user, {
+    bool profileSetupOnly = false,
+  }) async {
     final String? phoneError = PhoneNumber.validationError(user.phone);
     if (phoneError != null) return ResultDto.failure(phoneError);
     try {
+      final values = user.toMap();
+      if (profileSetupOnly) {
+        const setupFields = {
+          'uid',
+          'email',
+          'displayName',
+          'phone',
+          'phoneNormalized',
+          'privacyConsentAt',
+          'privacyConsentVersion',
+        };
+        values.removeWhere((key, _) => !setupFields.contains(key));
+      }
       await _db
           .collection(FirebaseCollectionKeys.users)
           .doc(user.uid)
-          .set(user.toMap(), SetOptions(merge: true));
+          .set(values, SetOptions(merge: true));
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
   }
 
+  Future<ResultDto<void>> updateProfileFields(
+    String uid,
+    Map<String, dynamic> fields,
+  ) async {
+    const editable = {
+      'displayName',
+      'phone',
+      'phoneNormalized',
+      'bloodType',
+      'seizureType',
+      'medications',
+      'emergencyNote',
+      'email',
+    };
+    if (fields.keys.any((key) => !editable.contains(key))) {
+      return ResultDto.failure('Invalid profile field');
+    }
+    if (fields.containsKey('phone')) {
+      final phone = fields['phone'] as String?;
+      final error = PhoneNumber.validationError(phone);
+      if (error != null) return ResultDto.failure(error);
+      fields = {...fields, 'phoneNormalized': PhoneNumber.normalize(phone)};
+    }
+    try {
+      await _db
+          .collection(FirebaseCollectionKeys.users)
+          .doc(uid)
+          .update(fields);
+      return ResultDto.success(null);
+    } catch (_) {
+      return ResultDto.failure(
+        'Your profile could not be saved. Please try again.',
+      );
+    }
+  }
+
   Future<ResultDto<void>> updateFcmToken(String uid, String token) async {
     try {
-      await _db.collection(FirebaseCollectionKeys.users).doc(uid).set({
+      await _db.collection(FirebaseCollectionKeys.users).doc(uid).update({
         'fcmToken': token,
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      });
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
+  }
+
+  Future<void> detachFcmToken(String uid, String? token) async {
+    final ref = _db.collection(FirebaseCollectionKeys.users).doc(uid);
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      if (snapshot.exists &&
+          token != null &&
+          snapshot.data()?['fcmToken'] == token) {
+        transaction.update(ref, {
+          'fcmToken': FieldValue.delete(),
+          'fcmTokenUpdatedAt': FieldValue.delete(),
+        });
+      }
+    });
   }
 
   Future<ResultDto<void>> updateSafetyPlan(
@@ -66,7 +133,10 @@ class FirestoreService {
     }
   }
 
-  Future<ResultDto<UserDto>> getUser(String uid) async {
+  Future<ResultDto<UserDto>> getUser(
+    String uid, {
+    bool requireCompleteProfile = false,
+  }) async {
     try {
       final doc = await _db
           .collection(FirebaseCollectionKeys.users)
@@ -74,7 +144,17 @@ class FirestoreService {
           .get();
       if (!doc.exists) return ResultDto.failure('User not found');
 
-      return ResultDto.success(UserDto.fromMap(doc.data()!));
+      final data = doc.data()!;
+      if (data['uid'] != uid ||
+          data['email'] is! String ||
+          (requireCompleteProfile &&
+              (data['displayName'] is! String ||
+                  (data['displayName'] as String).trim().isEmpty ||
+                  data['privacyConsentAt'] == null ||
+                  data['privacyConsentVersion'] == null))) {
+        return ResultDto.failure('Profile incomplete');
+      }
+      return ResultDto.success(UserDto.fromMap(data));
     } catch (e) {
       return ResultDto.failure(e.toString());
     }

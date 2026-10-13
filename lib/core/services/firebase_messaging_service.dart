@@ -10,6 +10,24 @@ import 'firebase_collections_service.dart';
 import 'local_notifications_service.dart';
 
 class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
+  FirebaseMessagingService({
+    FirebaseMessaging? messaging,
+    FirestoreService? firestore,
+    String? Function()? currentUid,
+  }) : _injectedMessaging = messaging,
+       _injectedFirestore = firestore,
+       _injectedUid = currentUid;
+  final FirebaseMessaging? _injectedMessaging;
+  final FirestoreService? _injectedFirestore;
+  final String? Function()? _injectedUid;
+  FirebaseMessaging get _messaging =>
+      _injectedMessaging ?? FirebaseMessaging.instance;
+  FirestoreService get _firestore =>
+      _injectedFirestore ?? FirestoreService.instance();
+  String? get _uid => _injectedUid != null
+      ? _injectedUid()
+      : FirebaseAuth.instance.currentUser?.uid;
+  Future<void> _revokingToken = Future<void>.value();
   static const Duration _readinessTimeout = Duration(seconds: 10);
 
   LocalNotificationsService? _localNotificationsService;
@@ -22,8 +40,14 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
 
   StreamSubscription<User?>? _authSubscription;
   StreamSubscription<String>? _tokenRefreshSubscription;
+  StreamSubscription<RemoteMessage>? _foregroundSubscription;
+  StreamSubscription<RemoteMessage>? _openedSubscription;
+  bool _initialized = false;
   RemoteMessage? _initialMessage;
   Future<void>? _readinessRefresh;
+  Future<void>? _tokenRefresh;
+  Future<void> _tokenWrites = Future<void>.value();
+  bool _endingSession = false;
 
   bool get notificationsAuthorized {
     final status = notificationAuthorization.value;
@@ -34,27 +58,39 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
   Future<FirebaseMessagingService> init({
     required LocalNotificationsService localNotificationsService,
   }) async {
+    if (_initialized || isClosed) return this;
+    _initialized = true;
     _localNotificationsService = localNotificationsService;
     WidgetsBinding.instance.addObserver(this);
 
     try {
       await _listenForPushTokenChanges();
       await refreshReadiness();
+      if (isClosed) return this;
 
       _authSubscription = FirebaseAuth.instance.authStateChanges().listen((
         user,
       ) {
-        if (user != null) unawaited(refreshReadiness());
+        if (user != null) {
+          _endingSession = false;
+          unawaited(refreshReadiness());
+        } else {
+          unawaited(_clearSignedOutNotifications());
+        }
       });
 
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
-      FirebaseMessaging.onMessage.listen(_onForegroundMessage);
-      FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpenedApp);
+      _foregroundSubscription = FirebaseMessaging.onMessage.listen(
+        _onForegroundMessage,
+      );
+      _openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen(
+        _onMessageOpenedApp,
+      );
 
-      final initialMessage = await FirebaseMessaging.instance
-          .getInitialMessage();
+      final initialMessage = await _messaging.getInitialMessage();
+      if (isClosed) return this;
       if (initialMessage != null) {
         _initialMessage = initialMessage;
       }
@@ -70,6 +106,8 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _authSubscription?.cancel();
     _tokenRefreshSubscription?.cancel();
+    _foregroundSubscription?.cancel();
+    _openedSubscription?.cancel();
     super.onClose();
   }
 
@@ -81,12 +119,12 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
   }
 
   Future<void> _listenForPushTokenChanges() async {
-    _tokenRefreshSubscription ??= FirebaseMessaging.instance.onTokenRefresh
-        .listen((newToken) {
-          fcmToken.value = newToken;
-          fcmRegistrationReady.value = true;
-          unawaited(_persistToken(newToken));
-        });
+    _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((newToken) {
+      if (isClosed || _endingSession || _uid == null) return;
+      fcmToken.value = newToken;
+      fcmRegistrationReady.value = true;
+      unawaited(_persistToken(newToken));
+    });
   }
 
   Future<void> refreshReadiness() {
@@ -98,11 +136,12 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
   Future<void> _performReadinessRefresh() async {
     notificationReadinessLoading.value = true;
     try {
-      final settings = await FirebaseMessaging.instance
-          .getNotificationSettings()
-          .timeout(_readinessTimeout);
+      final settings = await _messaging.getNotificationSettings().timeout(
+        _readinessTimeout,
+      );
+      if (isClosed) return;
       notificationAuthorization.value = settings.authorizationStatus;
-      if (notificationsAuthorized) {
+      if (notificationsAuthorized && !_endingSession && _uid != null) {
         await refreshToken();
       } else {
         fcmRegistrationReady.value = false;
@@ -113,17 +152,18 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
         '[FirebaseMessagingService] Error checking notification readiness: $error',
       );
     } finally {
-      notificationReadinessLoading.value = false;
+      if (!isClosed) notificationReadinessLoading.value = false;
     }
   }
 
   Future<void> enableNotifications() async {
     try {
-      final settings = await FirebaseMessaging.instance.requestPermission(
+      final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
+      if (isClosed) return;
       notificationAuthorization.value = settings.authorizationStatus;
       await refreshReadiness();
     } catch (error) {
@@ -138,15 +178,22 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
     await refreshReadiness();
   }
 
-  Future<void> refreshToken() async {
+  Future<void> refreshToken() =>
+      _tokenRefresh ??= _performTokenRefresh().whenComplete(() {
+        _tokenRefresh = null;
+      });
+
+  Future<void> _performTokenRefresh() async {
+    if (isClosed || _endingSession || _uid == null) return;
     try {
-      final token = await FirebaseMessaging.instance.getToken().timeout(
-        _readinessTimeout,
-      );
-      if (token != null) {
+      await _revokingToken;
+      if (isClosed || _endingSession || _uid == null) return;
+      await _messaging.setAutoInitEnabled(true);
+      final token = await _messaging.getToken().timeout(_readinessTimeout);
+      if (!isClosed && token != null && !_endingSession && _uid != null) {
         fcmToken.value = token;
         fcmRegistrationReady.value = true;
-        unawaited(_persistToken(token));
+        await _persistToken(token);
       } else {
         fcmRegistrationReady.value = false;
       }
@@ -156,13 +203,61 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _persistToken(String token) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
-    final result = await FirestoreService.instance().updateFcmToken(uid, token);
-    if (!result.isSuccess) {
+  Future<void> _persistToken(String token) {
+    final uid = _uid;
+    final operation = _tokenWrites.then((_) async {
+      if (isClosed || _endingSession || uid == null || _uid != uid) return;
+      final result = await _firestore.updateFcmToken(uid, token);
+      if (!isClosed && uid == _uid) {
+        fcmRegistrationReady.value = result.isSuccess;
+      }
+    });
+    _tokenWrites = operation.catchError((Object _) {});
+    return operation;
+  }
+
+  /// Fail sign-out closed if the server cannot detach this installation.
+  Future<void> prepareForSignOut() async {
+    _endingSession = true;
+    try {
+      await _tokenRefresh?.timeout(_readinessTimeout);
+      await _tokenWrites.timeout(_readinessTimeout);
+      final uid = _uid;
+      if (uid != null) {
+        final token =
+            fcmToken.value ??
+            await _messaging.getToken().timeout(_readinessTimeout);
+        await _firestore.detachFcmToken(uid, token).timeout(_readinessTimeout);
+      }
+      await _messaging.setAutoInitEnabled(false);
+      await _messaging.deleteToken().timeout(_readinessTimeout);
+      fcmToken.value = null;
+      fcmRegistrationReady.value = false;
+      lastNotification.value = null;
+      _initialMessage = null;
+      await _localNotificationsService?.cancelAllNotifications();
+    } catch (_) {
+      _endingSession = false;
+      rethrow;
+    }
+  }
+
+  Future<void> _clearSignedOutNotifications() =>
+      _revokingToken = _revokeSignedOutToken();
+
+  Future<void> _revokeSignedOutToken() async {
+    _endingSession = true;
+    fcmRegistrationReady.value = false;
+    lastNotification.value = null;
+    _initialMessage = null;
+    try {
+      await _messaging.setAutoInitEnabled(false);
+      await _messaging.deleteToken().timeout(_readinessTimeout);
+      fcmToken.value = null;
+      await _localNotificationsService?.cancelAllNotifications();
+    } catch (_) {
       debugPrint(
-        '[FirebaseMessagingService] Error persisting FCM token: ${result.error}',
+        '[FirebaseMessagingService] Could not revoke signed-out push token',
       );
     }
   }
@@ -193,6 +288,8 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
   }
 
   void _onForegroundMessage(RemoteMessage message) {
+    if (isClosed) return;
+    if (isClosed || _endingSession || _uid == null) return;
     debugPrint(
       '[FirebaseMessagingService] Foreground message received: ${message.data}',
     );
@@ -213,6 +310,7 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
   }
 
   void _onMessageOpenedApp(RemoteMessage message) {
+    if (isClosed) return;
     debugPrint(
       '[FirebaseMessagingService] Notification caused app to open: ${message.data}',
     );

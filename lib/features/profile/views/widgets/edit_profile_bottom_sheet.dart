@@ -91,16 +91,29 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
         .where((e) => e.isNotEmpty)
         .toList();
 
-    final success = await widget.onSave(
-      displayName: _nameController.text.trim(),
-      phone: _phoneController.text.trim(),
-      bloodType: _selectedBloodType,
-      seizureType: _seizureTypeController.text.trim(),
-      medications: meds.isEmpty ? null : meds,
-      emergencyNote: _emergencyNoteController.text.trim(),
-    );
+    bool success;
+    try {
+      success = await widget.onSave(
+        displayName: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        bloodType: _selectedBloodType,
+        seizureType: _seizureTypeController.text.trim(),
+        medications: meds.isEmpty ? null : meds,
+        emergencyNote: _emergencyNoteController.text.trim(),
+      );
+    } catch (_) {
+      success = false;
+    }
 
+    if (!mounted) return;
     setState(() => _isSaving = false);
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your profile could not be saved. Please try again.'),
+        ),
+      );
+    }
     if (success) Get.back();
   }
 
@@ -192,7 +205,8 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
                 style: Theme.of(context).textTheme.bodyMedium,
                 decoration: _inputDeco(
                   hint: 'e.g. Lamotrigine, Valproate',
-                  helper: 'Separate multiple medications with a comma',
+                  helper:
+                      'Medication list for your medical ID. Daily reminders are managed in Safety plan.',
                 ),
               ),
             ),

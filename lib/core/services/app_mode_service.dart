@@ -14,10 +14,6 @@ class AppModeService extends GetxService {
     _prefs.getBool(SharedPrefKeys.caregiverMode) ?? false,
   );
 
-  late final RxBool autoAnswerCalls = RxBool(
-    _prefs.getBool(SharedPrefKeys.autoAnswerCalls) ?? false,
-  );
-
   late final RxBool onboardingCompleted = RxBool(
     _prefs.getBool(SharedPrefKeys.onboardingCompleted) ?? false,
   );
@@ -32,7 +28,6 @@ class AppModeService extends GetxService {
 
   void resetSessionPreferences() {
     caregiverMode.value = false;
-    autoAnswerCalls.value = false;
     onboardingCompleted.value = false;
     hideCompletedSetup.value = false;
   }
@@ -49,12 +44,6 @@ class AppModeService extends GetxService {
     if (caregiverMode.value == value) return;
     caregiverMode.value = value;
     await _write(SharedPrefKeys.caregiverMode, value);
-  }
-
-  Future<void> setAutoAnswerCalls(bool value) async {
-    if (autoAnswerCalls.value == value) return;
-    autoAnswerCalls.value = value;
-    await _write(SharedPrefKeys.autoAnswerCalls, value);
   }
 
   Future<void> _write(String key, bool value) async {

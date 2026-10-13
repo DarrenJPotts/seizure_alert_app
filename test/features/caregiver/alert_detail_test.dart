@@ -48,8 +48,25 @@ void main() {
   });
 
   group('OwnerProfileDto.carePlanSteps', () {
+    test('emergency notes stay separate from caregiver steps', () {
+      final owner = OwnerProfileDto(
+        displayName: 'A',
+        emergencyNote: 'Allergy recorded',
+        seizureActionPlan: 'Stay with them',
+      );
+      expect(owner.emergencyNote, 'Allergy recorded');
+      expect(owner.carePlanSteps, ['Stay with them']);
+      expect(
+        OwnerProfileDto(
+          displayName: 'A',
+          emergencyNote: 'Allergy recorded',
+        ).carePlanSteps,
+        isEmpty,
+      );
+    });
+
     OwnerProfileDto withNote(String? note) =>
-        OwnerProfileDto(displayName: 'A', emergencyNote: note);
+        OwnerProfileDto(displayName: 'A', seizureActionPlan: note);
 
     test('splits an emergency note into one step per line', () {
       final OwnerProfileDto owner = withNote(

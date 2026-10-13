@@ -18,11 +18,10 @@ import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 enum HeadsUpDelivery { unknown, sending, delivered, queued, failed }
 
 class HeadsUpViewModel extends GetxController {
-  HeadsUpViewModel();
+  HeadsUpViewModel({String? Function()? currentUid}) : _currentUid = currentUid;
+  final String? Function()? _currentUid;
 
-  static HeadsUpViewModel instance() => Get.isRegistered<HeadsUpViewModel>()
-      ? Get.find<HeadsUpViewModel>()
-      : Get.put<HeadsUpViewModel>(HeadsUpViewModel());
+  static HeadsUpViewModel instance() => Get.find<HeadsUpViewModel>();
 
   static const String _storageKey = 'active_heads_up';
 
@@ -35,6 +34,9 @@ class HeadsUpViewModel extends GetxController {
   final RxInt selectedMinutes = 60.obs;
 
   static const List<int> windowOptions = [30, 60, 120];
+  static const int maxDurationMinutes = 24 * 60;
+  static bool isValidDuration(int minutes) =>
+      minutes >= 1 && minutes <= maxDurationMinutes;
 
   Timer? _countdownTimer;
   Timer? _deliveryWatchdog;
@@ -42,7 +44,14 @@ class HeadsUpViewModel extends GetxController {
 
   static const Duration deliveryGrace = Duration(seconds: 8);
 
-  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get _uid =>
+      (_currentUid != null
+          ? _currentUid()
+          : FirebaseAuth.instance.currentUser?.uid) ??
+      '';
+  late final String _sessionUid = _uid;
+  bool get _sessionActive =>
+      !isClosed && _sessionUid.isNotEmpty && _uid == _sessionUid;
 
   @override
   void onInit() {
@@ -60,11 +69,14 @@ class HeadsUpViewModel extends GetxController {
 
   Future<void> _restoreActiveHeadsUp() async {
     try {
+      if (!_sessionActive) return;
       final prefs = await SharedPreferences.getInstance();
+      if (!_sessionActive) return;
       final json = prefs.getString(_storageKey);
       if (json == null) return;
 
       final dto = HeadsUpDto.fromMap(jsonDecode(json));
+      if (dto.userId != _sessionUid) return;
 
       if (dto.isActive) {
         activeHeadsUp.value = dto;
@@ -114,6 +126,13 @@ class HeadsUpViewModel extends GetxController {
   }
 
   Future<void> startHeadsUp() async {
+    if (!_sessionActive || isLoading.value || activeHeadsUp.value != null) {
+      return;
+    }
+    if (!isValidDuration(selectedMinutes.value)) {
+      _showErrorSnackbar('Invalid duration', 'Enter 1 to 1,440 minutes.');
+      return;
+    }
     isLoading.value = true;
 
     try {
@@ -139,6 +158,7 @@ class HeadsUpViewModel extends GetxController {
         createdAt: now,
       );
       await _persist(dto);
+      if (!_sessionActive) return;
       activeHeadsUp.value = dto;
       _syncHomeWidget();
       _startCountdown();
@@ -178,7 +198,7 @@ class HeadsUpViewModel extends GetxController {
         'Check your connection and try again.',
       );
     } finally {
-      isLoading.value = false;
+      if (!isClosed) isLoading.value = false;
     }
   }
 
@@ -195,7 +215,7 @@ class HeadsUpViewModel extends GetxController {
 
     unawaited(
       writes.then((List<ResultDto<void>> results) {
-        if (_deliveryHeadsUpId != id) return;
+        if (!_sessionActive || _deliveryHeadsUpId != id) return;
         _deliveryWatchdog?.cancel();
         delivery.value =
             results.every((ResultDto<void> result) => result.isSuccess)
@@ -209,7 +229,11 @@ class HeadsUpViewModel extends GetxController {
     try {
       final Position? position = await LocationService.instance()
           .getCurrentPosition();
-      if (position == null || activeHeadsUp.value?.id != headsUpId) return;
+      if (!_sessionActive ||
+          position == null ||
+          activeHeadsUp.value?.id != headsUpId) {
+        return;
+      }
 
       final AlertDto located = alert.copyWith(
         latitude: position.latitude,
@@ -227,13 +251,14 @@ class HeadsUpViewModel extends GetxController {
 
   Future<void> cancelHeadsUp() async {
     final current = activeHeadsUp.value;
-    if (current == null) return;
+    if (!_sessionActive || current == null) return;
 
     try {
       _countdownTimer?.cancel();
 
       final updated = current.copyWith(status: HeadsUpStatus.cancelled);
       await _persist(updated);
+      if (!_sessionActive) return;
       activeHeadsUp.value = null;
       _syncHomeWidget();
       remaining.value = Duration.zero;
@@ -257,13 +282,14 @@ class HeadsUpViewModel extends GetxController {
 
   Future<void> checkIn() async {
     final current = activeHeadsUp.value;
-    if (current == null) return;
+    if (!_sessionActive || current == null) return;
 
     try {
       _countdownTimer?.cancel();
 
       final updated = current.copyWith(status: HeadsUpStatus.checkedIn);
       await _persist(updated);
+      if (!_sessionActive) return;
       activeHeadsUp.value = null;
       _syncHomeWidget();
       remaining.value = Duration.zero;
@@ -327,6 +353,7 @@ class HeadsUpViewModel extends GetxController {
   Future<void> _onExpired(HeadsUpDto dto) async {
     try {
       await _persist(dto.copyWith(status: HeadsUpStatus.expired));
+      if (!_sessionActive) return;
       activeHeadsUp.value = null;
       _syncHomeWidget();
       remaining.value = Duration.zero;
@@ -338,6 +365,7 @@ class HeadsUpViewModel extends GetxController {
   void _startCountdown() {
     _countdownTimer?.cancel();
     _tick();
+    if (!_sessionActive || activeHeadsUp.value == null) return;
     _countdownTimer = Timer.periodic(
       const Duration(seconds: 1),
       (_) => _tick(),
@@ -346,7 +374,7 @@ class HeadsUpViewModel extends GetxController {
 
   void _tick() {
     final current = activeHeadsUp.value;
-    if (current == null) return;
+    if (!_sessionActive || current == null) return;
 
     final left = current.expiresAt.difference(DateTime.now());
 
@@ -361,6 +389,7 @@ class HeadsUpViewModel extends GetxController {
   Future<void> _persist(HeadsUpDto dto) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (!_sessionActive || dto.userId != _sessionUid) return;
       await prefs.setString(_storageKey, jsonEncode(dto.toMap()));
     } catch (e) {
       debugPrint('[HeadsUpVM] Error persisting active Heads Up: $e');
@@ -383,6 +412,7 @@ class HeadsUpViewModel extends GetxController {
   }
 
   void _showSnackbar(String title, String message) {
+    if (!_sessionActive) return;
     Get.snackbar(
       '',
       '',
@@ -404,6 +434,7 @@ class HeadsUpViewModel extends GetxController {
   }
 
   void _showErrorSnackbar(String title, String message) {
+    if (!_sessionActive) return;
     Get.snackbar(
       '',
       '',

@@ -293,6 +293,7 @@ class OnboardingViewModel extends GetxController {
           privacyConsentAt: DateTime.now(),
           privacyConsentVersion: PrivacyNotice.version,
         ),
+        profileSetupOnly: true,
       );
 
       ResultDto<void> contactResult = ResultDto.success(null);
@@ -321,6 +322,9 @@ class OnboardingViewModel extends GetxController {
         return false;
       }
 
+      if (Get.isRegistered<FirebaseMessagingService>()) {
+        await Get.find<FirebaseMessagingService>().refreshToken();
+      }
       await AppModeService.instance().setOnboardingCompleted(true);
       pendingInvite = null;
       if (inviteEmergencyContact.value &&

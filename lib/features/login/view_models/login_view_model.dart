@@ -35,6 +35,7 @@ class LoginViewModel extends GetxController {
         passwordController.text,
       );
 
+      if (isClosed) return;
       if (result.isSuccess) {
         // Signing in successfully means the account already exists, so this
         // person has been through onboarding — just not on this device. The
@@ -44,6 +45,7 @@ class LoginViewModel extends GetxController {
         await AppModeService.instance().setOnboardingCompleted(true);
         await OnboardingViewModel.discardDraft();
 
+        if (isClosed) return;
         screenState.value = GenericScreenStates.loaded;
         final String? redirectRoute = _safeRedirectRoute;
         Get.offAllNamed(redirectRoute ?? AppRoutes.root);
@@ -53,6 +55,7 @@ class LoginViewModel extends GetxController {
             result.error ?? 'Invalid username or password. Please try again.';
       }
     } catch (_) {
+      if (isClosed) return;
       screenState.value = GenericScreenStates.error;
       errorMessage.value =
           'Unable to sign in. Check your connection and try again.';
