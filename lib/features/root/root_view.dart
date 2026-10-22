@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -127,7 +128,7 @@ class RootViewModel extends GetxController {
         try {
           await Get.find<LocalNotificationsService>()
               .replaceMedicationReminders(
-                previous: const [],
+                previous: [],
                 current: result.data!.medicationReminders,
               );
         } catch (_) {
@@ -288,14 +289,14 @@ class RootView extends GetView<RootViewModel> {
   Widget _buildPatientShell(BuildContext context) => Scaffold(
     appBar: AppBar(
       elevation: 0,
-      foregroundColor: Colors.black,
+      foregroundColor: context.ink,
       centerTitle: false,
       title: ModeBadge(
         caregiver: false,
         loading: controller.switchingMode.value,
         onTap: controller.toggleMode,
       ),
-      actionsPadding: EdgeInsets.only(right: Dimensions.twelve),
+      actionsPadding: const EdgeInsets.only(right: Dimensions.twelve),
       actions: [
         IconButton(
           onPressed: () => Get.toNamed(AppRoutes.alertHistory),
@@ -346,7 +347,7 @@ class RootView extends GetView<RootViewModel> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.black),
+            style: TextButton.styleFrom(foregroundColor: context.ink),
             child: const Text('Sign out'),
           ),
         ],

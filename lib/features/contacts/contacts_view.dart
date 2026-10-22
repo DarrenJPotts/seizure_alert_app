@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -18,7 +19,7 @@ class ContactsView extends GetView<ContactsViewModel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.all(
+          padding: const EdgeInsets.all(
             Dimensions.twentyFour,
           ).copyWith(bottom: Dimensions.twelve),
           child: Row(
@@ -53,8 +54,8 @@ class ContactsView extends GetView<ContactsViewModel> {
 
             if (state == GenericScreenStates.loading ||
                 state == GenericScreenStates.initial) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.black),
+              return Center(
+                child: CircularProgressIndicator(color: context.ink),
               );
             }
 
@@ -64,15 +65,15 @@ class ContactsView extends GetView<ContactsViewModel> {
                   mainAxisSize: MainAxisSize.min,
                   spacing: Dimensions.twelve,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.error_outline,
                       size: 48,
-                      color: Colors.black26,
+                      color: context.ink.withValues(alpha: 0.26),
                     ),
                     Text(
                       'Could not load your circle',
                       style: context.theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.black54,
+                        color: context.secondaryInk,
                       ),
                     ),
                   ],
@@ -88,15 +89,15 @@ class ContactsView extends GetView<ContactsViewModel> {
                   mainAxisSize: MainAxisSize.min,
                   spacing: Dimensions.twelve,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.people_outline,
                       size: 48,
-                      color: Colors.black26,
+                      color: context.ink.withValues(alpha: 0.26),
                     ),
                     Text(
                       'No contacts in your circle yet',
                       style: context.theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.black54,
+                        color: context.secondaryInk,
                       ),
                     ),
                     TextButton(
@@ -113,9 +114,12 @@ class ContactsView extends GetView<ContactsViewModel> {
             }
 
             return ListView.separated(
-              padding: EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Dimensions.twentyFour,
+              ),
               itemCount: contacts.length,
-              separatorBuilder: (_, _) => SizedBox(height: Dimensions.twelve),
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: Dimensions.twelve),
               itemBuilder: (context, index) => ContactCard(
                 contact: contacts[index],
                 isInviting:

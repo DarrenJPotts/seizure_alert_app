@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -32,8 +33,8 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
                 icon: controller.exporting.value
                     ? SizedBox.square(
                         dimension: Dimensions.eighteen,
-                        child: const CircularProgressIndicator(
-                          color: Colors.black,
+                        child: CircularProgressIndicator(
+                          color: context.ink,
                           strokeWidth: 1.5,
                         ),
                       )
@@ -44,7 +45,7 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
               onPressed: _openAddSheet,
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add entry'),
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              style: TextButton.styleFrom(foregroundColor: context.ink),
             ),
           ],
         ),
@@ -55,9 +56,7 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
 
           if (state == GenericScreenStates.loading ||
               state == GenericScreenStates.initial) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.black),
-            );
+            return Center(child: CircularProgressIndicator(color: context.ink));
           }
 
           if (state == GenericScreenStates.error) {
@@ -77,7 +76,7 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
                   'Entries are added automatically when you send an SOS, or you can add one yourself.',
               action: TextButton(
                 onPressed: _openAddSheet,
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
+                style: TextButton.styleFrom(foregroundColor: context.ink),
                 child: const Text('Add your first entry'),
               ),
             );
@@ -86,7 +85,7 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
           final List<_LogMonth> months = _groupByMonth(logs);
 
           return ListView(
-            padding: EdgeInsets.fromLTRB(
+            padding: const EdgeInsets.fromLTRB(
               Dimensions.twenty,
               Dimensions.twentyTwo,
               Dimensions.twenty,
@@ -94,7 +93,7 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
             ),
             children: <Widget>[
               SeizureCalendarSummary(logs: logs),
-              SizedBox(height: Dimensions.twentySix),
+              const SizedBox(height: Dimensions.twentySix),
               for (
                 int index = 0;
                 index < months.length;
@@ -113,7 +112,7 @@ class SeizureLogView extends GetView<SeizureLogViewModel> {
                   ],
                 ),
                 if (index < months.length - 1)
-                  SizedBox(height: Dimensions.twentySix),
+                  const SizedBox(height: Dimensions.twentySix),
               ],
             ],
           );
@@ -198,7 +197,7 @@ class _DismissibleLogRow extends StatelessWidget {
       child: Align(
         alignment: Alignment.centerRight,
         child: Padding(
-          padding: EdgeInsets.only(right: Dimensions.twenty),
+          padding: const EdgeInsets.only(right: Dimensions.twenty),
           child: Icon(Icons.delete_outline, color: Colors.red.shade400),
         ),
       ),
@@ -208,7 +207,7 @@ class _DismissibleLogRow extends StatelessWidget {
       final bool? confirmed = await showDialog<bool>(
         context: context,
         builder: (BuildContext ctx) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: context.paper,
           title: const Text('Remove this entry?'),
           content: const Text(
             'It will be permanently deleted from your seizure log.',

@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -30,8 +31,8 @@ class SosStatusBoardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Colors.black,
-      padding: EdgeInsets.fromLTRB(
+      color: context.heroSurface,
+      padding: const EdgeInsets.fromLTRB(
         Dimensions.twentyFour,
         Dimensions.sixteen,
         Dimensions.twentyFour,
@@ -46,18 +47,18 @@ class SosStatusBoardHeader extends StatelessWidget {
               _CancelButton(onCancel: onCancel),
             ],
           ),
-          SizedBox(height: Dimensions.sixteen),
+          const SizedBox(height: Dimensions.sixteen),
           Text(
             elapsedLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 40,
               fontWeight: FontWeight.w700,
               height: 1,
-              color: Colors.white,
-              fontFeatures: [FontFeature.tabularFigures()],
+              color: context.heroInk,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-          SizedBox(height: Dimensions.twenty),
+          const SizedBox(height: Dimensions.twenty),
           if (_undelivered)
             _UndeliveredNotice(delivery: delivery, onCallForHelp: onCallForHelp)
           else ...<Widget>[
@@ -74,21 +75,21 @@ class SosStatusBoardHeader extends StatelessWidget {
                     height: 4,
                     decoration: BoxDecoration(
                       color: filled
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.18),
+                          ? context.heroInk
+                          : context.heroInk.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(Dimensions.circular),
                     ),
                   ),
                 );
               }),
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             Text(
               totalCount == 0
                   ? 'No contacts are set to receive alerts'
                   : '$seenCount of $totalCount contacts have seen this',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: context.heroInk.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -106,7 +107,7 @@ class _StatusLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final TextStyle? style = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
+      color: context.heroInk,
       fontWeight: FontWeight.w600,
       letterSpacing: 3,
     );
@@ -114,29 +115,29 @@ class _StatusLabel extends StatelessWidget {
     return switch (delivery) {
       SosDelivery.delivered => Row(
         children: <Widget>[
-          const LiveIndicator(size: 12, color: Colors.white),
-          SizedBox(width: Dimensions.eight),
+          LiveIndicator(size: 12, color: context.heroInk),
+          const SizedBox(width: Dimensions.eight),
           Expanded(child: Text('SOS ACTIVE', style: style)),
         ],
       ),
       SosDelivery.sending => Row(
         children: <Widget>[
-          const SizedBox(
+          SizedBox(
             width: 12,
             height: 12,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Colors.white,
+              color: context.heroInk,
             ),
           ),
-          SizedBox(width: Dimensions.eight),
+          const SizedBox(width: Dimensions.eight),
           Expanded(child: Text('SENDING…', style: style)),
         ],
       ),
       SosDelivery.queued || SosDelivery.failed => Row(
         children: <Widget>[
-          const Icon(Icons.cloud_off, size: 14, color: Colors.white),
-          SizedBox(width: Dimensions.eight),
+          Icon(Icons.cloud_off, size: 14, color: context.heroInk),
+          const SizedBox(width: Dimensions.eight),
           Expanded(
             child: Text(
               delivery == SosDelivery.queued ? 'NOT CONFIRMED' : 'NOT SENT',
@@ -162,19 +163,19 @@ class _CancelButton extends StatelessWidget {
       child: TextButton(
         onPressed: () => _confirm(context),
         style: TextButton.styleFrom(
-          foregroundColor: Colors.white,
+          foregroundColor: context.heroInk,
 
           minimumSize: const Size(88, 48),
-          padding: EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
+          padding: const EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Dimensions.circular),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
+            side: BorderSide(color: context.heroInk.withValues(alpha: 0.35)),
           ),
         ),
         child: Text(
           'Cancel',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
+            color: context.heroInk,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -188,7 +189,6 @@ class _CancelButton extends StatelessWidget {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
-        backgroundColor: Colors.white,
         title: const Text("Cancel this alert?"),
         content: const Text(
           'Your circle will be told you are OK and will stop responding. '
@@ -224,11 +224,11 @@ class _UndeliveredNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: EdgeInsets.all(Dimensions.sixteen),
+    padding: const EdgeInsets.all(Dimensions.sixteen),
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.1),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-      borderRadius: BorderRadius.circular(12),
+      color: context.heroInk.withValues(alpha: 0.1),
+      border: Border.all(color: context.heroInk.withValues(alpha: 0.35)),
+      borderRadius: BorderRadius.circular(context.design.cardRadius),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,12 +238,12 @@ class _UndeliveredNotice extends StatelessWidget {
               ? 'The server has not confirmed this alert yet. It will keep trying when a connection is available. Call a contact instead if you need help now.'
               : 'This alert could not be sent. Nobody has been notified.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
+            color: context.heroInk,
             height: 1.5,
             fontWeight: FontWeight.w500,
           ),
         ),
-        SizedBox(height: Dimensions.fourteen),
+        const SizedBox(height: Dimensions.fourteen),
         SizedBox(
           width: double.infinity,
           height: 52,
@@ -252,11 +252,11 @@ class _UndeliveredNotice extends StatelessWidget {
             icon: const Icon(Icons.call, size: 20),
             label: const Text('Call a contact instead'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
+              backgroundColor: context.heroInk,
+              foregroundColor: context.heroSurface,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(context.design.cardRadius),
               ),
             ),
           ),

@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:seizure_app/features/analytics/analytics_view.dart';
+import 'package:seizure_app/features/analytics/view_models/analytics_view_model.dart';
 import 'package:seizure_app/core/middlewares/auth_middleware.dart';
 import 'package:seizure_app/features/alert_history/alert_history_view.dart';
 import 'package:seizure_app/features/alert_history/view_models/alert_history_view_model.dart';
@@ -25,6 +27,7 @@ import 'package:seizure_app/features/safety_readiness/safety_readiness_view.dart
 import 'package:seizure_app/features/safety_readiness/view_models/safety_readiness_view_model.dart';
 
 abstract class AppRoutes {
+  static const String analytics = '/insights';
   static const String splash = '/splash';
   static const String root = '/';
   static const String login = '/login';
@@ -45,6 +48,12 @@ abstract class AppRoutes {
 final String initialRoute = AppRoutes.splash;
 
 final List<GetPage> routes = [
+  GetPage(
+    name: AppRoutes.analytics,
+    page: () => const AnalyticsView(),
+    binding: AnalyticsBinding(),
+    middlewares: [AuthMiddleware()],
+  ),
   GetPage(name: AppRoutes.splash, page: () => SplashView()),
   GetPage(
     name: AppRoutes.root,

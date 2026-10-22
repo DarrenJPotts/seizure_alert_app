@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -14,7 +15,7 @@ class OnboardingBottomNav extends StatelessWidget {
       final isLast = vm.isLastStep;
 
       return Padding(
-        padding: EdgeInsets.fromLTRB(
+        padding: const EdgeInsets.fromLTRB(
           Dimensions.twentyFour,
           Dimensions.twelve,
           Dimensions.twentyFour,
@@ -24,18 +25,22 @@ class OnboardingBottomNav extends StatelessWidget {
           children: [
             if (vm.step.value > 0)
               Padding(
-                padding: EdgeInsets.only(right: Dimensions.twelve),
+                padding: const EdgeInsets.only(right: Dimensions.twelve),
                 child: OutlinedButton(
                   onPressed: vm.back,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    side: const BorderSide(color: Colors.black26),
-                    padding: EdgeInsets.symmetric(
+                    foregroundColor: context.ink,
+                    side: BorderSide(
+                      color: context.ink.withValues(alpha: 0.26),
+                    ),
+                    padding: const EdgeInsets.symmetric(
                       horizontal: Dimensions.twentyFour,
                       vertical: Dimensions.sixteen,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        context.design.cardRadius,
+                      ),
                     ),
                   ),
                   child: const Text('Back'),
@@ -49,27 +54,31 @@ class OnboardingBottomNav extends StatelessWidget {
                     ? vm.finish
                     : vm.next,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.black38,
-                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                  backgroundColor: context.ink,
+                  foregroundColor: context.paper,
+                  disabledBackgroundColor: context.ink.withValues(alpha: 0.38),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimensions.sixteen,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      context.design.cardRadius,
+                    ),
                   ),
                 ),
                 child: vm.isLoading.value
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: context.paper,
                           strokeWidth: 2,
                         ),
                       )
                     : Text(
                         isLast ? vm.finishLabel : vm.nextLabel,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white,
+                          color: context.paper,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

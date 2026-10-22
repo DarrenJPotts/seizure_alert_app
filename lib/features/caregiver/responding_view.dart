@@ -31,7 +31,7 @@ class RespondingView extends GetView<RespondingViewModel> {
               controller.detail.value == null) {
             return Center(
               child: Padding(
-                padding: EdgeInsets.all(Dimensions.twentyFour),
+                padding: const EdgeInsets.all(Dimensions.twentyFour),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   spacing: Dimensions.twelve,
@@ -76,7 +76,7 @@ class _Loaded extends GetView<RespondingViewModel> {
           child: RefreshIndicator(
             onRefresh: controller.reload,
             child: ListView(
-              padding: EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 Dimensions.twenty,
                 Dimensions.twenty,
                 Dimensions.twenty,
@@ -91,7 +91,7 @@ class _Loaded extends GetView<RespondingViewModel> {
                     letterSpacing: -0.4,
                   ),
                 ),
-                SizedBox(height: Dimensions.six),
+                const SizedBox(height: Dimensions.six),
                 Obx(
                   () => Text(
                     controller.subtitle,
@@ -100,9 +100,9 @@ class _Loaded extends GetView<RespondingViewModel> {
                     ),
                   ),
                 ),
-                SizedBox(height: Dimensions.twentyFour),
+                const SizedBox(height: Dimensions.twentyFour),
                 const _RosterSection(),
-                SizedBox(height: Dimensions.twentyFour),
+                const SizedBox(height: Dimensions.twentyFour),
                 const _CarePlanSection(),
               ],
             ),
@@ -122,7 +122,7 @@ class _Header extends GetView<RespondingViewModel> {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         Dimensions.twenty,
         Dimensions.eight,
         Dimensions.twenty,
@@ -145,7 +145,7 @@ class _Header extends GetView<RespondingViewModel> {
                     size: 20,
                     color: scheme.onSurfaceVariant,
                   ),
-                  SizedBox(width: Dimensions.six),
+                  const SizedBox(width: Dimensions.six),
                   Text(
                     'Alerts',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -157,7 +157,7 @@ class _Header extends GetView<RespondingViewModel> {
             ),
           ),
           Container(
-            padding: EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: Dimensions.twelve,
               vertical: Dimensions.six,
             ),
@@ -204,7 +204,7 @@ class _RosterSection extends GetView<RespondingViewModel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const _SectionLabel('Who is responding'),
-        SizedBox(height: Dimensions.ten),
+        const SizedBox(height: Dimensions.ten),
         _Card(
           children: roster.isEmpty
               ? <Widget>[const _MessageRow('Nobody has opened this alert yet')]
@@ -233,14 +233,14 @@ class _ResponderRow extends GetView<RespondingViewModel> {
     return SizedBox(
       height: 68,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
+        padding: const EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
         child: Row(
           children: <Widget>[
             CaregiverAvatar(
               name: responder.isCaller ? null : responder.contactName,
               size: 34,
             ),
-            SizedBox(width: Dimensions.twelve),
+            const SizedBox(width: Dimensions.twelve),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -253,7 +253,7 @@ class _ResponderRow extends GetView<RespondingViewModel> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: Dimensions.two),
+                  const SizedBox(height: Dimensions.two),
                   responder.responding
                       ? LiveStatusLabel(
                           label: controller.statusFor(responder),
@@ -270,7 +270,7 @@ class _ResponderRow extends GetView<RespondingViewModel> {
               ),
             ),
             if (controller.canNudge(responder)) ...<Widget>[
-              SizedBox(width: Dimensions.eight),
+              const SizedBox(width: Dimensions.eight),
               Obx(() {
                 final bool busy = controller.nudging.contains(
                   responder.responderId,
@@ -279,7 +279,7 @@ class _ResponderRow extends GetView<RespondingViewModel> {
                   onPressed: busy ? null : () => controller.nudge(responder),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: scheme.onSurface),
-                    padding: EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: Dimensions.fourteen,
                       vertical: Dimensions.six,
                     ),
@@ -317,7 +317,7 @@ class _CarePlanSection extends GetView<RespondingViewModel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const _SectionLabel('Care plan'),
-        SizedBox(height: Dimensions.ten),
+        const SizedBox(height: Dimensions.ten),
         _Card(
           children: <Widget>[
             if (controller.detail.value?.ownerProfile.emergencyNote
@@ -360,7 +360,7 @@ class _CarePlanStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(
+    padding: const EdgeInsets.symmetric(
       horizontal: Dimensions.eighteen,
       vertical: Dimensions.sixteen,
     ),
@@ -377,7 +377,7 @@ class _CarePlanStep extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(width: Dimensions.twelve),
+        const SizedBox(width: Dimensions.twelve),
         Expanded(
           child: Text(
             text,
@@ -399,7 +399,7 @@ class _ActionBar extends GetView<RespondingViewModel> {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         Dimensions.twenty,
         Dimensions.twelve,
         Dimensions.twenty,
@@ -485,7 +485,7 @@ class _LogResponseSheetState extends State<_LogResponseSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text('What happened', style: Theme.of(context).textTheme.titleMedium),
-        SizedBox(height: Dimensions.eight),
+        const SizedBox(height: Dimensions.eight),
         Text(
           'Recorded against your response so ${widget.controller.ownerName.split(' ').first} can read it later. '
           'It does not replace their own seizure log.',
@@ -493,7 +493,7 @@ class _LogResponseSheetState extends State<_LogResponseSheet> {
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
-        SizedBox(height: Dimensions.sixteen),
+        const SizedBox(height: Dimensions.sixteen),
         TextField(
           controller: _field,
           autofocus: true,
@@ -504,7 +504,7 @@ class _LogResponseSheetState extends State<_LogResponseSheet> {
             hintText: 'Duration, what you saw, what you did…',
           ),
         ),
-        SizedBox(height: Dimensions.twentyFour),
+        const SizedBox(height: Dimensions.twentyFour),
         Obx(
           () => ElevatedButton(
             onPressed: widget.controller.isSavingNote.value
@@ -538,7 +538,7 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: Dimensions.two),
+    padding: const EdgeInsets.symmetric(horizontal: Dimensions.two),
     child: Text(
       label.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -586,7 +586,7 @@ class _MessageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(
+    padding: const EdgeInsets.symmetric(
       horizontal: Dimensions.eighteen,
       vertical: Dimensions.twenty,
     ),

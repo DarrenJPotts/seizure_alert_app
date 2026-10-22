@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
 import 'package:seizure_app/core/widgets/settings/settings_group.dart';
@@ -19,9 +20,9 @@ class SeizureLogRow extends StatelessWidget {
         height: 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.black.withValues(alpha: 0.06),
+          color: context.ink.withValues(alpha: 0.06),
         ),
-        child: const Icon(Icons.bolt, size: 20, color: Colors.black54),
+        child: Icon(Icons.bolt, size: 20, color: context.secondaryInk),
       ),
       title: title,
       subtitle: subtitle,

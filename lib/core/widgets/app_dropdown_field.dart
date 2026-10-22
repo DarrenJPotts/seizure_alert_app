@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_utils/src/extensions/context_extensions.dart';
 
@@ -95,7 +96,9 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
         child: Text(
           _getDisplayText(value),
           style: context.textTheme.bodyMedium!.copyWith(
-            color: widget.enabled ? Colors.black : Colors.black26,
+            color: widget.enabled
+                ? context.ink
+                : context.ink.withValues(alpha: 0.26),
           ),
         ),
       );
@@ -126,8 +129,10 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
         // hint colour that depends on the field being enabled.
         hintStyle: widget.enabled
             ? null
-            : context.textTheme.bodyMedium!.copyWith(color: Colors.black26),
-        suffixIcon: widget.loading ? CircularProgressIndicator() : null,
+            : context.textTheme.bodyMedium!.copyWith(
+                color: context.ink.withValues(alpha: 0.26),
+              ),
+        suffixIcon: widget.loading ? const CircularProgressIndicator() : null,
         enabled: widget.enabled,
       ),
       validator: widget.validatorCallback,

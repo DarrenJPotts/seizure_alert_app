@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
@@ -17,7 +18,7 @@ class OnboardingProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
+    padding: const EdgeInsets.fromLTRB(
       Dimensions.twentyFour,
       Dimensions.sixteen,
       Dimensions.twentyFour,
@@ -42,16 +43,16 @@ class OnboardingProgress extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(width: Dimensions.twelve),
+                const SizedBox(width: Dimensions.twelve),
                 Text(
                   '$completed of $total done',
                   style: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                  ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
                 ),
               ],
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             Row(
               spacing: Dimensions.eight,
               children: List<Widget>.generate(
@@ -62,7 +63,9 @@ class OnboardingProgress extends StatelessWidget {
                     curve: Curves.easeInOut,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: i < completed ? Colors.black : Colors.black12,
+                      color: i < completed
+                          ? context.ink
+                          : context.ink.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),

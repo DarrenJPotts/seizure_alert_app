@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -14,12 +15,12 @@ class OnboardingStepEmergencyContact extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(Dimensions.twentyFour),
+      padding: const EdgeInsets.all(Dimensions.twentyFour),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Dimensions.twentyFour,
         children: [
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.eight,
@@ -32,7 +33,7 @@ class OnboardingStepEmergencyContact extends StatelessWidget {
                 'This person will be notified immediately if you send an SOS or Heads Up.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
               ),
             ],
           ),
@@ -74,11 +75,11 @@ class OnboardingStepEmergencyContact extends StatelessWidget {
             final bool ready = vm.hasCompleteEmergencyContactDetails.value;
             return Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.black12),
+                border: context.designBorder,
                 borderRadius: BorderRadius.circular(Dimensions.twelve),
               ),
               child: SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.symmetric(
+                contentPadding: const EdgeInsets.symmetric(
                   horizontal: Dimensions.sixteen,
                   vertical: Dimensions.four,
                 ),
@@ -92,11 +93,11 @@ class OnboardingStepEmergencyContact extends StatelessWidget {
                       : 'Add their name and phone number to create an invite code.',
                   style: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
                 ),
                 value: ready && vm.inviteEmergencyContact.value,
-                activeTrackColor: Colors.black26,
-                activeThumbColor: Colors.black,
+                activeTrackColor: context.ink.withValues(alpha: 0.26),
+                activeThumbColor: context.ink,
                 onChanged: ready
                     ? (value) => vm.inviteEmergencyContact.value = value
                     : null,

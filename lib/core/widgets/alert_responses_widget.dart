@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -6,9 +7,14 @@ import 'package:seizure_app/core/dtos/alert_response_dto.dart';
 import 'package:seizure_app/core/services/firebase_collections_service.dart';
 
 class AlertResponsesWidget extends StatefulWidget {
-  const AlertResponsesWidget({super.key, required this.alertId});
+  const AlertResponsesWidget({
+    super.key,
+    required this.alertId,
+    this.spacingBefore = 0,
+  });
 
   final String alertId;
+  final double spacingBefore;
 
   @override
   State<AlertResponsesWidget> createState() => _AlertResponsesWidgetState();
@@ -49,27 +55,32 @@ class _AlertResponsesWidgetState extends State<AlertResponsesWidget> {
   Widget build(BuildContext context) {
     if (_loading) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Your circle', style: Theme.of(context).textTheme.titleMedium),
-        SizedBox(height: Dimensions.twelve),
-        if (_responses.isEmpty)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: Dimensions.eight),
-            child: Text(
-              'Waiting for your circle to respond...',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+    return Padding(
+      padding: EdgeInsets.only(top: widget.spacingBefore),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Your circle', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: Dimensions.twelve),
+          if (_responses.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: Dimensions.eight),
+              child: Text(
+                'Waiting for your circle to respond...',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
+              ),
+            )
+          else
+            Column(
+              spacing: Dimensions.eight,
+              children: _responses
+                  .map((r) => _ResponseRow(response: r))
+                  .toList(),
             ),
-          )
-        else
-          Column(
-            spacing: Dimensions.eight,
-            children: _responses.map((r) => _ResponseRow(response: r)).toList(),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -88,19 +99,19 @@ class _ResponseRow extends StatelessWidget {
           height: 36,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.black.withValues(alpha: 0.06),
+            color: context.ink.withValues(alpha: 0.06),
           ),
           child: Center(
             child: Text(
               _initials(response.contactName),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Colors.black54,
+                color: context.secondaryInk,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ),
-        SizedBox(width: Dimensions.twelve),
+        const SizedBox(width: Dimensions.twelve),
 
         Expanded(
           child: Text(
@@ -110,9 +121,9 @@ class _ResponseRow extends StatelessWidget {
         ),
 
         if (response.responding)
-          _Badge(label: 'Responding', filled: true)
+          const _Badge(label: 'Responding', filled: true)
         else if (response.seen)
-          _Badge(label: 'Seen', filled: false),
+          const _Badge(label: 'Seen', filled: false),
       ],
     );
   }
@@ -136,13 +147,13 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: filled ? Colors.black : Colors.black.withValues(alpha: 0.06),
+        color: filled ? context.ink : context.ink.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: filled ? Colors.white : Colors.black54,
+          color: filled ? context.paper : context.secondaryInk,
         ),
       ),
     );

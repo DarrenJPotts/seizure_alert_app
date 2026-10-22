@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -24,75 +25,87 @@ class _SOSButtonState extends State<SOSButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Send SOS alert',
-      hint: widget.hasRecipients
-          ? 'Starts a 10-second countdown before notifying your emergency contacts.'
-          : 'No contacts are set to receive alerts. SOS will be recorded only.',
-      onTap: () {
-        HapticFeedback.heavyImpact();
-        widget.onPressed();
-      },
-      child: ExcludeSemantics(
-        child: GestureDetector(
-          onTapDown: (_) {
-            setState(() => _isPressed = true);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final diameter = math.min(264.0, constraints.maxWidth);
+        final innerDiameter = diameter * 208 / 264;
+        return Semantics(
+          button: true,
+          label: 'Send SOS alert',
+          hint: widget.hasRecipients
+              ? 'Starts a 10-second countdown before notifying your emergency contacts.'
+              : 'No contacts are set to receive alerts. SOS will be recorded only.',
+          onTap: () {
             HapticFeedback.heavyImpact();
-          },
-          onTapUp: (_) {
-            setState(() => _isPressed = false);
             widget.onPressed();
           },
-          onTapCancel: () => setState(() => _isPressed = false),
+          child: ExcludeSemantics(
+            child: GestureDetector(
+              onTapDown: (_) {
+                setState(() => _isPressed = true);
+                HapticFeedback.heavyImpact();
+              },
+              onTapUp: (_) {
+                setState(() => _isPressed = false);
+                widget.onPressed();
+              },
+              onTapCancel: () => setState(() => _isPressed = false),
 
-          child: Container(
-            width: 264,
-            height: 264,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.black.withValues(alpha: 0.1),
-                width: 1,
-              ),
-            ),
-            child: Center(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                curve: Curves.easeInOut,
-                width: 208,
-                height: 208,
+              child: Container(
+                width: diameter,
+                height: diameter,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _isPressed ? Colors.black : Colors.white,
-                  border: Border.all(color: Colors.black, width: 2.5),
-                  boxShadow: _isPressed
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                  border: Border.all(
+                    color: context.ink.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
                 ),
                 child: Center(
-                  child: Text(
-                    'SOS',
-                    style: TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 8,
-                      color: _isPressed ? Colors.white : Colors.black,
-                      height: 1,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 120),
+                    curve: Curves.easeInOut,
+                    width: innerDiameter,
+                    height: innerDiameter,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _isPressed ? context.ink : context.paper,
+                      border: Border.all(color: context.ink, width: 2.5),
+                      boxShadow: _isPressed
+                          ? []
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                    ),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(Dimensions.sixteen),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'SOS',
+                            style: TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 8,
+                              color: _isPressed ? context.paper : context.ink,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -154,10 +167,10 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
       },
       child: Dialog(
         insetPadding: EdgeInsets.zero,
-        backgroundColor: Colors.black,
+        backgroundColor: context.heroSurface,
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.fromLTRB(
+            padding: const EdgeInsets.fromLTRB(
               Dimensions.twentyFour,
               Dimensions.twentyFour,
               Dimensions.twentyFour,
@@ -169,7 +182,7 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                 Text(
                   'SENDING SOS',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.45),
+                    color: context.heroInk.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w600,
                     letterSpacing: 3,
                   ),
@@ -181,22 +194,22 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                       children: [
                         Text(
                           '$_remaining',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 160,
                             fontWeight: FontWeight.w700,
                             height: 1,
-                            color: Colors.white,
-                            fontFeatures: [FontFeature.tabularFigures()],
+                            color: context.heroInk,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
-                        SizedBox(height: Dimensions.twentyFour),
+                        const SizedBox(height: Dimensions.twentyFour),
                         Text(
                           widget.hasRecipients
                               ? 'Your circle will be notified in $_remaining second${_remaining == 1 ? '' : 's'}.'
                               : 'No one will be notified. SOS will be recorded only.',
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: context.heroInk.withValues(alpha: 0.7),
                               ),
                           textAlign: TextAlign.center,
                         ),
@@ -211,11 +224,13 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                       child: LinearProgressIndicator(
                         value: progress,
                         minHeight: 4,
-                        backgroundColor: Colors.white.withValues(alpha: 0.18),
-                        valueColor: const AlwaysStoppedAnimation(Colors.white),
+                        backgroundColor: context.heroInk.withValues(
+                          alpha: 0.18,
+                        ),
+                        valueColor: AlwaysStoppedAnimation(context.heroInk),
                       ),
                     ),
-                    SizedBox(height: Dimensions.twenty),
+                    const SizedBox(height: Dimensions.twenty),
                     SizedBox(
                       width: double.infinity,
                       child: _DialogButton(
@@ -223,13 +238,13 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                         onPressed: widget.onCancel,
                       ),
                     ),
-                    SizedBox(height: Dimensions.twelve),
+                    const SizedBox(height: Dimensions.twelve),
                     Text(
                       widget.hasRecipients
                           ? 'Do nothing and help is on the way'
                           : 'Cancel and review My Circle',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: context.heroInk.withValues(alpha: 0.7),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -271,21 +286,23 @@ class _DialogButtonState extends State<_DialogButton> {
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+        padding: const EdgeInsets.symmetric(vertical: Dimensions.sixteen),
         decoration: BoxDecoration(
-          color: _isPressed ? Colors.black : Colors.white,
+          color: _isPressed ? context.heroSurface : context.heroInk,
           border: Border.all(
-            color: _isPressed ? Colors.white24 : Colors.transparent,
+            color: _isPressed
+                ? context.heroInk.withValues(alpha: 0.24)
+                : Colors.transparent,
             width: 1.5,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(context.design.cardRadius),
         ),
         child: Center(
           child: Text(
             widget.text,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w700,
-              color: _isPressed ? Colors.white : Colors.black,
+              color: _isPressed ? context.heroInk : context.heroSurface,
               letterSpacing: 0.3,
             ),
           ),
@@ -346,20 +363,17 @@ class _PulsingSOSCircleState extends State<PulsingSOSCircle>
       child: Container(
         width: 208,
         height: 208,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.black,
-        ),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: context.ink),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'SOS',
               style: TextStyle(
                 fontSize: 48,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 8,
-                color: Colors.white,
+                color: context.paper,
                 height: 1,
               ),
             ),
@@ -369,7 +383,7 @@ class _PulsingSOSCircleState extends State<PulsingSOSCircle>
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 letterSpacing: 3,
-                color: Colors.white.withValues(alpha: 0.6),
+                color: context.paper.withValues(alpha: 0.6),
                 height: 1,
               ),
             ),
@@ -396,7 +410,7 @@ class _Ring extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.black.withValues(alpha: opacity),
+            color: context.ink.withValues(alpha: opacity),
             width: 1.0,
           ),
         ),
