@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -170,7 +171,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
               _isEditing ? 'Edit Contact' : 'Add Contact',
               style: context.theme.textTheme.titleMedium,
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
 
             _OutlinedFormField(
               controller: _nameController,
@@ -181,7 +182,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Name is required' : null,
             ),
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
 
             _OutlinedFormField(
               controller: _phoneController,
@@ -195,7 +196,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
               maxLength: SouthAfricanPhoneInputFormatter.maxLength,
               validator: (v) => PhoneNumber.validationError(v, required: true),
             ),
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
 
             _OutlinedFormField(
               controller: _relationController,
@@ -204,46 +205,46 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
               textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.done,
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
 
             Text(
               'Emergency Alerts',
               style: context.theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Colors.black54,
+                color: context.secondaryInk,
               ),
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             _ToggleRow(
               label: 'Notify via push notifications',
               value: _notifyViaPush,
               onChanged: (v) => setState(() => _notifyViaPush = v),
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
 
             if (!_isEditing) ...[
               Text(
                 'App Invite',
                 style: context.theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+                  color: context.secondaryInk,
                 ),
               ),
-              SizedBox(height: Dimensions.twelve),
+              const SizedBox(height: Dimensions.twelve),
               _ToggleRow(
                 label: 'Invite to join your circle',
                 value: _sendInvite,
                 onChanged: (v) => setState(() => _sendInvite = v),
               ),
-              SizedBox(height: Dimensions.eight),
+              const SizedBox(height: Dimensions.eight),
               Text(
                 'Creates a one-time code to share by SMS or WhatsApp after saving. '
                 'They sign in and enter the code to accept.',
                 style: context.theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.black38,
+                  color: context.ink.withValues(alpha: 0.38),
                 ),
               ),
-              SizedBox(height: Dimensions.twentyFour),
+              const SizedBox(height: Dimensions.twentyFour),
             ],
 
             SizedBox(
@@ -251,20 +252,24 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.black38,
-                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                  backgroundColor: context.ink,
+                  foregroundColor: context.paper,
+                  disabledBackgroundColor: context.ink.withValues(alpha: 0.38),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimensions.sixteen,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      context.design.cardRadius,
+                    ),
                   ),
                 ),
                 child: _isSaving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: context.paper,
                           strokeWidth: 2,
                         ),
                       )
@@ -337,8 +342,8 @@ class _ToggleRow extends StatelessWidget {
       Switch.adaptive(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: Colors.black,
-        activeTrackColor: Colors.black54,
+        activeThumbColor: context.ink,
+        activeTrackColor: context.secondaryInk,
       ),
     ],
   );

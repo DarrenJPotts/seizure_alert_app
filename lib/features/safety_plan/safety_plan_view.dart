@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -12,7 +13,7 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.paper,
     body: SafeArea(
       bottom: false,
       child: Column(
@@ -26,8 +27,8 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.black),
+                return Center(
+                  child: CircularProgressIndicator(color: context.ink),
                 );
               }
               if (controller.error.value != null && !controller.hasLoadedPlan) {
@@ -41,7 +42,7 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
                 );
               }
               return ListView(
-                padding: EdgeInsets.fromLTRB(
+                padding: const EdgeInsets.fromLTRB(
                   Dimensions.twentyFour,
                   Dimensions.twentyFour,
                   Dimensions.twentyFour,
@@ -50,12 +51,12 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
                 children: <Widget>[
                   if (controller.error.value != null) ...[
                     SettingsMessageRow(controller.error.value!),
-                    SizedBox(height: Dimensions.twelve),
+                    const SizedBox(height: Dimensions.twelve),
                   ],
                   _ActionPlanSection(controller: controller),
-                  SizedBox(height: Dimensions.twentyFour),
+                  const SizedBox(height: Dimensions.twentyFour),
                   _MedicationSection(controller: controller),
-                  SizedBox(height: Dimensions.twentyFour),
+                  const SizedBox(height: Dimensions.twentyFour),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -65,8 +66,8 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
                       child: controller.saving.value
                           ? SizedBox.square(
                               dimension: Dimensions.twenty,
-                              child: const CircularProgressIndicator(
-                                color: Colors.white,
+                              child: CircularProgressIndicator(
+                                color: context.paper,
                                 strokeWidth: 2,
                               ),
                             )
@@ -108,7 +109,7 @@ class _ActionPlanSection extends StatelessWidget {
     label: 'Seizure action plan',
     children: <Widget>[
       Padding(
-        padding: EdgeInsets.all(Dimensions.sixteen),
+        padding: const EdgeInsets.all(Dimensions.sixteen),
         child: Column(
           children: <Widget>[
             TextField(
@@ -123,7 +124,7 @@ class _ActionPlanSection extends StatelessWidget {
                     'Describe what to do, what to avoid, and when to call emergency services.',
               ),
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             TextField(
               controller: controller.rescueMedicationController,
               maxLength: 200,
@@ -215,7 +216,7 @@ class _MedicationSection extends StatelessWidget {
             SettingsTileRow(
               title: 'Remove ${reminder.name}',
               subtitle: 'Stops this reminder on this device',
-              trailing: const Icon(Icons.delete_outline, color: Colors.black54),
+              trailing: Icon(Icons.delete_outline, color: context.secondaryInk),
               onTap: () => controller.removeReminder(reminder.id),
             ),
       ],
@@ -247,13 +248,13 @@ class _MedicationSection extends StatelessWidget {
                     ? 'Enter a medication name'
                     : null,
               ),
-              SizedBox(height: Dimensions.twelve),
+              const SizedBox(height: Dimensions.twelve),
               TextFormField(
                 controller: doseController,
                 maxLength: 100,
                 decoration: const InputDecoration(labelText: 'Dose (optional)'),
               ),
-              SizedBox(height: Dimensions.twelve),
+              const SizedBox(height: Dimensions.twelve),
               Obx(
                 () => OutlinedButton.icon(
                   onPressed: () async {

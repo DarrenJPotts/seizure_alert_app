@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -10,7 +11,6 @@ class ModeView extends GetView<ModeViewModel> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFF1F1F1),
     body: SafeArea(
       bottom: false,
       child: Column(
@@ -23,13 +23,13 @@ class ModeView extends GetView<ModeViewModel> {
           ),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 Dimensions.twenty,
                 Dimensions.twentyTwo,
                 Dimensions.twenty,
                 Dimensions.twentyFour,
               ),
-              children: <Widget>[const _ThisDeviceSection()],
+              children: const <Widget>[_ThisDeviceSection()],
             ),
           ),
         ],
@@ -60,15 +60,15 @@ class _ThisDeviceSection extends GetView<ModeViewModel> {
           ),
         ],
       ),
-      SizedBox(height: Dimensions.ten),
+      const SizedBox(height: Dimensions.ten),
       Padding(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.two),
+        padding: const EdgeInsets.symmetric(horizontal: Dimensions.two),
         child: Text(
           'With caregiver mode on, the home tab becomes your watch list and the SOS button is hidden on this device.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             fontSize: 13,
             height: 1.5,
-            color: Colors.black.withValues(alpha: 0.45),
+            color: context.secondaryInk,
           ),
         ),
       ),

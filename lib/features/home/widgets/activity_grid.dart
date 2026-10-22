@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/features/home/view_models/home_view_model.dart';
@@ -13,7 +14,7 @@ class ActivityGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Activity', style: Theme.of(context).textTheme.titleMedium),
-        SizedBox(height: Dimensions.twelve),
+        const SizedBox(height: Dimensions.twelve),
         Row(
           children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
               .map(
@@ -22,7 +23,7 @@ class ActivityGrid extends StatelessWidget {
                     child: Text(
                       d,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.black38,
+                        color: context.secondaryInk,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -31,7 +32,7 @@ class ActivityGrid extends StatelessWidget {
               )
               .toList(),
         ),
-        SizedBox(height: Dimensions.eight),
+        const SizedBox(height: Dimensions.eight),
         Column(
           spacing: 4,
           children: List.generate(4, (week) {
@@ -49,25 +50,31 @@ class ActivityGrid extends StatelessWidget {
             );
           }),
         ),
-        SizedBox(height: Dimensions.twelve),
-        Row(
-          spacing: Dimensions.eight,
+        const SizedBox(height: Dimensions.twelve),
+        Wrap(
+          spacing: Dimensions.sixteen,
+          runSpacing: Dimensions.eight,
           children: [
-            _LegendDot(color: Colors.black),
-            Text(
-              'Seizure',
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: Colors.black54),
-            ),
-            SizedBox(width: Dimensions.four),
-            _LegendDot(color: Colors.black.withValues(alpha: 0.08)),
-            Text(
-              'Seizure-free',
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: Colors.black54),
-            ),
+            for (final seizure in [true, false])
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _LegendDot(
+                    color: seizure
+                        ? context.ink
+                        : context.ink.withValues(alpha: 0.08),
+                  ),
+                  const SizedBox(width: Dimensions.eight),
+                  Flexible(
+                    child: Text(
+                      seizure ? 'Seizure' : 'Seizure-free',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: context.secondaryInk,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ],
@@ -89,15 +96,15 @@ class _GridCell extends StatelessWidget {
     }
 
     final color = cell.hasSeizure
-        ? Colors.black
-        : Colors.black.withValues(alpha: 0.08);
+        ? context.ink
+        : context.ink.withValues(alpha: 0.08);
 
     return Container(
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(6),
         border: cell.isToday
-            ? Border.all(color: Colors.black, width: 1.5)
+            ? Border.all(color: context.ink, width: 1.5)
             : null,
       ),
     );
@@ -116,7 +123,7 @@ class _LegendDot extends StatelessWidget {
     decoration: BoxDecoration(
       color: color,
       borderRadius: BorderRadius.circular(3),
-      border: Border.all(color: Colors.black12),
+      border: context.designBorder,
     ),
   );
 }

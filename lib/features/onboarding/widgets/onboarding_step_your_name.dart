@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -14,12 +15,12 @@ class OnboardingStepYourName extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(Dimensions.twentyFour),
+      padding: const EdgeInsets.all(Dimensions.twentyFour),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Dimensions.twentyFour,
         children: [
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.eight,
@@ -29,7 +30,7 @@ class OnboardingStepYourName extends StatelessWidget {
                 'Your name helps your circle know who needs help.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
               ),
             ],
           ),

@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/features/heads_up/heads_up/heads_up_bottom_sheet_widget.dart';
@@ -9,22 +10,23 @@ class SosHeadsUpOptionsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(Dimensions.sixteen),
+      padding: const EdgeInsets.all(Dimensions.sixteen),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
+        border: context.designBorder,
+        boxShadow: context.designShadows,
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.warning_amber_outlined,
                 size: 20,
-                color: Colors.black54,
+                color: context.secondaryInk,
               ),
-              SizedBox(width: Dimensions.twelve),
+              const SizedBox(width: Dimensions.twelve),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,36 +37,35 @@ class SosHeadsUpOptionsCard extends StatelessWidget {
                     ),
                     Text(
                       'Feeling off but not in danger yet',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.secondaryInk,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: Dimensions.twelve),
-          Row(
+          const SizedBox(height: Dimensions.twelve),
+          Wrap(
             spacing: Dimensions.eight,
+            runSpacing: Dimensions.eight,
             children: HeadsUpViewModel.windowOptions.map((int minutes) {
               final String label = minutes == 60
                   ? '1 hr'
                   : minutes == 120
                   ? '2 hrs'
                   : '30 min';
-              return Expanded(
-                child: _DurationOption(
-                  label: label,
-                  onTap: () {
-                    HeadsUpViewModel.instance().selectedMinutes.value = minutes;
-                    HeadsUpBottomSheet.show();
-                  },
-                ),
+              return _DurationOption(
+                label: label,
+                onTap: () {
+                  HeadsUpViewModel.instance().selectedMinutes.value = minutes;
+                  HeadsUpBottomSheet.show();
+                },
               );
             }).toList(),
           ),
-          SizedBox(height: Dimensions.eight),
+          const SizedBox(height: Dimensions.eight),
           TextButton.icon(
             onPressed: () => HeadsUpBottomSheet.show(customDuration: true),
             icon: const Icon(Icons.schedule_outlined),
@@ -87,10 +88,13 @@ class _DurationOption extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 48,
-        alignment: Alignment.center,
+        constraints: const BoxConstraints(minHeight: Dimensions.fortyEight),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Dimensions.sixteen,
+          vertical: Dimensions.twelve,
+        ),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.black26),
+          border: Border.all(color: context.ink.withValues(alpha: 0.26)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(

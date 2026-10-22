@@ -1,9 +1,11 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
+import 'package:seizure_app/core/widgets/duration_stepper_field.dart';
 
 typedef AddSeizureLogCallback =
     Future<bool> Function({
@@ -259,134 +261,159 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
                 ),
               ],
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
 
-            _SectionLabel(label: 'Date & Time'),
-            SizedBox(height: Dimensions.eight),
+            const _SectionLabel(label: 'Date & Time'),
+            const SizedBox(height: Dimensions.eight),
             InkWell(
               onTap: _pickDateTime,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(context.design.cardRadius),
               child: Container(
-                padding: EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: Dimensions.sixteen,
                   vertical: Dimensions.sixteen,
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black12),
-                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: context.ink.withValues(alpha: 0.12),
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    context.design.cardRadius,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.calendar_today_outlined,
                       size: 18,
-                      color: Colors.black54,
+                      color: context.secondaryInk,
                     ),
-                    SizedBox(width: Dimensions.twelve),
+                    const SizedBox(width: Dimensions.twelve),
                     Expanded(
                       child: Text(
                         _formatDateTime(_occurredAt),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.edit_outlined,
                       size: 16,
-                      color: Colors.black26,
+                      color: context.ink.withValues(alpha: 0.26),
                     ),
                   ],
                 ),
               ),
             ),
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
 
-            _SectionLabel(label: 'Duration (optional)'),
-            SizedBox(height: Dimensions.eight),
+            const _SectionLabel(label: 'Duration (optional)'),
+            const SizedBox(height: Dimensions.eight),
             Row(
+              spacing: Dimensions.eight,
               children: [
                 Expanded(
-                  child: _NumberField(
-                    controller: _minutesController,
+                  child: DurationStepperField(
+                    key: const ValueKey('entry-duration-minutes'),
+                    value: int.tryParse(_minutesController.text) ?? 0,
                     label: 'Minutes',
-                    max: 99,
+                    maxValue: 99,
+                    onChanged: (value) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _minutesController.text = '$value');
+                    },
                   ),
                 ),
-                SizedBox(width: Dimensions.twelve),
+                Text(':', style: Theme.of(context).textTheme.headlineMedium),
                 Expanded(
-                  child: _NumberField(
-                    controller: _secondsController,
+                  child: DurationStepperField(
+                    key: const ValueKey('entry-duration-seconds'),
+                    value: int.tryParse(_secondsController.text) ?? 0,
                     label: 'Seconds',
-                    max: 59,
+                    maxValue: 59,
+                    onChanged: (value) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _secondsController.text = '$value');
+                    },
                   ),
                 ),
               ],
             ),
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
 
-            _SectionLabel(label: 'Clinical details (optional)'),
-            SizedBox(height: Dimensions.eight),
+            const _SectionLabel(label: 'Clinical details (optional)'),
+            const SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _seizureTypeController,
               hintText: 'Seizure type',
               textCapitalization: TextCapitalization.sentences,
             ),
-            SizedBox(height: Dimensions.twelve),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _severity,
-                    decoration: const InputDecoration(labelText: 'Severity'),
-                    items: const <String>['Mild', 'Moderate', 'Severe']
-                        .map(
-                          (String value) => DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (String? value) =>
-                        setState(() => _severity = value),
+            const SizedBox(height: Dimensions.twelve),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final painter = TextPainter(
+                  text: TextSpan(
+                    text: 'Unconscious',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                ),
-                SizedBox(width: Dimensions.twelve),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _awareness,
-                    decoration: const InputDecoration(labelText: 'Awareness'),
-                    items:
-                        const <String>[
-                              'Aware',
-                              'Impaired',
-                              'Unconscious',
-                              'Unknown',
-                            ]
-                            .map(
-                              (String value) => DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              ),
-                            )
-                            .toList(),
-                    onChanged: (String? value) =>
-                        setState(() => _awareness = value),
-                  ),
-                ),
-              ],
+                  textDirection: Directionality.of(context),
+                  textScaler: MediaQuery.textScalerOf(context),
+                )..layout();
+                final fits =
+                    constraints.maxWidth >=
+                    (painter.width +
+                                Dimensions.sixteen * 2 +
+                                Dimensions.twentyFour +
+                                Dimensions.eight) *
+                            2 +
+                        Dimensions.twelve;
+                painter.dispose();
+                final severity = _ClinicalChoice(
+                  label: 'Severity',
+                  value: _severity,
+                  options: const ['Mild', 'Moderate', 'Severe'],
+                  onChanged: (value) => setState(() => _severity = value),
+                );
+                final awareness = _ClinicalChoice(
+                  label: 'Awareness',
+                  value: _awareness,
+                  options: const [
+                    'Aware',
+                    'Impaired',
+                    'Unconscious',
+                    'Unknown',
+                  ],
+                  onChanged: (value) => setState(() => _awareness = value),
+                );
+                return fits
+                    ? Row(
+                        children: [
+                          Expanded(child: severity),
+                          const SizedBox(width: Dimensions.twelve),
+                          Expanded(child: awareness),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          severity,
+                          const SizedBox(height: Dimensions.twelve),
+                          awareness,
+                        ],
+                      );
+              },
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             _OutlinedTextField(
               controller: _auraController,
               hintText: 'Aura or warning signs',
               textCapitalization: TextCapitalization.sentences,
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             _OutlinedTextField(
               controller: _injuriesController,
               hintText: 'Injuries or complications',
               textCapitalization: TextCapitalization.sentences,
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             TextFormField(
               controller: _recoveryController,
               keyboardType: TextInputType.number,
@@ -398,64 +425,68 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
                 labelText: 'Recovery time in minutes',
               ),
             ),
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              activeTrackColor: Colors.black,
+              activeTrackColor: context.ink,
               title: const Text('Rescue medication used'),
               value: _rescueMedicationUsed,
               onChanged: (bool value) =>
                   setState(() => _rescueMedicationUsed = value),
             ),
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
 
-            _SectionLabel(label: 'Location (optional)'),
-            SizedBox(height: Dimensions.eight),
+            const _SectionLabel(label: 'Location (optional)'),
+            const SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _locationController,
               hintText: 'e.g. Home, Work, Gym',
               textCapitalization: TextCapitalization.words,
             ),
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
 
-            _SectionLabel(label: 'Trigger (optional)'),
-            SizedBox(height: Dimensions.eight),
+            const _SectionLabel(label: 'Trigger (optional)'),
+            const SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _triggerController,
               hintText: 'e.g. Stress, Lack of sleep',
               textCapitalization: TextCapitalization.sentences,
             ),
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
 
-            _SectionLabel(label: 'Notes (optional)'),
-            SizedBox(height: Dimensions.eight),
+            const _SectionLabel(label: 'Notes (optional)'),
+            const SizedBox(height: Dimensions.eight),
             _OutlinedTextField(
               controller: _notesController,
               hintText: 'Any additional observations…',
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
 
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.black38,
-                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                  backgroundColor: context.ink,
+                  foregroundColor: context.paper,
+                  disabledBackgroundColor: context.ink.withValues(alpha: 0.38),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimensions.sixteen,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      context.design.cardRadius,
+                    ),
                   ),
                 ),
                 child: _isSaving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: context.paper,
                           strokeWidth: 2,
                         ),
                       )
@@ -478,7 +509,7 @@ class _SectionLabel extends StatelessWidget {
     label,
     style: Theme.of(context).textTheme.bodySmall?.copyWith(
       fontWeight: FontWeight.w600,
-      color: Colors.black54,
+      color: context.secondaryInk,
     ),
   );
 }
@@ -505,29 +536,6 @@ class _OutlinedTextField extends StatelessWidget {
   );
 }
 
-class _NumberField extends StatelessWidget {
-  const _NumberField({
-    required this.controller,
-    required this.label,
-    required this.max,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final int max;
-
-  @override
-  Widget build(BuildContext context) => TextFormField(
-    controller: controller,
-    keyboardType: TextInputType.number,
-    inputFormatters: [
-      FilteringTextInputFormatter.digitsOnly,
-      _MaxValueFormatter(max),
-    ],
-    decoration: InputDecoration(labelText: label),
-  );
-}
-
 class _MaxValueFormatter extends TextInputFormatter {
   const _MaxValueFormatter(this.max);
   final int max;
@@ -541,4 +549,29 @@ class _MaxValueFormatter extends TextInputFormatter {
     final value = int.tryParse(newValue.text) ?? 0;
     return value > max ? oldValue : newValue;
   }
+}
+
+class _ClinicalChoice extends StatelessWidget {
+  const _ClinicalChoice({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+  final String label;
+  final String? value;
+  final List<String> options;
+  final ValueChanged<String?> onChanged;
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    initialValue: value,
+    isExpanded: true,
+    isDense: false,
+    itemHeight: null,
+    decoration: InputDecoration(labelText: label),
+    items: options
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
+        .toList(),
+    onChanged: onChanged,
+  );
 }

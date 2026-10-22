@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/watched_person_dto.dart';
@@ -33,14 +34,14 @@ class CaregiverView extends GetView<CaregiverViewModel> {
         onToggleMode: onToggleMode,
         switchingMode: switchingMode,
       ),
-      Padding(
+      const Padding(
         padding: EdgeInsets.fromLTRB(
           Dimensions.twenty,
           Dimensions.sixteen,
           Dimensions.twenty,
           0,
         ),
-        child: const CaregiverReadinessCard(),
+        child: CaregiverReadinessCard(),
       ),
       Expanded(
         child: Obx(() {
@@ -79,7 +80,7 @@ class CaregiverView extends GetView<CaregiverViewModel> {
           return RefreshIndicator(
             onRefresh: () => controller.loadPeopleIWatch(forceRefresh: true),
             child: ListView(
-              padding: EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 Dimensions.twenty,
                 Dimensions.twenty,
                 Dimensions.twenty,
@@ -89,7 +90,7 @@ class CaregiverView extends GetView<CaregiverViewModel> {
                 for (final WatchedPersonDto person
                     in controller.sortedPeople) ...<Widget>[
                   _PersonCard(person: person),
-                  SizedBox(height: Dimensions.twentyTwo),
+                  const SizedBox(height: Dimensions.twentyTwo),
                 ],
                 if (controller.recentActivity.isNotEmpty)
                   const _RecentActivitySection(),
@@ -118,7 +119,7 @@ class _Header extends StatelessWidget {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         Dimensions.twenty,
         Dimensions.eight,
         Dimensions.twenty,
@@ -136,7 +137,7 @@ class _Header extends StatelessWidget {
                   loading: switchingMode,
                   onTap: onToggleMode,
                 ),
-                SizedBox(height: Dimensions.six),
+                const SizedBox(height: Dimensions.six),
                 Text(
                   'Watching',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
@@ -151,7 +152,7 @@ class _Header extends StatelessWidget {
                       Get.find<CaregiverViewModel>().lastUpdatedAt.value;
                   if (at == null) return const SizedBox.shrink();
                   return Padding(
-                    padding: EdgeInsets.only(top: Dimensions.four),
+                    padding: const EdgeInsets.only(top: Dimensions.four),
                     child: Text(
                       'Updated ${_relativeLong(at)}  ·  pull to refresh',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -192,11 +193,18 @@ class _PersonCard extends StatelessWidget {
     final Color ink = inverted ? scheme.onInverseSurface : scheme.onSurface;
 
     return Container(
-      padding: EdgeInsets.all(Dimensions.eighteen),
+      padding: const EdgeInsets.all(Dimensions.eighteen),
       decoration: BoxDecoration(
-        color: inverted ? scheme.inverseSurface : scheme.surface,
+        color: inverted
+            ? scheme.inverseSurface
+            : context.design.raisedSurfaces
+            ? context.cardSurface
+            : scheme.surface,
+        boxShadow: context.designShadows,
         border: inverted ? null : Border.all(color: scheme.outlineVariant),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          context.design.raisedSurfaces ? context.design.featureRadius : 16,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +221,7 @@ class _PersonCard extends StatelessWidget {
                     ? scheme.inverseSurface
                     : scheme.onInverseSurface,
               ),
-              SizedBox(width: Dimensions.twelve),
+              const SizedBox(width: Dimensions.twelve),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,17 +234,17 @@ class _PersonCard extends StatelessWidget {
                         letterSpacing: -0.2,
                       ),
                     ),
-                    SizedBox(height: Dimensions.three),
+                    const SizedBox(height: Dimensions.three),
                     _StatusLine(person: person, ink: ink),
                   ],
                 ),
               ),
-              SizedBox(width: Dimensions.eight),
+              const SizedBox(width: Dimensions.eight),
               _CallButton(person: person, ink: ink),
             ],
           ),
           if (_isSos) ...<Widget>[
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -256,7 +264,9 @@ class _PersonCard extends StatelessWidget {
                   ),
                   foregroundColor: scheme.inverseSurface,
                   disabledForegroundColor: scheme.inverseSurface,
-                  padding: EdgeInsets.symmetric(vertical: Dimensions.fourteen),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimensions.fourteen,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -266,10 +276,10 @@ class _PersonCard extends StatelessWidget {
             ),
           ] else if (person.status == WatchedPersonStatus.headsUp &&
               person.headsUpNote.isNotNullOrEmpty) ...<Widget>[
-            SizedBox(height: Dimensions.fourteen),
+            const SizedBox(height: Dimensions.fourteen),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: Dimensions.fourteen,
                 vertical: Dimensions.twelve,
               ),
@@ -291,7 +301,7 @@ class _PersonCard extends StatelessWidget {
             ),
           ] else if (person.daysSinceLastSeizure != null ||
               person.lastAlertAt != null) ...<Widget>[
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
             Row(
               spacing: Dimensions.eight,
               children: <Widget>[
@@ -345,7 +355,7 @@ class _StatusLine extends StatelessWidget {
         return Row(
           children: <Widget>[
             Icon(Icons.warning_amber_rounded, size: 15, color: ink),
-            SizedBox(width: Dimensions.six),
+            const SizedBox(width: Dimensions.six),
             Flexible(
               child: Text(
                 'Heads Up sent${person.headsUpAt == null ? '' : ' · ${_relativeLong(person.headsUpAt!)}'}',
@@ -412,7 +422,7 @@ class _StatChip extends StatelessWidget {
 
     return Expanded(
       child: Container(
-        padding: EdgeInsets.all(Dimensions.twelve),
+        padding: const EdgeInsets.all(Dimensions.twelve),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(10),
@@ -457,7 +467,7 @@ class _RecentActivitySection extends GetView<CaregiverViewModel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Padding(
-          padding: EdgeInsets.only(
+          padding: const EdgeInsets.only(
             left: Dimensions.two,
             bottom: Dimensions.ten,
           ),
@@ -508,7 +518,7 @@ class _ActivityRow extends StatelessWidget {
     return SizedBox(
       height: 58,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen),
+        padding: const EdgeInsets.symmetric(horizontal: Dimensions.eighteen),
         child: Row(
           children: <Widget>[
             Icon(
@@ -518,7 +528,7 @@ class _ActivityRow extends StatelessWidget {
               size: 20,
               color: scheme.onSurface,
             ),
-            SizedBox(width: Dimensions.fourteen),
+            const SizedBox(width: Dimensions.fourteen),
             Expanded(
               child: Text(
                 '${event.personName.split(' ').first} · ${event.label}',
@@ -562,7 +572,7 @@ class _EmptyState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(Dimensions.twentyFour),
+        padding: const EdgeInsets.all(Dimensions.twentyFour),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           spacing: Dimensions.twelve,

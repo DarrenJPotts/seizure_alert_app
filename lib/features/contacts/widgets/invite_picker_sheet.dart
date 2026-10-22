@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -145,31 +146,31 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
             'Invite ${widget.contactName}',
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          SizedBox(height: Dimensions.four),
+          const SizedBox(height: Dimensions.four),
           Text(
             'This code expires 24 hours after generation. Reopen this invite to resend it.',
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+            ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
           ),
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               vertical: Dimensions.sixteen,
               horizontal: Dimensions.twenty,
             ),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.black12),
-              borderRadius: BorderRadius.circular(12),
+              border: context.designBorder,
+              borderRadius: BorderRadius.circular(context.design.cardRadius),
             ),
             child: _isLoadingCode || _isRegenerating
                 ? Center(
                     child: SizedBox(
                       width: Dimensions.twentyFour,
                       height: Dimensions.twentyFour,
-                      child: const CircularProgressIndicator(
-                        color: Colors.black,
+                      child: CircularProgressIndicator(
+                        color: context.ink,
                         strokeWidth: 2,
                       ),
                     ),
@@ -194,8 +195,8 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
                                 ?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 4,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
+                                  fontFeatures: [
+                                    const FontFeature.tabularFigures(),
                                   ],
                                 ),
                           ),
@@ -209,14 +210,14 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
                     ],
                   ),
           ),
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           Text(
             'Share or resend',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          SizedBox(height: Dimensions.twelve),
+          const SizedBox(height: Dimensions.twelve),
           _ChannelRow(
             icon: Icons.sms_outlined,
             label: 'Via SMS',
@@ -227,7 +228,7 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
               InviteService.sendSmsInvite(phone: widget.phone, code: _code!);
             },
           ),
-          SizedBox(height: Dimensions.twelve),
+          const SizedBox(height: Dimensions.twelve),
           _ChannelRow(
             icon: Icons.chat_bubble_outline_rounded,
             label: 'Via WhatsApp',
@@ -242,7 +243,7 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
             },
           ),
           if (widget.onRegenerate != null) ...[
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -260,12 +261,12 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
               ),
             ),
           ],
-          SizedBox(height: Dimensions.eight),
+          const SizedBox(height: Dimensions.eight),
           SizedBox(
             width: double.infinity,
             child: TextButton(
               onPressed: () => Get.back(),
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              style: TextButton.styleFrom(foregroundColor: context.ink),
               child: const Text('Done'),
             ),
           ),
@@ -291,12 +292,12 @@ class _ChannelRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: enabled ? onTap : null,
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(context.design.cardRadius),
     child: Container(
-      padding: EdgeInsets.all(Dimensions.sixteen),
+      padding: const EdgeInsets.all(Dimensions.sixteen),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
+        border: context.designBorder,
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       child: Row(
         children: [
@@ -305,20 +306,22 @@ class _ChannelRow extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.06),
+              color: context.ink.withValues(alpha: 0.06),
             ),
-            child: Icon(icon, size: 20, color: Colors.black54),
+            child: Icon(icon, size: 20, color: context.secondaryInk),
           ),
-          SizedBox(width: Dimensions.twelve),
+          const SizedBox(width: Dimensions.twelve),
           Expanded(
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: enabled ? Colors.black : Colors.black26,
+                color: enabled
+                    ? context.ink
+                    : context.ink.withValues(alpha: 0.26),
               ),
             ),
           ),
-          const Icon(Icons.chevron_right, color: Colors.black26),
+          Icon(Icons.chevron_right, color: context.ink.withValues(alpha: 0.26)),
         ],
       ),
     ),

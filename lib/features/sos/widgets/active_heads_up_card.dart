@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -11,10 +12,11 @@ class ActiveHeadsUpCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(Dimensions.sixteen),
+      padding: const EdgeInsets.all(Dimensions.sixteen),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
+        border: context.designBorder,
+        boxShadow: context.designShadows,
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       child: Row(
         children: [
@@ -34,9 +36,9 @@ class ActiveHeadsUpCard extends StatelessWidget {
                     children: [
                       Text(
                         'Expires in ${vm.formattedRemaining()}',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.secondaryInk,
+                        ),
                       ),
                       Text(
                         switch (vm.delivery.value) {
@@ -50,9 +52,9 @@ class ActiveHeadsUpCard extends StatelessWidget {
                           HeadsUpDelivery.failed =>
                             'At least one part did not save. Check with your circle before relying on this alert.',
                         },
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.secondaryInk,
+                        ),
                       ),
                     ],
                   ),
@@ -60,13 +62,13 @@ class ActiveHeadsUpCard extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(width: Dimensions.twelve),
+          const SizedBox(width: Dimensions.twelve),
           OutlinedButton(
             onPressed: vm.cancelHeadsUp,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black,
-              side: const BorderSide(color: Colors.black26),
-              padding: EdgeInsets.symmetric(
+              foregroundColor: context.ink,
+              side: BorderSide(color: context.ink.withValues(alpha: 0.26)),
+              padding: const EdgeInsets.symmetric(
                 horizontal: Dimensions.sixteen,
                 vertical: Dimensions.eight,
               ),

@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
@@ -7,14 +8,18 @@ class AppBottomSheet {
   static Future<T?> show<T>({
     required BuildContext context,
     required WidgetBuilder builder,
-    double radius = Dimensions.twentyFour,
+    double? radius,
   }) => showModalBottomSheet<T>(
     context: context,
-    backgroundColor: Colors.white,
+    backgroundColor: context.paper,
     useSafeArea: true,
     isScrollControlled: true,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(
+          radius ?? context.design.featureRadius + Dimensions.eight,
+        ),
+      ),
     ),
     builder: builder,
   );
@@ -29,7 +34,7 @@ class AppBottomSheetHandle extends StatelessWidget {
       width: Dimensions.thirtySix,
       height: 4,
       decoration: BoxDecoration(
-        color: Colors.black12,
+        color: context.ink.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(2),
       ),
     ),
@@ -48,41 +53,49 @@ class AppBottomSheetContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    // The keyboard already covers the navigation area. Reserve the larger
+    // obstruction rather than adding both and leaving a second empty strip.
+    final bottomInset = media.viewInsets.bottom > media.viewPadding.bottom
+        ? media.viewInsets.bottom
+        : media.viewPadding.bottom;
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Padding(
-            padding: EdgeInsets.only(top: Dimensions.twelve),
-            child: const AppBottomSheetHandle(),
-          ),
-          SizedBox(height: Dimensions.twelve),
-          Flexible(
-            child: scrollable
-                ? SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.twentyFour,
-                      0,
-                      Dimensions.twentyFour,
-                      Dimensions.twentyFour,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SafeArea(
+        top: false,
+        bottom: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.only(top: Dimensions.twelve),
+              child: AppBottomSheetHandle(),
+            ),
+            const SizedBox(height: Dimensions.twelve),
+            Flexible(
+              child: scrollable
+                  ? SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                        Dimensions.twentyFour,
+                        0,
+                        Dimensions.twentyFour,
+                        Dimensions.twentyFour,
+                      ),
+                      child: child,
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Dimensions.twentyFour,
+                        0,
+                        Dimensions.twentyFour,
+                        Dimensions.twentyFour,
+                      ),
+                      child: child,
                     ),
-                    child: child,
-                  )
-                : Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.twentyFour,
-                      0,
-                      Dimensions.twentyFour,
-                      Dimensions.twentyFour,
-                    ),
-                    child: child,
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
