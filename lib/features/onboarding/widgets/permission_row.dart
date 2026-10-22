@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
@@ -24,10 +25,10 @@ class PermissionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(Dimensions.sixteen),
+      padding: const EdgeInsets.all(Dimensions.sixteen),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
+        border: context.designBorder,
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       child: Row(
         children: [
@@ -36,11 +37,11 @@ class PermissionRow extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.06),
+              color: context.ink.withValues(alpha: 0.06),
             ),
-            child: Icon(icon, size: 20, color: Colors.black54),
+            child: Icon(icon, size: 20, color: context.secondaryInk),
           ),
-          SizedBox(width: Dimensions.twelve),
+          const SizedBox(width: Dimensions.twelve),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,20 +52,20 @@ class PermissionRow extends StatelessWidget {
                   description,
                   style: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
                 ),
               ],
             ),
           ),
-          SizedBox(width: Dimensions.twelve),
+          const SizedBox(width: Dimensions.twelve),
           if (granted)
-            const Icon(Icons.check_circle, size: 20, color: Colors.black54)
+            Icon(Icons.check_circle, size: 20, color: context.secondaryInk)
           else
             OutlinedButton(
               onPressed: onTap,
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.black,
-                side: const BorderSide(color: Colors.black26),
+                foregroundColor: context.ink,
+                side: BorderSide(color: context.ink.withValues(alpha: 0.26)),
                 padding: const EdgeInsets.symmetric(
                   horizontal: Dimensions.twelve,
                   vertical: Dimensions.eight,

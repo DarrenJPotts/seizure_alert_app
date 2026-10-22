@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -12,7 +13,7 @@ class OnboardingStepConsent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-    padding: EdgeInsets.fromLTRB(
+    padding: const EdgeInsets.fromLTRB(
       Dimensions.twentyFour,
       Dimensions.thirtyTwo,
       Dimensions.twentyFour,
@@ -29,7 +30,7 @@ class OnboardingStepConsent extends StatelessWidget {
             letterSpacing: -0.4,
           ),
         ),
-        SizedBox(height: Dimensions.twelve),
+        const SizedBox(height: Dimensions.twelve),
         Text(
           'Seizure Alert stores health information about you and shares it with '
           'the emergency contacts you choose. South African law requires your '
@@ -37,23 +38,23 @@ class OnboardingStepConsent extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             fontSize: 15,
             height: 1.55,
-            color: Colors.black54,
+            color: context.secondaryInk,
           ),
         ),
-        SizedBox(height: Dimensions.twentyFour),
+        const SizedBox(height: Dimensions.twentyFour),
         const _WhatThisMeans(),
-        SizedBox(height: Dimensions.twentyFour),
+        const SizedBox(height: Dimensions.twentyFour),
         Obx(
           () => _ConsentCheckbox(
             value: vm.privacyConsentGiven.value,
             onChanged: vm.setPrivacyConsent,
           ),
         ),
-        SizedBox(height: Dimensions.twelve),
+        const SizedBox(height: Dimensions.twelve),
         TextButton(
           onPressed: () => PrivacyNoticeSheet.show(context),
           style: TextButton.styleFrom(
-            foregroundColor: Colors.black,
+            foregroundColor: context.ink,
             padding: EdgeInsets.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
@@ -90,22 +91,22 @@ class _WhatThisMeans extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(Dimensions.eighteen),
+    padding: const EdgeInsets.all(Dimensions.eighteen),
     decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-      borderRadius: BorderRadius.circular(16),
+      color: context.paper,
+      border: context.designBorder,
+      borderRadius: BorderRadius.circular(context.design.featureRadius),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         for (int i = 0; i < _points.length; i++) ...<Widget>[
-          if (i > 0) SizedBox(height: Dimensions.fourteen),
+          if (i > 0) const SizedBox(height: Dimensions.fourteen),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Icon(_points[i].icon, size: 20, color: Colors.black),
-              SizedBox(width: Dimensions.fourteen),
+              Icon(_points[i].icon, size: 20, color: context.ink),
+              const SizedBox(width: Dimensions.fourteen),
               Expanded(
                 child: Text(
                   _points[i].text,
@@ -135,9 +136,9 @@ class _ConsentCheckbox extends StatelessWidget {
     child: ExcludeSemantics(
       child: InkWell(
         onTap: () => onChanged(!value),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: Dimensions.four),
+          padding: const EdgeInsets.symmetric(vertical: Dimensions.four),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -147,20 +148,20 @@ class _ConsentCheckbox extends StatelessWidget {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: value ? Colors.black : Colors.white,
+                  color: value ? context.ink : context.paper,
                   border: value
                       ? null
                       : Border.all(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: context.ink.withValues(alpha: 0.3),
                           width: 1.5,
                         ),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: value
-                    ? const Icon(Icons.check, size: 18, color: Colors.white)
+                    ? Icon(Icons.check, size: 18, color: context.paper)
                     : null,
               ),
-              SizedBox(width: Dimensions.fourteen),
+              const SizedBox(width: Dimensions.fourteen),
               Expanded(
                 child: Text(
                   PrivacyNotice.consentSummary,

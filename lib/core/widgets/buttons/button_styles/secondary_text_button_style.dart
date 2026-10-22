@@ -1,6 +1,6 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_utils/src/extensions/context_extensions.dart';
-import 'package:seizure_app/core/constants/dimensions.dart';
 
 import 'base_button_style.dart';
 
@@ -8,20 +8,20 @@ final class SecondaryTextButtonStyle extends BaseButtonStyle {
   SecondaryTextButtonStyle({required this.context})
     : super(
         buttonColor: Colors.transparent,
-        textColor: Colors.black54,
-        borderRadius: BorderRadius.circular(Dimensions.eight),
+        textColor: context.secondaryInk,
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
         borderColor: Colors.transparent,
         padding: EdgeInsets.zero,
         textAlign: TextAlign.center,
         maxLines: 3,
-        loaderColor: Colors.black54,
-        loaderBackgroundColor: Colors.black12,
+        loaderColor: context.secondaryInk,
+        loaderBackgroundColor: context.ink.withValues(alpha: 0.12),
         disabledColor: Colors.transparent,
-        disabledLoaderColor: Colors.black26,
-        disabledLoaderBackgroundColor: Colors.black12,
-        textStyle: context.textTheme.bodyLarge!.copyWith(color: Colors.black),
+        disabledLoaderColor: context.ink.withValues(alpha: 0.26),
+        disabledLoaderBackgroundColor: context.ink.withValues(alpha: 0.12),
+        textStyle: context.textTheme.bodyLarge!.copyWith(color: context.ink),
         disabledTextStyle: context.textTheme.bodyLarge!.copyWith(
-          color: Colors.black,
+          color: context.ink,
         ),
         borderWidth: 2,
         borderHoverWidth: 1,
@@ -29,7 +29,7 @@ final class SecondaryTextButtonStyle extends BaseButtonStyle {
         loaderHeight: 24,
         textOverflow: TextOverflow.ellipsis,
         disabledBorderColor: Colors.transparent,
-        hoverColor: Colors.black.withValues(alpha: 0.06),
+        hoverColor: context.ink.withValues(alpha: 0.06),
         disabledHoverColor: Colors.transparent,
       );
 

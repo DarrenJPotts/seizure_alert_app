@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/widgets/live_indicator.dart';
@@ -9,10 +10,10 @@ class StatusCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(Dimensions.twenty),
+    padding: const EdgeInsets.all(Dimensions.twenty),
     decoration: BoxDecoration(
-      color: Colors.black,
-      borderRadius: BorderRadius.circular(16),
+      color: context.heroSurface,
+      borderRadius: BorderRadius.circular(context.design.featureRadius),
     ),
     child: Row(
       children: [
@@ -24,27 +25,27 @@ class StatusCardWidget extends StatelessWidget {
               Text(
                 'STATUS',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white54,
+                  color: context.heroInk.withValues(alpha: 0.54),
                   letterSpacing: 1.2,
                 ),
               ),
               Text(
                 'Monitoring Active',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
+                  color: context.heroInk,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 _contactsLabel,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.white60),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: context.heroInk.withValues(alpha: 0.6),
+                ),
               ),
             ],
           ),
         ),
-        const LiveIndicator(size: 14, color: Colors.white),
+        LiveIndicator(size: 14, color: context.heroInk),
       ],
     ),
   );

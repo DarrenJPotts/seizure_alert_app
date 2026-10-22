@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get_utils/src/extensions/context_extensions.dart';
@@ -18,7 +19,7 @@ class AlertMapWidget extends StatelessWidget {
     final point = LatLng(latitude, longitude);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(context.design.cardRadius),
       child: FlutterMap(
         options: MapOptions(
           initialCenter: point,
@@ -41,8 +42,8 @@ class AlertMapWidget extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.black,
-                    border: Border.all(color: Colors.white, width: 2.5),
+                    color: context.ink,
+                    border: Border.all(color: context.paper, width: 2.5),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.35),
@@ -56,10 +57,11 @@ class AlertMapWidget extends StatelessWidget {
             ],
           ),
           SimpleAttributionWidget(
+            backgroundColor: context.paper,
             source: Text(
               '© OpenStreetMap contributors',
               style: context.theme.textTheme.labelSmall?.copyWith(
-                color: Colors.black45,
+                color: context.secondaryInk,
               ),
             ),
           ),
@@ -76,24 +78,24 @@ class AlertMapPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.black.withValues(alpha: 0.03),
+        border: context.designBorder,
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
+        color: context.ink.withValues(alpha: 0.03),
       ),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           spacing: 8,
           children: [
-            const Icon(
+            Icon(
               Icons.location_off_outlined,
-              color: Colors.black26,
+              color: context.ink.withValues(alpha: 0.26),
               size: 28,
             ),
             Text(
               'Location unavailable',
               style: context.theme.textTheme.bodySmall?.copyWith(
-                color: Colors.black38,
+                color: context.ink.withValues(alpha: 0.38),
               ),
             ),
           ],

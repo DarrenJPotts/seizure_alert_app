@@ -4,6 +4,7 @@ import '../constants/dimensions.dart';
 import 'color_schemes.dart';
 import 'colors/dark_colors.dart';
 import 'colors/light_colors.dart';
+import 'app_design.dart';
 
 abstract class AppTheme {
   static const String fontFamily = 'RedHatDisplay';
@@ -18,23 +19,51 @@ abstract class AppTheme {
 
   static const double _disabledOpacity = 0x61 / 255;
 
-  static final ThemeData lightTheme = _build(
-    AppColorSchemes.light,
-    _textTheme(
-      primary: AppColorsLight.textPrimary,
-      secondary: AppColorsLight.textSecondary,
-    ),
-  );
+  static final ThemeData lightTheme = lightFor(AppDesign.defaultStyle);
+  static final ThemeData darkTheme = darkFor(AppDesign.defaultStyle);
+  static final Map<(AppDesignStyle, Brightness), ThemeData> _cache = {};
 
-  static final ThemeData darkTheme = _build(
-    AppColorSchemes.dark,
-    _textTheme(
-      primary: AppColorsDark.textPrimary,
-      secondary: AppColorsDark.textSecondary,
-    ),
-  );
+  static ThemeData lightFor(AppDesignStyle style) =>
+      _for(style, Brightness.light);
+  static ThemeData darkFor(AppDesignStyle style) =>
+      _for(style, Brightness.dark);
 
-  static ThemeData _build(ColorScheme colorScheme, TextTheme textTheme) {
+  static ThemeData _for(AppDesignStyle style, Brightness brightness) =>
+      _cache.putIfAbsent((style, brightness), () {
+        final dark = brightness == Brightness.dark;
+        final design = AppDesign(style);
+        var scheme = dark ? AppColorSchemes.dark : AppColorSchemes.light;
+        if (design.raisedSurfaces) {
+          scheme = scheme.copyWith(
+            primary: dark ? const Color(0xFFF4F4F4) : const Color(0xFF303030),
+            onPrimary: dark ? const Color(0xFF252525) : Colors.white,
+          );
+        }
+        return _build(
+          scheme,
+          design.applyTypography(
+            _textTheme(
+              primary: dark
+                  ? AppColorsDark.textPrimary
+                  : AppColorsLight.textPrimary,
+              secondary: dark
+                  ? AppColorsDark.textSecondary
+                  : AppColorsLight.textSecondary,
+            ),
+          ),
+          design,
+        );
+      });
+
+  static ThemeData _build(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    AppDesign design,
+  ) {
+    final radiusStandard = design.cardRadius;
+    final radiusFeature = design.featureRadius;
+    final radiusOutlinedButton = design.cardRadius;
+    final radiusSheet = design.featureRadius + Dimensions.eight;
     final Color disabled = colorScheme.onSurface.withValues(
       alpha: _disabledOpacity,
     );
@@ -44,12 +73,13 @@ abstract class AppTheme {
       brightness: colorScheme.brightness,
       colorScheme: colorScheme,
       textTheme: textTheme,
+      extensions: [design],
       fontFamily: fontFamily,
-      scaffoldBackgroundColor: colorScheme.surface,
+      scaffoldBackgroundColor: design.pageSurface(colorScheme),
       iconTheme: IconThemeData(color: colorScheme.onSurface),
 
       appBarTheme: AppBarThemeData(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: design.pageSurface(colorScheme),
         foregroundColor: colorScheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -61,13 +91,19 @@ abstract class AppTheme {
       ),
 
       cardTheme: CardThemeData(
-        color: colorScheme.surface,
+        color: design.panelSurface(colorScheme),
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation: design.raisedSurfaces ? 2 : 0,
+        shadowColor: Colors.black.withValues(alpha: 0.12),
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusStandard),
-          side: BorderSide(color: colorScheme.outlineVariant),
+          side: BorderSide(
+            color: colorScheme.onSurface.withValues(
+              alpha: design.borderOpacity,
+            ),
+            width: design.borderWidth,
+          ),
         ),
       ),
 
@@ -166,12 +202,33 @@ abstract class AppTheme {
           horizontal: Dimensions.sixteen,
           vertical: Dimensions.fourteen,
         ),
-        border: _inputBorder(colorScheme.outlineVariant),
-        enabledBorder: _inputBorder(colorScheme.outlineVariant),
-        disabledBorder: _inputBorder(colorScheme.outlineVariant),
-        focusedBorder: _inputBorder(colorScheme.onSurface, width: 1.5),
-        errorBorder: _inputBorder(colorScheme.error, width: 1.5),
-        focusedErrorBorder: _inputBorder(colorScheme.error, width: 1.5),
+        border: _inputBorder(
+          colorScheme.outlineVariant,
+          radius: radiusStandard,
+        ),
+        enabledBorder: _inputBorder(
+          colorScheme.outlineVariant,
+          radius: radiusStandard,
+        ),
+        disabledBorder: _inputBorder(
+          colorScheme.outlineVariant,
+          radius: radiusStandard,
+        ),
+        focusedBorder: _inputBorder(
+          colorScheme.onSurface,
+          width: 1.5,
+          radius: radiusStandard,
+        ),
+        errorBorder: _inputBorder(
+          colorScheme.error,
+          width: 1.5,
+          radius: radiusStandard,
+        ),
+        focusedErrorBorder: _inputBorder(
+          colorScheme.error,
+          width: 1.5,
+          radius: radiusStandard,
+        ),
         labelStyle: textTheme.bodyMedium?.copyWith(
           color: colorScheme.onSurfaceVariant,
         ),
@@ -294,11 +351,14 @@ abstract class AppTheme {
     );
   }
 
-  static OutlineInputBorder _inputBorder(Color color, {double width = 1}) =>
-      OutlineInputBorder(
-        borderRadius: BorderRadius.circular(radiusStandard),
-        borderSide: BorderSide(color: color, width: width),
-      );
+  static OutlineInputBorder _inputBorder(
+    Color color, {
+    double width = 1,
+    double radius = radiusStandard,
+  }) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(radius),
+    borderSide: BorderSide(color: color, width: width),
+  );
 
   static TextTheme _textTheme({
     required Color primary,
@@ -307,49 +367,55 @@ abstract class AppTheme {
     displayLarge: TextStyle(
       fontFamily: fontFamily,
       fontSize: 96,
-      fontWeight: FontWeight.w300,
+      fontWeight: FontWeight.w700,
+      height: 1,
       color: primary,
     ),
     displayMedium: TextStyle(
       fontFamily: fontFamily,
       fontSize: 60,
-      fontWeight: FontWeight.w300,
+      fontWeight: FontWeight.w700,
+      height: 1,
       color: primary,
     ),
     displaySmall: TextStyle(
       fontFamily: fontFamily,
       fontSize: 48,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w700,
+      height: 1,
       color: primary,
     ),
     headlineLarge: TextStyle(
       fontFamily: fontFamily,
       fontSize: 34,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.8,
       color: primary,
     ),
     headlineMedium: TextStyle(
       fontFamily: fontFamily,
       fontSize: 24,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.5,
       color: primary,
     ),
     headlineSmall: TextStyle(
       fontFamily: fontFamily,
       fontSize: 20,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.3,
       color: primary,
     ),
     titleLarge: TextStyle(
       fontFamily: fontFamily,
       fontSize: 18,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w700,
       color: primary,
     ),
     titleMedium: TextStyle(
       fontFamily: fontFamily,
       fontSize: 16,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w700,
       color: primary,
     ),
     titleSmall: TextStyle(
@@ -390,7 +456,7 @@ abstract class AppTheme {
     ),
     labelSmall: TextStyle(
       fontFamily: fontFamily,
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: FontWeight.w400,
       color: secondary,
     ),

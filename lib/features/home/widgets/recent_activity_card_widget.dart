@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_utils/src/extensions/context_extensions.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -19,15 +20,16 @@ class RecentActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(Dimensions.sixteen),
+      padding: const EdgeInsets.all(Dimensions.sixteen),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
+        border: context.designBorder,
+        boxShadow: context.designShadows,
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       child: Row(
         children: [
-          Icon(Icons.history, size: 20, color: Colors.black45),
-          SizedBox(width: Dimensions.twelve),
+          Icon(Icons.history, size: 20, color: context.secondaryInk),
+          const SizedBox(width: Dimensions.twelve),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +38,7 @@ class RecentActivityCard extends StatelessWidget {
                 Text(
                   'Last alert sent',
                   style: context.theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.black45,
+                    color: context.secondaryInk,
                   ),
                 ),
                 Text(label, style: context.theme.textTheme.bodyMedium),

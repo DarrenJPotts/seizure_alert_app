@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -9,35 +10,35 @@ class CircleInviteView extends GetView<CircleInviteViewModel> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.paper,
     appBar: AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: context.paper,
       elevation: 0,
-      foregroundColor: Colors.black,
+      foregroundColor: context.ink,
     ),
     body: Obx(() {
       final invite = controller.preview.value;
       return Padding(
-        padding: EdgeInsets.all(Dimensions.twentyFour),
+        padding: const EdgeInsets.all(Dimensions.twentyFour),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.group_add_outlined, size: 44, color: Colors.black),
-            SizedBox(height: Dimensions.twentyFour),
+            Icon(Icons.group_add_outlined, size: 44, color: context.ink),
+            const SizedBox(height: Dimensions.twentyFour),
             Text(
               'Enter invite code',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
             Text(
               'Enter the 8-digit code shared with you to join someone’s circle.',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              ).textTheme.bodyMedium?.copyWith(color: context.secondaryInk),
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
             TextField(
               controller: controller.codeController,
               textCapitalization: TextCapitalization.characters,
@@ -59,7 +60,7 @@ class CircleInviteView extends GetView<CircleInviteViewModel> {
               },
             ),
             if (controller.errorMessage.value != null) ...[
-              SizedBox(height: Dimensions.eight),
+              const SizedBox(height: Dimensions.eight),
               Text(
                 controller.errorMessage.value!,
                 style: Theme.of(
@@ -68,25 +69,29 @@ class CircleInviteView extends GetView<CircleInviteViewModel> {
               ),
             ],
             if (invite != null) ...[
-              SizedBox(height: Dimensions.twentyFour),
+              const SizedBox(height: Dimensions.twentyFour),
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.all(Dimensions.sixteen),
+                padding: const EdgeInsets.all(Dimensions.sixteen),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black12),
-                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: context.ink.withValues(alpha: 0.12),
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    context.design.cardRadius,
+                  ),
                 ),
                 child: Text(
                   '${invite.senderName} invited you to join their circle as ${invite.contactName}.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
-              SizedBox(height: Dimensions.twelve),
+              const SizedBox(height: Dimensions.twelve),
               Text(
                 'If you accept, you can receive their SOS and Heads Up alerts.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
               ),
             ],
             const Spacer(),
@@ -98,15 +103,19 @@ class CircleInviteView extends GetView<CircleInviteViewModel> {
                       ? null
                       : controller.lookUpCode,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                    backgroundColor: context.ink,
+                    foregroundColor: context.paper,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: Dimensions.sixteen,
+                    ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        context.design.cardRadius,
+                      ),
                     ),
                   ),
                   child: controller.isLoading.value
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? CircularProgressIndicator(color: context.paper)
                       : const Text('Continue'),
                 ),
               )
@@ -118,26 +127,30 @@ class CircleInviteView extends GetView<CircleInviteViewModel> {
                       ? null
                       : () => controller.respond(true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                    backgroundColor: context.ink,
+                    foregroundColor: context.paper,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: Dimensions.sixteen,
+                    ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        context.design.cardRadius,
+                      ),
                     ),
                   ),
                   child: controller.isResponding.value
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: context.paper,
                             strokeWidth: 2,
                           ),
                         )
                       : const Text('Accept'),
                 ),
               ),
-              SizedBox(height: Dimensions.twelve),
+              const SizedBox(height: Dimensions.twelve),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
@@ -145,19 +158,23 @@ class CircleInviteView extends GetView<CircleInviteViewModel> {
                       ? null
                       : () => controller.respond(false),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    side: const BorderSide(color: Colors.black26),
-                    padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                    foregroundColor: context.ink,
+                    side: BorderSide(
+                      color: context.ink.withValues(alpha: 0.26),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: Dimensions.sixteen,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   child: controller.isResponding.value
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.black,
+                            color: context.ink,
                             strokeWidth: 2,
                           ),
                         )

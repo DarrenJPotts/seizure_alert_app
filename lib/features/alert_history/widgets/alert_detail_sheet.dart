@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -34,15 +35,15 @@ class AlertDetailSheet extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.black.withValues(alpha: 0.06),
+                  color: context.ink.withValues(alpha: 0.06),
                 ),
                 child: Icon(
                   alertIconForType(alert.type),
                   size: 22,
-                  color: Colors.black54,
+                  color: context.secondaryInk,
                 ),
               ),
-              SizedBox(width: Dimensions.twelve),
+              const SizedBox(width: Dimensions.twelve),
               Expanded(
                 child: Text(
                   alertLabelForType(alert.type),
@@ -55,22 +56,22 @@ class AlertDetailSheet extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.06),
+                  color: context.ink.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   alertLabelForStatus(alert.status),
                   style: Theme.of(
                     context,
-                  ).textTheme.labelSmall?.copyWith(color: Colors.black54),
+                  ).textTheme.labelSmall?.copyWith(color: context.secondaryInk),
                 ),
               ),
             ],
           ),
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           _DetailRow(label: 'Sent', value: formatAlertDate(alert.createdAt)),
           if (alert.resolvedAt != null) ...[
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             _DetailRow(
               label: alert.status == AlertStatus.cancelled
                   ? 'Cancelled'
@@ -79,15 +80,15 @@ class AlertDetailSheet extends StatelessWidget {
             ),
           ],
           if (alert.message != null && alert.message!.isNotEmpty) ...[
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             _DetailRow(label: 'Note', value: alert.message!),
           ],
           if (alert.locationLabel != null &&
               alert.locationLabel!.isNotEmpty) ...[
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             _DetailRow(label: 'Location', value: alert.locationLabel!),
           ],
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           SizedBox(
             height: 180,
             width: double.infinity,
@@ -98,9 +99,11 @@ class AlertDetailSheet extends StatelessWidget {
                   )
                 : const AlertMapPlaceholder(),
           ),
-          SizedBox(height: Dimensions.twentyFour),
-          AlertResponsesWidget(alertId: alert.id),
-          SizedBox(height: Dimensions.twentyFour),
+          AlertResponsesWidget(
+            alertId: alert.id,
+            spacingBefore: Dimensions.twentyFour,
+          ),
+          const SizedBox(height: Dimensions.twentyFour),
         ],
       ),
     );
@@ -124,7 +127,7 @@ class _DetailRow extends StatelessWidget {
             label,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+            ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
           ),
         ),
         Expanded(

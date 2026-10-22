@@ -1,3 +1,6 @@
+import 'package:seizure_app/core/widgets/appearance_sheet.dart';
+import 'package:seizure_app/core/widgets/design_style_sheet.dart';
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -26,9 +29,7 @@ class ProfileView extends GetView<ProfileViewModel> {
 
     if (state == GenericScreenStates.loading ||
         state == GenericScreenStates.initial) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.black),
-      );
+      return Center(child: CircularProgressIndicator(color: context.ink));
     }
 
     if (state == GenericScreenStates.error || controller.user.value == null) {
@@ -37,7 +38,7 @@ class ProfileView extends GetView<ProfileViewModel> {
         message: controller.errorMessage.value ?? 'Something went wrong',
         action: TextButton(
           onPressed: controller.fetchProfile,
-          style: TextButton.styleFrom(foregroundColor: Colors.black),
+          style: TextButton.styleFrom(foregroundColor: context.ink),
           child: const Text('Retry'),
         ),
       );
@@ -51,7 +52,7 @@ class ProfileView extends GetView<ProfileViewModel> {
         const SettingsScreenHeader(title: 'Profile'),
         Expanded(
           child: ListView(
-            padding: EdgeInsets.fromLTRB(
+            padding: const EdgeInsets.fromLTRB(
               Dimensions.twenty,
               Dimensions.twentyTwo,
               Dimensions.twenty,
@@ -59,14 +60,16 @@ class ProfileView extends GetView<ProfileViewModel> {
             ),
             children: <Widget>[
               _IdentityCard(user: user),
-              SizedBox(height: Dimensions.twentySix),
+              const SizedBox(height: Dimensions.twentySix),
               _ContactSection(user: user),
-              SizedBox(height: Dimensions.twentySix),
+              const SizedBox(height: Dimensions.twentySix),
               _MedicalSection(user: user),
-              SizedBox(height: Dimensions.twentySix),
+              const SizedBox(height: Dimensions.twentySix),
               const _SettingsSection(),
-              SizedBox(height: Dimensions.twentySix),
+              const SizedBox(height: Dimensions.twentySix),
               const _DangerSection(),
+              const SizedBox(height: Dimensions.twentyFour),
+              const DesignVersionFooter(),
             ],
           ),
         ),
@@ -82,34 +85,32 @@ class _IdentityCard extends GetView<ProfileViewModel> {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(
+    padding: const EdgeInsets.symmetric(
       vertical: Dimensions.twentyFour,
       horizontal: Dimensions.twenty,
     ),
     decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-      borderRadius: BorderRadius.circular(16),
+      color: context.paper,
+      border: context.designBorder,
+      boxShadow: context.designShadows,
+      borderRadius: BorderRadius.circular(context.design.featureRadius),
     ),
     child: Column(
       children: <Widget>[
         Container(
           width: 72,
           height: 72,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black,
-          ),
+          decoration: BoxDecoration(shape: BoxShape.circle, color: context.ink),
           alignment: Alignment.center,
           child: Text(
             _initials(user.displayName),
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
+              color: context.paper,
               fontWeight: FontWeight.w700,
             ),
           ),
         ),
-        SizedBox(height: Dimensions.fourteen),
+        const SizedBox(height: Dimensions.fourteen),
         Text(
           user.displayName ?? 'No name',
           textAlign: TextAlign.center,
@@ -118,15 +119,15 @@ class _IdentityCard extends GetView<ProfileViewModel> {
             letterSpacing: -0.2,
           ),
         ),
-        SizedBox(height: Dimensions.two),
+        const SizedBox(height: Dimensions.two),
         Text(
           user.email,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: Colors.black.withValues(alpha: 0.45),
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(color: context.secondaryInk),
         ),
-        SizedBox(height: Dimensions.fourteen),
+        const SizedBox(height: Dimensions.fourteen),
         OutlinedButton.icon(
           onPressed: () => EditProfileBottomSheet.show(
             user: controller.user.value,
@@ -135,9 +136,9 @@ class _IdentityCard extends GetView<ProfileViewModel> {
           icon: const Icon(Icons.edit_outlined, size: 16),
           label: const Text('Edit profile'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.black,
-            side: BorderSide(color: Colors.black.withValues(alpha: 0.2)),
-            padding: EdgeInsets.symmetric(
+            foregroundColor: context.ink,
+            side: BorderSide(color: context.ink.withValues(alpha: 0.2)),
+            padding: const EdgeInsets.symmetric(
               horizontal: Dimensions.eighteen,
               vertical: Dimensions.ten,
             ),
@@ -253,15 +254,15 @@ class _MedicalSection extends StatelessWidget {
           ),
         ],
       ),
-      SizedBox(height: Dimensions.ten),
+      const SizedBox(height: Dimensions.ten),
       Padding(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.two),
+        padding: const EdgeInsets.symmetric(horizontal: Dimensions.two),
         child: Text(
           'Your circle sees this during an SOS. Use the emergency note for first-responder information and the safety plan for caregiver instructions.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             fontSize: 13,
             height: 1.5,
-            color: Colors.black.withValues(alpha: 0.45),
+            color: context.secondaryInk,
           ),
         ),
       ),
@@ -277,6 +278,7 @@ class _SettingsSection extends GetView<ProfileViewModel> {
     () => SettingsSection(
       label: 'Settings',
       children: <Widget>[
+        const AppearanceSettingsRow(),
         SettingsNavRow(
           icon: Icons.shield_outlined,
           title: 'Mode',
@@ -293,7 +295,7 @@ class _SettingsSection extends GetView<ProfileViewModel> {
           value: controller.notificationsLabel,
           valueColor: controller.notificationsEnabled.value
               ? null
-              : Colors.black54,
+              : context.secondaryInk,
           loading: controller.isRequestingNotifications.value,
           onTap: controller.requestNotifications,
         ),
@@ -303,7 +305,9 @@ class _SettingsSection extends GetView<ProfileViewModel> {
               : Icons.location_off_outlined,
           label: 'Location',
           value: controller.locationLabel,
-          valueColor: controller.locationEnabled.value ? null : Colors.black54,
+          valueColor: controller.locationEnabled.value
+              ? null
+              : context.secondaryInk,
           loading: controller.isRequestingLocation.value,
           onTap: controller.requestLocation,
         ),

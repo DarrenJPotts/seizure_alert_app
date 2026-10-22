@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
@@ -25,10 +26,10 @@ class ContactCard extends StatelessWidget {
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: Dimensions.twentyFour),
+        padding: const EdgeInsets.only(right: Dimensions.twentyFour),
         decoration: BoxDecoration(
           color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(context.design.cardRadius),
         ),
         child: Icon(Icons.delete_outline, color: Colors.red.shade400),
       ),
@@ -36,78 +37,86 @@ class ContactCard extends StatelessWidget {
       onDismissed: (_) => onDelete(),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
         child: Container(
-          padding: EdgeInsets.all(Dimensions.sixteen),
+          padding: const EdgeInsets.all(Dimensions.sixteen),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.black12),
-            borderRadius: BorderRadius.circular(12),
+            color: context.cardSurface,
+            border: context.designBorder,
+            boxShadow: context.designShadows,
+            borderRadius: BorderRadius.circular(context.design.cardRadius),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: Colors.black,
+                backgroundColor: context.ink,
                 child: Text(
                   contact.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.paper,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              SizedBox(width: Dimensions.twelve),
+              const SizedBox(width: Dimensions.twelve),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: Dimensions.four,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            contact.name,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (contact.status == ContactStatus.pending ||
-                            contact.inviteStatus != null ||
-                            contact.linkedUid != null) ...[
-                          SizedBox(width: Dimensions.eight),
-                          _InviteStatusBadge(contact: contact),
-                        ],
-                      ],
+                    Text(
+                      contact.name,
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
+                    if (contact.status == ContactStatus.pending ||
+                        contact.inviteStatus == 'pending' ||
+                        contact.inviteStatus == 'declined' ||
+                        contact.linkedUid?.isNotEmpty == true)
+                      _InviteStatusBadge(contact: contact),
                     Text(
                       _subtitle,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.secondaryInk,
+                      ),
                     ),
+                    if (contact.linkedUid?.isNotEmpty != true)
+                      Wrap(
+                        spacing: Dimensions.four,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (contact.linkedUid == null ||
+                              contact.linkedUid!.isEmpty)
+                            Tooltip(
+                              message: _inviteTooltip,
+                              child: TextButton.icon(
+                                onPressed: isInviting ? null : onInvite,
+                                icon: isInviting
+                                    ? SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          color: context.ink,
+                                          strokeWidth: 1.5,
+                                        ),
+                                      )
+                                    : Icon(_inviteIcon, size: 16),
+                                label: Text(
+                                  isInviting ? 'Loading…' : _inviteActionLabel,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
-              _NotifyIcons(contact: contact),
-              SizedBox(width: Dimensions.four),
-              if (contact.linkedUid == null || contact.linkedUid!.isEmpty)
-                Tooltip(
-                  message: _inviteTooltip,
-                  child: TextButton.icon(
-                    onPressed: isInviting ? null : onInvite,
-                    icon: isInviting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              color: Colors.black,
-                              strokeWidth: 1.5,
-                            ),
-                          )
-                        : Icon(_inviteIcon, size: 16),
-                    label: Text(isInviting ? 'Loading…' : _inviteActionLabel),
-                  ),
-                ),
+              const SizedBox(width: Dimensions.eight),
+              Padding(
+                padding: const EdgeInsets.only(top: Dimensions.four),
+                child: _NotifyIcons(contact: contact),
+              ),
             ],
           ),
         ),
@@ -197,16 +206,19 @@ class _InviteStatusBadge extends StatelessWidget {
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: Dimensions.eight, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Dimensions.eight,
+        vertical: 2,
+      ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.06),
+        color: context.ink.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
         style: Theme.of(
           context,
-        ).textTheme.labelSmall?.copyWith(color: Colors.black54),
+        ).textTheme.labelSmall?.copyWith(color: context.secondaryInk),
       ),
     );
   }
@@ -225,11 +237,11 @@ class _NotifyIcons extends StatelessWidget {
         Tooltip(
           message: 'Push alerts on',
           child: Padding(
-            padding: EdgeInsets.only(left: Dimensions.four),
+            padding: const EdgeInsets.only(left: Dimensions.four),
             child: Icon(
               Icons.notifications_outlined,
               size: 16,
-              color: Colors.black38,
+              color: context.ink.withValues(alpha: 0.38),
             ),
           ),
         ),

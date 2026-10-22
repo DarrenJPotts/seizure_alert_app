@@ -62,7 +62,7 @@ class _ModeBadgeState extends State<ModeBadge> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 140),
                 curve: Curves.easeInOut,
-                padding: EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: Dimensions.ten,
                   vertical: Dimensions.six,
                 ),
@@ -94,7 +94,7 @@ class _ModeBadgeState extends State<ModeBadge> {
                             ? scheme.onInverseSurface
                             : scheme.onSurface,
                       ),
-                    SizedBox(width: Dimensions.six),
+                    const SizedBox(width: Dimensions.six),
                     Text(
                       currentMode.toUpperCase(),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(

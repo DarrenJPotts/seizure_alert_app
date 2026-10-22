@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/seizure_log_dto.dart';
@@ -31,17 +32,20 @@ class SeizureCalendarSummary extends StatelessWidget {
     ];
 
     return Container(
-      padding: EdgeInsets.all(Dimensions.sixteen),
+      padding: const EdgeInsets.all(Dimensions.sixteen),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black12),
+        color: context.paper,
+        border: context.designBorder,
+        boxShadow: context.designShadows,
         borderRadius: BorderRadius.circular(Dimensions.twelve),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: Dimensions.twelve,
+            runSpacing: Dimensions.eight,
             children: <Widget>[
               Text(
                 _monthLabel(now),
@@ -51,17 +55,17 @@ class SeizureCalendarSummary extends StatelessWidget {
                 '${counts.values.fold<int>(0, (int a, int b) => a + b)} events',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
               ),
             ],
           ),
-          SizedBox(height: Dimensions.twelve),
+          const SizedBox(height: Dimensions.twelve),
           GridView.count(
             crossAxisCount: 7,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: <Widget>[
-              for (final String day in const <String>[
+              for (final String day in <String>[
                 'M',
                 'T',
                 'W',
@@ -73,22 +77,22 @@ class SeizureCalendarSummary extends StatelessWidget {
                 Center(
                   child: Text(
                     day,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelSmall?.copyWith(color: Colors.black45),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: context.secondaryInk,
+                    ),
                   ),
                 ),
               ...cells,
             ],
           ),
-          SizedBox(height: Dimensions.twelve),
+          const SizedBox(height: Dimensions.twelve),
           _TrendLine(logs: logs),
         ],
       ),
     );
   }
 
-  String _monthLabel(DateTime date) => const <String>[
+  String _monthLabel(DateTime date) => <String>[
     'January',
     'February',
     'March',
@@ -126,15 +130,15 @@ class _DayCell extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: count > 0 ? Colors.black : Colors.transparent,
+            color: count > 0 ? context.ink : Colors.transparent,
             border: isToday && count == 0
-                ? Border.all(color: Colors.black)
+                ? Border.all(color: context.ink)
                 : null,
           ),
           child: Text(
             '$day',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: count > 0 ? Colors.white : Colors.black54,
+              color: count > 0 ? context.paper : context.secondaryInk,
               fontWeight: count > 0 ? FontWeight.w700 : FontWeight.w400,
             ),
           ),
@@ -209,12 +213,12 @@ class _Metric extends StatelessWidget {
           context,
         ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
-      SizedBox(height: Dimensions.two),
+      const SizedBox(height: Dimensions.two),
       Text(
         label,
         style: Theme.of(
           context,
-        ).textTheme.labelSmall?.copyWith(color: Colors.black45),
+        ).textTheme.labelSmall?.copyWith(color: context.secondaryInk),
       ),
     ],
   );
