@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_utils/src/extensions/context_extensions.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -32,7 +33,7 @@ class SosContactsSummary extends StatelessWidget {
                 : 'No linked contacts are ready for app alerts. Invite a contact or enable push alerts.',
             textAlign: TextAlign.center,
             style: context.theme.textTheme.bodySmall?.copyWith(
-              color: Colors.black54,
+              color: context.secondaryInk,
             ),
           ),
           if (onAddContact != null)
@@ -42,7 +43,7 @@ class SosContactsSummary extends StatelessWidget {
               label: Text(
                 contacts.isEmpty ? 'Add emergency contact' : 'Review My Circle',
               ),
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              style: TextButton.styleFrom(foregroundColor: context.ink),
             ),
         ],
       );
@@ -69,7 +70,7 @@ class SosContactsSummary extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(width: Dimensions.twelve),
+        const SizedBox(width: Dimensions.twelve),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -81,7 +82,7 @@ class SosContactsSummary extends StatelessWidget {
               'Push notifications only',
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+              ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
             ),
           ],
         ),
@@ -106,14 +107,14 @@ class _Avatar extends StatelessWidget {
       height: 34,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: muted ? Colors.black.withValues(alpha: 0.08) : Colors.black,
-        border: Border.all(color: Colors.white, width: 2),
+        color: muted ? context.ink.withValues(alpha: 0.08) : context.ink,
+        border: Border.all(color: context.paper, width: 2),
       ),
       child: Center(
         child: Text(
           contact != null ? _initials(contact!.name) : '+$overflowCount',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: muted ? Colors.black54 : Colors.white,
+            color: muted ? context.secondaryInk : context.paper,
             fontWeight: FontWeight.w700,
           ),
         ),

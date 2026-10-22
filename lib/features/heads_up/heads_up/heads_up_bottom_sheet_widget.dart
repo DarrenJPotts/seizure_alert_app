@@ -1,3 +1,5 @@
+import 'package:seizure_app/core/widgets/duration_stepper_field.dart';
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -30,19 +32,9 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
   late bool _custom =
       widget.customDuration ||
       !HeadsUpViewModel.windowOptions.contains(vm.selectedMinutes.value);
-  late final TextEditingController _minutes = TextEditingController(
-    text: vm.selectedMinutes.value.toString(),
-  );
-  @override
-  void dispose() {
-    _minutes.dispose();
-    super.dispose();
-  }
-
   void _choose(int minutes) {
     HapticFeedback.selectionClick();
     vm.selectedMinutes.value = minutes;
-    _minutes.text = minutes.toString();
     setState(() => _custom = false);
   }
 
@@ -63,7 +55,7 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
                 'Let your circle know you\'re feeling off. If you don\'t check in, they\'ll be notified to reach out.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
               ),
             ],
           ),
@@ -88,13 +80,13 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
                           minutes < 60 ? '$minutes min' : '${minutes ~/ 60} hr',
                         ),
                         selected: !_custom && selectedMinutes == minutes,
-                        selectedColor: Colors.black,
-                        backgroundColor: Colors.white,
+                        selectedColor: context.ink,
+                        backgroundColor: context.paper,
                         labelStyle: Theme.of(context).textTheme.bodyMedium
                             ?.copyWith(
                               color: !_custom && selectedMinutes == minutes
-                                  ? Colors.white
-                                  : Colors.black,
+                                  ? context.paper
+                                  : context.ink,
                             ),
                         showCheckmark: false,
                         onSelected: (_) => _choose(minutes),
@@ -102,11 +94,11 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
                     ChoiceChip(
                       label: const Text('Custom'),
                       selected: _custom,
-                      selectedColor: Colors.black,
-                      backgroundColor: Colors.white,
+                      selectedColor: context.ink,
+                      backgroundColor: context.paper,
                       labelStyle: Theme.of(context).textTheme.bodyMedium
                           ?.copyWith(
-                            color: _custom ? Colors.white : Colors.black,
+                            color: _custom ? context.paper : context.ink,
                           ),
                       showCheckmark: false,
                       onSelected: (_) {
@@ -118,25 +110,61 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
                 );
               }),
               if (_custom)
-                Obx(
-                  () => TextField(
-                    controller: _minutes,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      labelText: 'Check-in duration (minutes)',
-                      helperText: '1 minute to 24 hours (1,440 minutes)',
-                      errorText:
-                          HeadsUpViewModel.isValidDuration(
-                            vm.selectedMinutes.value,
-                          )
-                          ? null
-                          : 'Enter 1 to 1,440 minutes.',
-                    ),
-                    onChanged: (value) =>
-                        vm.selectedMinutes.value = int.tryParse(value) ?? 0,
-                  ),
-                ),
+                Obx(() {
+                  final total = vm.selectedMinutes.value;
+                  final hours = (total ~/ 60).clamp(0, 24);
+                  final minutes = hours == 24
+                      ? 0
+                      : total.remainder(60).clamp(0, 59);
+                  final hourSelector = DurationStepperField(
+                    key: const ValueKey('heads-up-hours'),
+                    label: 'Hours',
+                    value: hours,
+                    maxValue: 24,
+                    onChanged: (value) {
+                      HapticFeedback.selectionClick();
+                      vm.selectedMinutes.value =
+                          value * 60 + (value == 24 ? 0 : minutes);
+                    },
+                  );
+                  final minuteSelector = DurationStepperField(
+                    key: const ValueKey('heads-up-minutes'),
+                    label: 'Minutes',
+                    value: minutes,
+                    maxValue: hours == 24 ? 0 : 59,
+                    onChanged: (value) {
+                      HapticFeedback.selectionClick();
+                      vm.selectedMinutes.value = hours * 60 + value;
+                    },
+                  );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: Dimensions.twelve,
+                    children: [
+                      Row(
+                        spacing: Dimensions.eight,
+                        children: [
+                          Expanded(child: hourSelector),
+                          Text(
+                            ':',
+                            style: Theme.of(context).textTheme.headlineMedium,
+                          ),
+                          Expanded(child: minuteSelector),
+                        ],
+                      ),
+                      Text(
+                        total == 0
+                            ? 'Select at least 1 minute.'
+                            : '1 minute to 24 hours',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: total == 0
+                              ? Theme.of(context).colorScheme.error
+                              : context.secondaryInk,
+                        ),
+                      ),
+                    ],
+                  );
+                }),
             ],
           ),
 
@@ -160,9 +188,9 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
           ),
 
           Container(
-            padding: EdgeInsets.all(Dimensions.sixteen),
+            padding: const EdgeInsets.all(Dimensions.sixteen),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: context.ink.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
@@ -175,19 +203,19 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
                     context,
                   ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
-                _Step(
+                const _Step(
                   number: '1',
                   text: 'Your circle is notified you\'re feeling off',
                 ),
-                _Step(
+                const _Step(
                   number: '2',
                   text: 'A countdown starts on your home screen',
                 ),
-                _Step(
+                const _Step(
                   number: '3',
                   text: 'Check in anytime to cancel the alert',
                 ),
-                _Step(
+                const _Step(
                   number: '4',
                   text: 'If time runs out, your circle is told to reach out',
                 ),
@@ -207,11 +235,15 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
                     ? null
                     : vm.startHeadsUp,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                  backgroundColor: context.ink,
+                  foregroundColor: context.paper,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimensions.sixteen,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      context.design.cardRadius,
+                    ),
                   ),
                 ),
                 child: vm.isLoading.value
@@ -219,14 +251,14 @@ class _HeadsUpBottomSheetState extends State<HeadsUpBottomSheet> {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: context.paper,
                           strokeWidth: 2,
                         ),
                       )
                     : Text(
                         'Send Heads Up',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white,
+                          color: context.paper,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -254,15 +286,12 @@ class _Step extends StatelessWidget {
         Container(
           width: 18,
           height: 18,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black,
-          ),
+          decoration: BoxDecoration(shape: BoxShape.circle, color: context.ink),
           child: Center(
             child: Text(
               number,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Colors.white,
+                color: context.paper,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -273,7 +302,7 @@ class _Step extends StatelessWidget {
             text,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
           ),
         ),
       ],

@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -69,13 +70,13 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
             'Delete Account',
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          SizedBox(height: Dimensions.twelve),
+          const SizedBox(height: Dimensions.twelve),
 
           Container(
-            padding: EdgeInsets.all(Dimensions.sixteen),
+            padding: const EdgeInsets.all(Dimensions.sixteen),
             decoration: BoxDecoration(
               color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(context.design.cardRadius),
               border: Border.all(color: Colors.red.shade100),
             ),
             child: Text(
@@ -85,16 +86,16 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
               ).textTheme.bodySmall?.copyWith(color: Colors.red.shade700),
             ),
           ),
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
 
           Text(
             'Confirm your password',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w600,
-              color: Colors.black54,
+              color: context.secondaryInk,
             ),
           ),
-          SizedBox(height: Dimensions.eight),
+          const SizedBox(height: Dimensions.eight),
           TextField(
             controller: _passwordController,
             obscureText: _obscure,
@@ -116,7 +117,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
                   _obscure
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
-                  color: Colors.black38,
+                  color: context.ink.withValues(alpha: 0.38),
                   size: 20,
                 ),
               ),
@@ -124,7 +125,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
           ),
 
           if (_error != null) ...[
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
             Text(
               _error!,
               style: Theme.of(
@@ -132,7 +133,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
               ).textTheme.bodySmall?.copyWith(color: Colors.red),
             ),
           ],
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
 
           SizedBox(
             width: double.infinity,
@@ -140,36 +141,40 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
               onPressed: _isBusy ? null : _confirm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                foregroundColor: context.paper,
                 disabledBackgroundColor: Colors.red.withValues(alpha: 0.4),
-                padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                padding: const EdgeInsets.symmetric(
+                  vertical: Dimensions.sixteen,
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(
+                    context.design.cardRadius,
+                  ),
                 ),
               ),
               child: _isBusy
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: context.paper,
                         strokeWidth: 2,
                       ),
                     )
                   : const Text('Delete permanently'),
             ),
           ),
-          SizedBox(height: Dimensions.eight),
+          const SizedBox(height: Dimensions.eight),
 
           SizedBox(
             width: double.infinity,
             child: TextButton(
               onPressed: _isBusy ? null : () => Get.back(),
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              style: TextButton.styleFrom(foregroundColor: context.ink),
               child: const Text('Cancel'),
             ),
           ),
-          SizedBox(height: Dimensions.eight),
+          const SizedBox(height: Dimensions.eight),
         ],
       ),
     );

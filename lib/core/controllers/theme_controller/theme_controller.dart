@@ -1,14 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/shared_pref_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../themes/app_design.dart';
 
 class ThemeController extends GetxService {
-  ThemeController(this._prefs);
+  ThemeController(
+    this._prefs, {
+    this.designSwitcherEnabled = designToolsAvailable,
+  });
+
+  static const bool designToolsAvailable =
+      kDebugMode || bool.fromEnvironment('ENABLE_DESIGN_SWITCHER');
+
+  final bool designSwitcherEnabled;
+
+  late final Rx<AppDesignStyle> designStyle = Rx<AppDesignStyle>(_readDesign());
+
+  AppDesignStyle get resolvedDesign =>
+      designSwitcherEnabled ? designStyle.value : AppDesign.defaultStyle;
+
+  AppDesignStyle _readDesign() {
+    if (!designSwitcherEnabled) return AppDesign.defaultStyle;
+    final stored = _prefs.getString(SharedPrefKeys.designStyle);
+    return AppDesignStyle.values.firstWhere(
+      (style) => style.name == stored,
+      orElse: () => AppDesign.defaultStyle,
+    );
+  }
+
+  Future<void> setDesignStyle(AppDesignStyle style) async {
+    if (!designSwitcherEnabled || designStyle.value == style) return;
+    designStyle.value = style;
+    try {
+      await _prefs.setString(SharedPrefKeys.designStyle, style.name);
+    } catch (error) {
+      debugPrint('[ThemeController] Could not persist design style: $error');
+    }
+  }
 
   static ThemeController instance() => Get.find<ThemeController>();
 
-  static const bool darkModeAvailable = false;
+  static const bool darkModeAvailable = true;
 
   static const ThemeMode defaultMode = ThemeMode.system;
 

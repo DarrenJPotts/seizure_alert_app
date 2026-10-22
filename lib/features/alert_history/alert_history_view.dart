@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -26,15 +27,15 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.paper,
       appBar: AppBar(
         title: Text(
           'Alert History',
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: context.paper,
         elevation: 0,
-        foregroundColor: Colors.black,
+        foregroundColor: context.ink,
         centerTitle: false,
       ),
       body: content,
@@ -46,9 +47,7 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
 
     if (state == GenericScreenStates.loading ||
         state == GenericScreenStates.initial) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.black),
-      );
+      return Center(child: CircularProgressIndicator(color: context.ink));
     }
 
     if (state == GenericScreenStates.error) {
@@ -57,12 +56,16 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
           mainAxisSize: MainAxisSize.min,
           spacing: Dimensions.twelve,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.black26),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: context.ink.withValues(alpha: 0.26),
+            ),
             Text(
               'Could not load alert history',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              ).textTheme.bodyMedium?.copyWith(color: context.secondaryInk),
             ),
             if (controller.caregiverMode)
               OutlinedButton(
@@ -80,10 +83,10 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
           mainAxisSize: MainAxisSize.min,
           spacing: Dimensions.twelve,
           children: [
-            const Icon(
+            Icon(
               Icons.notifications_none_outlined,
               size: 48,
-              color: Colors.black26,
+              color: context.ink.withValues(alpha: 0.26),
             ),
             Text(
               controller.caregiverMode
@@ -91,7 +94,7 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
                   : 'No alerts sent yet',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              ).textTheme.bodyMedium?.copyWith(color: context.secondaryInk),
             ),
             if (controller.caregiverMode)
               TextButton(
@@ -107,9 +110,9 @@ class AlertHistoryView extends GetView<AlertHistoryViewModel> {
       onRefresh: controller.reload,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(Dimensions.twentyFour),
+        padding: const EdgeInsets.all(Dimensions.twentyFour),
         itemCount: controller.alerts.length,
-        separatorBuilder: (_, _) => SizedBox(height: Dimensions.twelve),
+        separatorBuilder: (_, _) => const SizedBox(height: Dimensions.twelve),
         itemBuilder: (context, index) {
           final alert = controller.alerts[index];
           return AlertHistoryCard(

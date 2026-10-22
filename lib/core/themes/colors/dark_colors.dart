@@ -9,9 +9,9 @@ class AppColorsDark {
   static const Color secondaryLight = Color(0xFFD0D0D0);
   static const Color secondaryDark = Color(0xFF8E8E8E);
 
-  static const Color background = Color(0xFF000000);
+  static const Color background = Color(0xFF181818);
   static const Color surface = Color(0xFF1A1A1A);
-  static const Color cardBackground = Color(0xFF1F1F1F);
+  static const Color cardBackground = Color(0xFF2D2D2D);
 
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFFB0B0B0);
@@ -32,14 +32,14 @@ class AppColorsDark {
   static const Color progressInactive = Color(0xFF3D3D3D);
 
   static const Color fabBackground = Color(0xFFFFFFFF);
-  static const Color fabIcon = Color(0xFF000000); // FAB icon
-  static const Color surfaceContainerLowest = Color(0xFF000000);
-  static const Color surfaceContainerLow = Color(0xFF0A0A0A);
-  static const Color surfaceContainer = Color(0xFF141414);
-  static const Color surfaceContainerHigh = Color(0xFF1F1F1F);
-  static const Color surfaceContainerHighest = Color(0xFF292929);
-  static const Color surfaceDim = Color(0xFF000000);
-  static const Color surfaceBright = Color(0xFF292929);
+  static const Color fabIcon = Color(0xFF181818); // FAB icon
+  static const Color surfaceContainerLowest = Color(0xFF181818);
+  static const Color surfaceContainerLow = Color(0xFF202020);
+  static const Color surfaceContainer = Color(0xFF252525);
+  static const Color surfaceContainerHigh = Color(0xFF2D2D2D);
+  static const Color surfaceContainerHighest = Color(0xFF353535);
+  static const Color surfaceDim = Color(0xFF181818);
+  static const Color surfaceBright = Color(0xFF353535);
 
   static const Color outline = Color(0xFF616161);
   static const Color outlineVariant = Color(0xFF2D2D2D);

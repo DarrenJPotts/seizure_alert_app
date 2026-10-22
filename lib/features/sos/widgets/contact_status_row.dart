@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/services/call_service.dart';
@@ -24,7 +25,7 @@ class ContactStatusRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = seen || responding;
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: Dimensions.eight),
+      padding: const EdgeInsets.symmetric(vertical: Dimensions.eight),
       child: Row(
         children: [
           Container(
@@ -32,22 +33,20 @@ class ContactStatusRow extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: active
-                  ? Colors.black
-                  : Colors.black.withValues(alpha: 0.06),
-              border: active ? null : Border.all(color: Colors.black12),
+              color: active ? context.ink : context.ink.withValues(alpha: 0.06),
+              border: active ? null : context.designBorder,
             ),
             child: Center(
               child: Text(
                 _initials(name),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: active ? Colors.white : Colors.black54,
+                  color: active ? context.paper : context.secondaryInk,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
-          SizedBox(width: Dimensions.twelve),
+          const SizedBox(width: Dimensions.twelve),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +55,9 @@ class ContactStatusRow extends StatelessWidget {
                 Text(
                   _statusLabel(),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: responding ? Colors.black87 : Colors.black45,
+                    color: responding
+                        ? context.ink.withValues(alpha: 0.87)
+                        : context.secondaryInk,
                   ),
                 ),
               ],
@@ -64,7 +65,7 @@ class ContactStatusRow extends StatelessWidget {
           ),
           IconButton(
             onPressed: () => CallService.call(phone),
-            icon: const Icon(Icons.call_outlined, color: Colors.black),
+            icon: Icon(Icons.call_outlined, color: context.ink),
           ),
         ],
       ),

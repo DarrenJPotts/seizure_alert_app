@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -62,13 +63,22 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeInOut,
-          padding: EdgeInsets.all(Dimensions.sixteen),
+          padding: const EdgeInsets.all(Dimensions.sixteen),
           decoration: BoxDecoration(
-            color: _pressed ? scheme.inverseSurface : scheme.surface,
+            color: _pressed
+                ? scheme.inverseSurface
+                : context.design.raisedSurfaces
+                ? context.cardSurface
+                : scheme.surface,
+            boxShadow: _pressed ? const [] : context.designShadows,
             border: Border.all(
               color: _pressed ? scheme.inverseSurface : scheme.outlineVariant,
             ),
-            borderRadius: BorderRadius.circular(Dimensions.twelve),
+            borderRadius: BorderRadius.circular(
+              context.design.raisedSurfaces
+                  ? context.design.cardRadius
+                  : Dimensions.twelve,
+            ),
           ),
           child: Row(
             children: <Widget>[
@@ -82,7 +92,7 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
                 )
               else
                 Icon(content.icon, color: foreground),
-              SizedBox(width: Dimensions.twelve),
+              const SizedBox(width: Dimensions.twelve),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,7 +105,7 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
                         letterSpacing: 0.6,
                       ),
                     ),
-                    SizedBox(height: Dimensions.four),
+                    const SizedBox(height: Dimensions.four),
                     Text(
                       content.title,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -103,7 +113,7 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: Dimensions.four),
+                    const SizedBox(height: Dimensions.four),
                     Text(
                       content.detail,
                       style: Theme.of(
@@ -114,7 +124,7 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
                 ),
               ),
               if (content.actionLabel != null) ...<Widget>[
-                SizedBox(width: Dimensions.eight),
+                const SizedBox(width: Dimensions.eight),
                 Text(
                   content.actionLabel!,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -122,7 +132,7 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(width: Dimensions.four),
+                const SizedBox(width: Dimensions.four),
                 Icon(
                   Icons.chevron_right,
                   color: secondary,
@@ -257,8 +267,8 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
         'Test alert unavailable',
         'Restart the app, then try again.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.black,
-        colorText: Colors.white,
+        backgroundColor: context.ink,
+        colorText: context.paper,
       );
       return;
     }
@@ -275,8 +285,8 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
         'Test notification requested',
         'If it does not appear, review notification and sound settings.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.black,
-        colorText: Colors.white,
+        backgroundColor: context.ink,
+        colorText: context.paper,
       );
     } catch (_) {
       if (!mounted) return;
@@ -284,8 +294,8 @@ class _CaregiverReadinessCardState extends State<CaregiverReadinessCard> {
         'Test alert unavailable',
         'Review notification settings, then try again.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.black,
-        colorText: Colors.white,
+        backgroundColor: context.ink,
+        colorText: context.paper,
       );
     } finally {
       if (mounted) setState(() => _testing = false);

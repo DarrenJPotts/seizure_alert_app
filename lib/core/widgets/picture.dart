@@ -33,7 +33,7 @@ class PictureWidget extends StatelessWidget {
           height: height,
           alignment: alignment,
           fit: fit,
-          errorBuilder: (context, error, stackTrace) => SizedBox.shrink(),
+          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
         );
       }
 
@@ -44,7 +44,7 @@ class PictureWidget extends StatelessWidget {
         alignment: alignment,
         height: height,
         width: width,
-        errorBuilder: (context, error, stackTrace) => SizedBox.shrink(),
+        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
       );
     }
 
@@ -55,7 +55,7 @@ class PictureWidget extends StatelessWidget {
         height: height,
         alignment: alignment,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => SizedBox.shrink(),
+        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
       );
     }
 
@@ -66,7 +66,7 @@ class PictureWidget extends StatelessWidget {
       alignment: alignment,
       height: height,
       width: width,
-      errorBuilder: (context, error, stackTrace) => SizedBox.shrink(),
+      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
     );
   }
 }

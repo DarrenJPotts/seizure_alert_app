@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
@@ -10,21 +11,23 @@ class StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(Dimensions.sixteen),
+      padding: EdgeInsets.all(context.design.cardPadding),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
+        color: context.cardSurface,
+        border: context.designBorder,
+        boxShadow: context.designShadows,
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: Dimensions.four,
+        spacing: Dimensions.eight,
         children: [
           Text(
             '$value',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: context.ink,
               height: 1,
             ),
           ),
@@ -32,7 +35,7 @@ class StatChip extends StatelessWidget {
             label,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+            ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
           ),
         ],
       ),

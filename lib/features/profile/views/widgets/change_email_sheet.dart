@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -104,50 +105,54 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
               'Check your inbox',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             Text(
               'We sent a confirmation link to $_sentToEmail. Your email stays the same until you confirm it there.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                  backgroundColor: context.ink,
+                  foregroundColor: context.paper,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimensions.sixteen,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      context.design.cardRadius,
+                    ),
                   ),
                 ),
                 child: const Text('Done'),
               ),
             ),
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
           ] else ...[
             Text(
               'Change Email',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             Text(
               'Currently: ${widget.currentEmail}',
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+              ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
 
             Text(
               'New email address',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Colors.black54,
+                color: context.secondaryInk,
               ),
             ),
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
@@ -156,16 +161,16 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
               },
               decoration: const InputDecoration(hintText: 'you@example.com'),
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
 
             Text(
               'Confirm your password',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Colors.black54,
+                color: context.secondaryInk,
               ),
             ),
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
             TextField(
               controller: _passwordController,
               obscureText: _obscure,
@@ -194,7 +199,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
             ),
 
             if (_error != null) ...[
-              SizedBox(height: Dimensions.eight),
+              const SizedBox(height: Dimensions.eight),
               Text(
                 _error!,
                 style: Theme.of(
@@ -202,44 +207,48 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
                 ).textTheme.bodySmall?.copyWith(color: Colors.red),
               ),
             ],
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
 
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isBusy ? null : _confirm,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.black38,
-                  padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+                  backgroundColor: context.ink,
+                  foregroundColor: context.paper,
+                  disabledBackgroundColor: context.ink.withValues(alpha: 0.38),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimensions.sixteen,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      context.design.cardRadius,
+                    ),
                   ),
                 ),
                 child: _isBusy
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: context.paper,
                           strokeWidth: 2,
                         ),
                       )
                     : const Text('Send confirmation link'),
               ),
             ),
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
 
             SizedBox(
               width: double.infinity,
               child: TextButton(
                 onPressed: _isBusy ? null : () => Get.back(),
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
+                style: TextButton.styleFrom(foregroundColor: context.ink),
                 child: const Text('Cancel'),
               ),
             ),
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
           ],
         ],
       ),
