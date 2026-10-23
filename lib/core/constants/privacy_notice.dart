@@ -1,5 +1,5 @@
 abstract final class PrivacyNotice {
-  static const String version = '2026-10-10.draft-2';
+  static const String version = '2026-10-23.draft-5';
 
   static const String title = 'How your information is used';
 
@@ -41,11 +41,50 @@ abstract final class PrivacyNotice {
     PrivacyNoticeSection(
       heading: 'Who it is shared with',
       body:
-          'Only the emergency contacts you add, and only when you send an '
+          'Your chosen emergency contacts receive information when you send an '
           'alert or open a Heads Up. A contact who has the app must accept an '
           'invitation before they can see anything.\n\n'
           'During an active SOS, a responding contact can see your location, '
           'blood type, seizure type, medications and emergency note.',
+    ),
+    PrivacyNoticeSection(
+      heading: 'Sharing a medical card or report',
+      body:
+          'Sharing is optional and starts only when you choose Share. You can '
+          'preview your medical card and choose which details to include. The '
+          'card is shared as text through an app and recipient you choose; '
+          'Seizure Alert does not upload it or create a public link. Seizure '
+          'reports are separate exports you can also choose to share.\n\n'
+          'Recipients can keep or forward copies. Deleting your account or '
+          'changing your information cannot remove copies already shared. '
+          'The app or recipient you choose may process information outside '
+          'South Africa under their own privacy practices. Only share with '
+          'people you trust.',
+    ),
+    PrivacyNoticeSection(
+      heading: 'Optional daily check-ins',
+      body:
+          'If you save a daily check-in, we store the sleep duration and quality, '
+          'mood, stress, side effects, notes and no-seizure report you choose to '
+          'enter for that date. Empty fields remain unrecorded. These details '
+          'are private to your account and are excluded from caregiver alerts, '
+          'the Medical card and clinical reports. You can edit or remove a '
+          'daily check-in. Deleting your account removes these records too. '
+          'Insights describes recorded entries; it does not diagnose a '
+          'condition or predict seizures.',
+    ),
+    PrivacyNoticeSection(
+      heading: 'Optional cycle tracking',
+      body:
+          'If you enable cycle tracking, we store the period dates, spotting or '
+          'flow, symptoms and notes you enter in your private account. These '
+          'details help you review recorded periods alongside seizures; the '
+          'feature does not measure hormones, predict seizures or diagnose a '
+          'condition. Cycle data is not included in caregiver alerts or the '
+          'Medical card. Reports exclude it unless you explicitly select '
+          'Include cycle data for that export. Turning tracking off keeps '
+          'your entries; you can delete individual entries or all cycle data '
+          'from Cycle. Deleting your account removes the stored cycle data.',
     ),
     PrivacyNoticeSection(
       heading: 'Crash diagnostics',

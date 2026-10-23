@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
@@ -17,14 +18,12 @@ class GreetingWidget extends StatelessWidget {
           name.isEmpty ? greeting : '$greeting,',
           style: Theme.of(
             context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+          ).textTheme.bodyMedium?.copyWith(color: context.secondaryInk),
         ),
         if (name.isNotEmpty)
           Text(
             name,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: context.design.greetingStyle(Theme.of(context).textTheme),
           ),
       ],
     );

@@ -9,6 +9,26 @@ import '../support/pump.dart';
 
 void main() {
   group('SOSButton', () {
+    testWidgets('fits narrow screens with large display text', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(textScaler: TextScaler.linear(3)),
+            child: Scaffold(
+              body: Center(
+                child: SizedBox(width: 232, child: SOSButton(onPressed: () {})),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final target = tester.getSize(find.byType(AnimatedContainer));
+      expect(target.width, greaterThanOrEqualTo(150));
+      expect(target.width, lessThanOrEqualTo(232));
+      expect(tester.getSize(find.byType(SOSButton)).height, 232);
+    });
+
     testWidgets('fires only on release, not on press', (
       WidgetTester tester,
     ) async {

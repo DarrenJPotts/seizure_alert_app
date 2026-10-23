@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/widgets/alert_map_widget.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
 import 'package:seizure_app/features/heads_up/view_models/heads_up_view_model.dart';
+import 'package:seizure_app/features/heads_up/heads_up/heads_up_bottom_sheet_widget.dart';
 import 'package:seizure_app/features/root/root_view.dart';
 import 'package:seizure_app/features/sos/view_models/sos_view_model.dart';
 import 'package:seizure_app/features/sos/widgets/active_heads_up_card.dart';
@@ -83,8 +85,8 @@ class SosView extends StatelessWidget {
               'Contacts unavailable',
               'Check your connection and try SOS again.',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.black,
-              colorText: Colors.white,
+              backgroundColor: context.ink,
+              colorText: context.paper,
             );
           });
           return _buildIdleState(context, sosVm);
@@ -111,13 +113,13 @@ class SosView extends StatelessWidget {
         _buildIdleState(context, sosVm),
         Positioned.fill(
           child: ColoredBox(
-            color: Colors.white.withValues(alpha: 0.92),
+            color: context.paper.withValues(alpha: 0.92),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(color: Colors.black),
-                  SizedBox(height: Dimensions.sixteen),
+                  CircularProgressIndicator(color: context.ink),
+                  const SizedBox(height: Dimensions.sixteen),
                   Text(
                     'Checking your circle…',
                     style: Theme.of(context).textTheme.bodyMedium,
@@ -168,7 +170,7 @@ class SosView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: EdgeInsets.fromLTRB(
+                    padding: const EdgeInsets.fromLTRB(
                       Dimensions.twentyFour,
                       Dimensions.twentyFour,
                       Dimensions.twentyFour,
@@ -177,7 +179,7 @@ class SosView extends StatelessWidget {
                     child: Text(
                       'YOUR CIRCLE',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.black54,
+                        color: context.secondaryInk,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 2,
                       ),
@@ -185,7 +187,7 @@ class SosView extends StatelessWidget {
                   ),
                   if (recipients.isEmpty)
                     Padding(
-                      padding: EdgeInsets.fromLTRB(
+                      padding: const EdgeInsets.fromLTRB(
                         Dimensions.twentyFour,
                         Dimensions.twelve,
                         Dimensions.twentyFour,
@@ -195,14 +197,14 @@ class SosView extends StatelessWidget {
                         contacts.isEmpty
                             ? 'No contacts are set up to receive this SOS.'
                             : 'No alert method is enabled for your contacts.',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.secondaryInk,
+                        ),
                       ),
                     )
                   else
                     Padding(
-                      padding: EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: Dimensions.twentyFour,
                       ),
                       child: Column(
@@ -232,9 +234,9 @@ class SosView extends StatelessWidget {
                         }).toList(),
                       ),
                     ),
-                  SizedBox(height: Dimensions.twentyFour),
+                  const SizedBox(height: Dimensions.twentyFour),
                   Padding(
-                    padding: EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: Dimensions.twentyFour,
                     ),
                     child: SizedBox(
@@ -253,7 +255,7 @@ class SosView extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(height: Dimensions.twentyFour),
+                  const SizedBox(height: Dimensions.twentyFour),
                 ],
               ),
             ),
@@ -289,11 +291,16 @@ class SosView extends StatelessWidget {
     SosViewModel sosVm,
     ContactsViewModel contactsVm,
   ) {
-    return SosIdleSheet(
-      sheetMinSize: _sheetMinSize,
-      sheetMaxSize: _sheetMaxSize,
-      sosHero: _buildSosHero(context, sosVm, contactsVm),
-      content: _buildRosterAndHeadsUp(contactsVm, showDivider: false),
+    return Obx(
+      () => SosIdleSheet(
+        sheetMinSize: _sheetMinSize,
+        sheetMaxSize: _sheetMaxSize,
+        sosHero: _buildSosHero(context, sosVm, contactsVm),
+        content: _buildRosterAndHeadsUp(contactsVm, showDivider: false),
+        onOpenHeadsUp: HeadsUpViewModel.instance().activeHeadsUp.value == null
+            ? () => HeadsUpBottomSheet.show()
+            : null,
+      ),
     );
   }
 
@@ -312,7 +319,7 @@ class SosView extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyMedium,
           textAlign: TextAlign.center,
         ),
-        SizedBox(height: Dimensions.eight),
+        const SizedBox(height: Dimensions.eight),
         Obx(() {
           final bool hasRecipients = contactsVm.contacts.any(
             (c) => c.isPushReady,
@@ -323,11 +330,11 @@ class SosView extends StatelessWidget {
                 : 'No linked contacts are ready for this SOS. Invite a contact or enable push alerts.',
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
             textAlign: TextAlign.center,
           );
         }),
-        SizedBox(height: Dimensions.twentyFour),
+        const SizedBox(height: Dimensions.twentyFour),
         Obx(() {
           final bool hasRecipients = contactsVm.contacts.any(
             (c) => c.isPushReady,
@@ -338,7 +345,7 @@ class SosView extends StatelessWidget {
                 _handleSOS(context, sosVm, hasRecipients: hasRecipients),
           );
         }),
-        SizedBox(height: Dimensions.thirtyTwo),
+        const SizedBox(height: Dimensions.thirtyTwo),
 
         Obx(
           () => SosContactsSummary(

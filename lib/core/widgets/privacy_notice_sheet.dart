@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -23,7 +24,7 @@ class PrivacyNoticeSheet extends StatelessWidget {
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
-        SizedBox(height: Dimensions.twentyFour),
+        const SizedBox(height: Dimensions.twentyFour),
         for (final PrivacyNoticeSection section
             in PrivacyNotice.sections) ...<Widget>[
           Text(
@@ -32,30 +33,30 @@ class PrivacyNoticeSheet extends StatelessWidget {
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.6,
-              color: Colors.black.withValues(alpha: 0.4),
+              color: context.secondaryInk,
             ),
           ),
-          SizedBox(height: Dimensions.eight),
+          const SizedBox(height: Dimensions.eight),
           Text(
             section.body,
             style: Theme.of(
               context,
             ).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.55),
           ),
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
         ],
         Text(
           'Version ${PrivacyNotice.version}',
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+          ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
         ),
-        SizedBox(height: Dimensions.sixteen),
+        const SizedBox(height: Dimensions.sixteen),
         SizedBox(
           width: double.infinity,
           child: TextButton(
             onPressed: Get.back<void>,
-            style: TextButton.styleFrom(foregroundColor: Colors.black),
+            style: TextButton.styleFrom(foregroundColor: context.ink),
             child: const Text('Close'),
           ),
         ),

@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -16,14 +17,14 @@ class SettingsGroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: Dimensions.two),
+    padding: const EdgeInsets.symmetric(horizontal: Dimensions.two),
     child: Text(
       label.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
         fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.6,
-        color: Colors.black.withValues(alpha: 0.4),
+        color: context.secondaryInk,
       ),
     ),
   );
@@ -37,9 +38,12 @@ class SettingsGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-      borderRadius: BorderRadius.circular(16),
+      color: context.design.filledCards || context.design.raisedSurfaces
+          ? context.cardSurface
+          : context.paper,
+      border: context.designBorder,
+      boxShadow: context.designShadows,
+      borderRadius: BorderRadius.circular(context.design.featureRadius),
     ),
     clipBehavior: Clip.antiAlias,
     child: Column(
@@ -49,7 +53,7 @@ class SettingsGroup extends StatelessWidget {
             Divider(
               height: 1,
               thickness: 1,
-              color: Colors.black.withValues(alpha: 0.1),
+              color: context.ink.withValues(alpha: 0.1),
             ),
           children[i],
         ],
@@ -71,7 +75,7 @@ class SettingsSection extends StatelessWidget {
     children: <Widget>[
       if (label != null) ...<Widget>[
         SettingsGroupHeader(label!),
-        SizedBox(height: Dimensions.ten),
+        const SizedBox(height: Dimensions.ten),
       ],
       SettingsGroup(children: children),
     ],
@@ -101,14 +105,14 @@ class SettingsValueRow extends StatelessWidget {
     onTap: loading ? null : _tap(onTap),
     child: Container(
       constraints: const BoxConstraints(minHeight: 64),
-      padding: EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: Dimensions.eighteen,
         vertical: Dimensions.fourteen,
       ),
       child: Row(
         children: <Widget>[
-          Icon(icon, size: 22, color: Colors.black),
-          SizedBox(width: Dimensions.fourteen),
+          Icon(icon, size: 22, color: context.ink),
+          const SizedBox(width: Dimensions.fourteen),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -116,7 +120,7 @@ class SettingsValueRow extends StatelessWidget {
                   context,
                 ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
                 final valueStyle = Theme.of(context).textTheme.titleSmall
-                    ?.copyWith(color: valueColor ?? Colors.black45);
+                    ?.copyWith(color: valueColor ?? context.secondaryInk);
                 double textWidth(String text, TextStyle? style) {
                   final painter = TextPainter(
                     text: TextSpan(text: text, style: style),
@@ -140,8 +144,8 @@ class SettingsValueRow extends StatelessWidget {
                 final valueWidget = loading
                     ? SizedBox.square(
                         dimension: Dimensions.sixteen,
-                        child: const CircularProgressIndicator(
-                          color: Colors.black,
+                        child: CircularProgressIndicator(
+                          color: context.ink,
                           strokeWidth: 1.5,
                         ),
                       )
@@ -153,7 +157,7 @@ class SettingsValueRow extends StatelessWidget {
                   return Row(
                     children: [
                       Expanded(child: Text(label, style: labelStyle)),
-                      SizedBox(width: Dimensions.twelve),
+                      const SizedBox(width: Dimensions.twelve),
                       valueWidget,
                     ],
                   );
@@ -162,7 +166,7 @@ class SettingsValueRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(label, style: labelStyle),
-                    SizedBox(height: Dimensions.four),
+                    const SizedBox(height: Dimensions.four),
                     valueWidget,
                   ],
                 );
@@ -170,11 +174,11 @@ class SettingsValueRow extends StatelessWidget {
             ),
           ),
           if (onTap != null && !loading) ...<Widget>[
-            SizedBox(width: Dimensions.six),
+            const SizedBox(width: Dimensions.six),
             Icon(
               Icons.chevron_right,
               size: 20,
-              color: Colors.black.withValues(alpha: 0.3),
+              color: context.ink.withValues(alpha: 0.3),
             ),
           ],
         ],
@@ -206,15 +210,18 @@ class SettingsTileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget row = SizedBox(
-      height: height,
+    final Widget row = ConstrainedBox(
+      constraints: BoxConstraints(minHeight: height),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Dimensions.sixteen,
+          vertical: Dimensions.twelve,
+        ),
         child: Row(
           children: <Widget>[
             if (leading != null) ...<Widget>[
               leading!,
-              SizedBox(width: Dimensions.twelve),
+              const SizedBox(width: Dimensions.twelve),
             ],
             Expanded(
               child: Column(
@@ -223,19 +230,17 @@ class SettingsTileRow extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     title,
-                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (subtitle != null) ...<Widget>[
-                    SizedBox(height: Dimensions.two),
+                    const SizedBox(height: Dimensions.two),
                     Text(
                       subtitle!,
-                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontSize: 13,
-                        color: Colors.black.withValues(alpha: 0.45),
+                        color: context.secondaryInk,
                       ),
                     ),
                   ],
@@ -243,15 +248,15 @@ class SettingsTileRow extends StatelessWidget {
               ),
             ),
             if (trailing != null) ...<Widget>[
-              SizedBox(width: Dimensions.eight),
+              const SizedBox(width: Dimensions.eight),
               trailing!,
             ],
             if (onTap != null) ...<Widget>[
-              SizedBox(width: Dimensions.six),
+              const SizedBox(width: Dimensions.six),
               Icon(
                 Icons.chevron_right,
                 size: 20,
-                color: Colors.black.withValues(alpha: 0.3),
+                color: context.ink.withValues(alpha: 0.3),
               ),
             ],
           ],
@@ -303,14 +308,14 @@ class SettingsSwitchRow extends StatelessWidget {
               },
         child: Container(
           constraints: const BoxConstraints(minHeight: 72),
-          padding: EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: Dimensions.eighteen,
             vertical: Dimensions.sixteen,
           ),
           child: Row(
             children: <Widget>[
-              Icon(icon, size: 22, color: Colors.black),
-              SizedBox(width: Dimensions.fourteen),
+              Icon(icon, size: 22, color: context.ink),
+              const SizedBox(width: Dimensions.fourteen),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -322,24 +327,24 @@ class SettingsSwitchRow extends StatelessWidget {
                       ),
                     ),
                     if (subtitle != null) ...<Widget>[
-                      SizedBox(height: Dimensions.two),
+                      const SizedBox(height: Dimensions.two),
                       Text(
                         subtitle!,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontSize: 13,
-                          color: Colors.black.withValues(alpha: 0.45),
+                          color: context.secondaryInk,
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
-              SizedBox(width: Dimensions.twelve),
+              const SizedBox(width: Dimensions.twelve),
               if (loading)
                 SizedBox.square(
                   dimension: Dimensions.twenty,
-                  child: const CircularProgressIndicator(
-                    color: Colors.black,
+                  child: CircularProgressIndicator(
+                    color: context.ink,
                     strokeWidth: 1.5,
                   ),
                 )
@@ -366,11 +371,11 @@ class _ModeToggle extends StatelessWidget {
     height: 30,
     padding: const EdgeInsets.symmetric(horizontal: 3),
     decoration: BoxDecoration(
-      color: value ? Colors.black : Colors.white,
+      color: value ? context.ink : context.paper,
       borderRadius: BorderRadius.circular(Dimensions.circular),
       border: value
           ? null
-          : Border.all(color: Colors.black.withValues(alpha: 0.2), width: 1.5),
+          : Border.all(color: context.ink.withValues(alpha: 0.2), width: 1.5),
     ),
     alignment: value ? Alignment.centerRight : Alignment.centerLeft,
     child: Container(
@@ -378,7 +383,7 @@ class _ModeToggle extends StatelessWidget {
       height: value ? 24 : 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: value ? Colors.white : Colors.black.withValues(alpha: 0.25),
+        color: value ? context.paper : context.ink.withValues(alpha: 0.25),
       ),
     ),
   );
@@ -431,11 +436,11 @@ class SettingsDestructiveRow extends StatelessWidget {
     child: SizedBox(
       height: 64,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.eighteen),
+        padding: const EdgeInsets.symmetric(horizontal: Dimensions.eighteen),
         child: Row(
           children: <Widget>[
             Icon(icon, size: 22, color: Colors.red.shade400),
-            SizedBox(width: Dimensions.fourteen),
+            const SizedBox(width: Dimensions.fourteen),
             Expanded(
               child: Text(
                 title,
@@ -468,10 +473,13 @@ class SettingsActionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: _tap(onTap),
-    child: SizedBox(
-      height: 64,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 64),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.sixteen),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Dimensions.sixteen,
+          vertical: Dimensions.twelve,
+        ),
         child: Row(
           children: <Widget>[
             Container(
@@ -480,13 +488,13 @@ class SettingsActionRow extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: context.ink.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
-              child: const Icon(Icons.add, size: 18, color: Colors.black),
+              child: Icon(Icons.add, size: 18, color: context.ink),
             ),
-            SizedBox(width: Dimensions.twelve),
+            const SizedBox(width: Dimensions.twelve),
             Expanded(
               child: Text(
                 title,
@@ -497,18 +505,18 @@ class SettingsActionRow extends StatelessWidget {
             ),
             if (badgeCount > 0)
               Container(
-                padding: EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: Dimensions.eight,
                   vertical: Dimensions.three,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black,
+                  color: context.ink,
                   borderRadius: BorderRadius.circular(Dimensions.circular),
                 ),
                 child: Text(
                   '$badgeCount',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
+                    color: context.paper,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -527,7 +535,7 @@ class SettingsMessageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(
+    padding: const EdgeInsets.symmetric(
       horizontal: Dimensions.eighteen,
       vertical: Dimensions.twenty,
     ),
@@ -536,7 +544,7 @@ class SettingsMessageRow extends StatelessWidget {
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
         fontSize: 14,
         height: 1.5,
-        color: Colors.black.withValues(alpha: 0.45),
+        color: context.secondaryInk,
       ),
     ),
   );
@@ -549,18 +557,18 @@ class SettingsTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(
+    padding: const EdgeInsets.symmetric(
       horizontal: Dimensions.eight,
       vertical: Dimensions.three,
     ),
     decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: 0.06),
+      color: context.ink.withValues(alpha: 0.06),
       borderRadius: BorderRadius.circular(Dimensions.circular),
     ),
     child: Text(
       label,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: Colors.black.withValues(alpha: 0.55),
+        color: context.secondaryInk,
         fontWeight: FontWeight.w500,
       ),
     ),

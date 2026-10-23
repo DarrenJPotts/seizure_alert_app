@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -12,16 +13,16 @@ class OfflineBanner extends GetView<NetworkStatusService> {
 
     return Container(
       width: double.infinity,
-      color: Colors.black,
-      padding: EdgeInsets.symmetric(
+      color: context.heroSurface,
+      padding: const EdgeInsets.symmetric(
         horizontal: Dimensions.twentyFour,
         vertical: Dimensions.twelve,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.cloud_off_outlined, color: Colors.white, size: 20),
-          SizedBox(width: Dimensions.twelve),
+          Icon(Icons.cloud_off_outlined, color: context.heroInk, size: 20),
+          const SizedBox(width: Dimensions.twelve),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,15 +31,15 @@ class OfflineBanner extends GetView<NetworkStatusService> {
                 Text(
                   'No network connection',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
+                    color: context.heroInk,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   'SOS and Heads Up updates may be queued until you reconnect.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: context.heroInk.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),

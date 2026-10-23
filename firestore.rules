@@ -103,6 +103,29 @@ match /users/{userId} {
                         || hasValidOptionalSaPhone(request.resource.data));
     }
 
+match /users/{userId}/dailyLogs/{dayId} {
+      function validDaily(data) {
+        return data.keys().hasAll(['date', 'revision', 'updatedAt', 'noSeizuresReported', 'sideEffects', 'notes'])
+          && data.keys().hasOnly(['date', 'revision', 'updatedAt', 'sleepMinutes', 'sleepQuality', 'mood', 'stress', 'sideEffects', 'notes', 'noSeizuresReported'])
+          && data.date == dayId && data.date is string
+          && data.date.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+          && data.revision is int && data.revision > 0
+          && data.updatedAt is string && data.updatedAt.size() <= 40
+          && data.noSeizuresReported is bool
+          && data.sideEffects is string && data.sideEffects.size() <= 200
+          && data.notes is string && data.notes.size() <= 500
+          && (data.get('sleepMinutes', null) == null || (data.sleepMinutes is int && data.sleepMinutes >= 0 && data.sleepMinutes <= 1440))
+          && data.get('sleepQuality', null) in [null, 'poor', 'fair', 'good']
+          && data.get('mood', null) in [null, 'low', 'neutral', 'good']
+          && data.get('stress', null) in [null, 'low', 'moderate', 'high'];
+      }
+      allow read, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId))
+        && validDaily(request.resource.data) && request.resource.data.revision == 1;
+      allow update: if isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId))
+        && validDaily(request.resource.data) && request.resource.data.revision == resource.data.revision + 1;
+    }
+
 match /contacts/{contactId} {
       allow read, delete: if isAuthed()
                           && resource.data.userId == request.auth.uid;

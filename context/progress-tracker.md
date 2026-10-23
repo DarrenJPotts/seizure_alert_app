@@ -7,17 +7,13 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 5 — Polish & Reliability
-**Last completed:** 32 UX pass on the emergency path (delivery truth, cancel confirmation, countdown)
+**Last completed:** 34 Security and development-cost hardening
 **Next:** 21 Offline resilience, then stale-FCM-token cleanup and critical-alert delivery (see Known Gaps)
 
 > ## ⚠ Deploy order for Features 27 + 28 — read before shipping
 >
 > Feature 28 changes how *every* cross-user read is authorized. Getting the order wrong locks
 > existing caregivers out of the watch list and the incoming-alert screen.
->
-> **This is not optional and has already bitten once.** `expireHeadsUpWindows` failed ~4000 times over
-> ~3 days because the `headsUp (status, expiresAtMs)` index was declared here but never deployed. Every
-> run threw FAILED_PRECONDITION, so no missed check-in escalated in that window, and nothing alerted.
 >
 > 1. **`firebase deploy --only firestore:indexes`** — wait for the new `contacts (linkedUid, userId)`
 >    index to finish building. The functions in step 2 query it; deploying them first makes every
@@ -74,7 +70,7 @@ Update this file after every completed feature. Any AI agent reading this should
 - [x] 18 App invite (SMS/WhatsApp/clipboard picker from add-contact sheet + contact card send-invite icon)
 - [x] 19 Notification deep-link (SOS alerts only — tapping a "sent"-status SOS push opens Incoming Alert; Heads Up/expired notifications still just open the app, no dedicated screen to deep-link into yet)
 - [x] 20 Firestore security rules audit
-- [ ] 21 Offline resilience
+- [ ] 21 Offline resilience — in progress: connection banner, SOS queue feedback, and Heads Up queueing implemented; device verification remains
 - [x] 22 Caregiver mode (SOS send-countdown + active-alert screen redesign, "People I watch" list, Incoming Alert detail screen)
 - [x] 32 UX pass — emergency-path honesty, haptics, permission recovery, log deletion
 - [ ] 31 POPIA groundwork — code side done; notice text, data residency and Information Officer registration outstanding
@@ -82,11 +78,44 @@ Update this file after every completed feature. Any AI agent reading this should
 - [x] 29 Grouped-card settings language (shared `core/widgets/settings/`, Profile + Seizure Log restyled)
 - [x] 28 Security hardening (linkedUid authorization, invite enumeration, alert-response forgery, rate limiting)
 - [x] 27 Splash screen + full caregiver mode (per-device role switch, watch list, incoming SOS, respond/shared view) + monochrome live indicator
-- [x] 23 Circle invites (in-app invite for contacts who already have the app — gated `ContactDto.status`, `sendCircleInvite`/`respondToInvite` Cloud Functions, `CircleInviteView` accept/decline screen, Home banner)
+- [x] 23 Circle invites (one-time code shared by SMS/WhatsApp; signed-in recipient previews and accepts/declines it; no profile-phone account lookup or automatic in-app invite inbox)
+- [x] 33 Home setup check — live count of contacts linked to the app, active, and enabled for push alerts; opens Contacts to fix setup
 
 ---
 
 ## Notes
+
+- minimalist-ui protocol pass (small): the `/minimalist-ui` skill is a **web** protocol (Tailwind/React,
+  editorial serif headings, warm bone canvas, muted pastel accents) and its own execution rules trigger
+  on "HTML, React, Tailwind, Vue". This is Flutter, and most of it conflicts head-on with `CLAUDE.md`:
+  pastel accents against a palette that is deliberately colourless, a serif display face against a
+  single-family Red Hat Display system, `#EAEAEA` against `Colors.black12`, and a ban on pill shapes
+  against `Dimensions.circular`. Adopting the pastels would also have reversed the contrast decision
+  behind `LiveIndicator` — the whole reason the monitoring green was removed. **Decision: keep the
+  monochrome system; apply only the parts both authorities agree on.**
+
+  Applied:
+  - **Emoji out of push notification copy** (`functions/index.js`). Four titles carried them —
+    `SOS Alert`, `Heads Up`, `Check-in Missed`, and the `nudgeResponder` title. Both the protocol and
+    `CLAUDE.md`'s "minimal, clinical, serious / no gamified language" point the same way, and on a lock
+    screen mid-emergency a plain title reads more credibly than a siren glyph. Titles also normalised to
+    sentence case to match the rest of the app, and the nudge title changed from "Still waiting on you"
+    to "Response needed" — the original nagged rather than informed.
+  - **Shadows softened below 5%.** Nav bar and SOS drawer went from 10%/8% at blur 20 down to 4% at
+    blur 16. Two deliberate exceptions, now documented in `ui-registry.md` under a new **Elevation**
+    entry so they do not read as oversights: the elevated SOS control (12%, the one place elevation
+    carries meaning, and now matching the value the registry already documented for that control) and
+    the map marker pin (35% — a pin must separate from arbitrary map imagery, the one surface whose
+    colour this app does not control).
+
+  Audited and already clean: no gradients anywhere in `lib/`; no AI clichés or gamified language (every
+  "Elevate" hit was Flutter's `ElevatedButton`); no placeholder names or Lorem; motion already runs on
+  transform/opacity only.
+
+  Not applied, and why: pastel accents, editorial serif, warm bone canvas, `#EAEAEA` borders, and the
+  ban on pill shapes — all contradict `CLAUDE.md`. Web-only mechanics (`<kbd>` keys, faux macOS window
+  chrome, accordions, `IntersectionObserver`, `picsum.photos` imagery) do not apply to a Flutter mobile
+  app with no imagery.
 
 - Feature 32 (UX pass): from an interaction review. The theme of the important half is that **the
   emergency path did not tell the truth about its own state**.
@@ -544,13 +573,13 @@ Update this file after every completed feature. Any AI agent reading this should
 
   Worth knowing for future diagnosis: this presented as a *storage* problem, and it isn't one. Artifact Registry already has a 1-day cleanup policy on `projects/seizure-alert-app/locations/us-central1/repositories/gcf-artifacts`, so function container images are not accumulating. When a bill moves with nothing happening, look for reserved capacity before looking at storage.
 
-  `expireHeadsUpWindows` (Feature 24) is not a meaningful cost: ~43k invocations/month against a 2M free tier, ~2,160 GB-s against 400,000 GB-s, and Cloud Scheduler's first 3 jobs are free.
+  Heads Up expiry is now event-driven: one Firestore trigger schedules one delayed Cloud Task per window. There is no idle scheduler invocation while nobody is using the app.
 
 - Feature 24 (Reliability pass): four defects that each caused a **silent** failure of a core safety path.
 
-  **Phone matching.** Every cross-user link — `notifyContacts`, `getPeopleIWatch`, `getAlertDetail`, `sendCircleInvite` — was an exact string query on a raw, as-typed `phone`. A contact saved "082 123 4567" against an account registered "+27 82 123 4567" simply never matched, so that person received no alerts and nothing in either UI said so. Fixed by `PhoneNumber` (`lib/core/helpers/phone_number.dart`) and its JS mirror `functions/phone.js` — the two must stay in sync. `UserDto`/`ContactDto` now derive a `phoneNormalized` E.164 field in `toMap()` (a getter, not a stored field, so no write path can forget it); `phone` is left untouched for display. The functions match on `phoneNormalized` via new `findUserByPhone`/`findContactsByPhone` helpers, which fall back to the raw `phone` query so a partially-migrated database keeps working — **delete that fallback once `functions/scripts/backfill-phone-normalized.js --apply` has run**, it currently doubles the query count on every lookup. `PhoneNumber.defaultDialCode` is hardcoded to `27`; a locally-written number is genuinely ambiguous without it, so this becomes a per-user setting the moment the app ships outside one region. `InviteService` also used its own weaker normaliser for wa.me links, which produced links to nonexistent subscribers for locally-written numbers.
+  **Phone matching.** `PhoneNumber` (`lib/core/helpers/phone_number.dart`) and its JS mirror `functions/phone.js` normalize emergency contact lookups used for alert and caregiver functions. `UserDto`/`ContactDto` derive a `phoneNormalized` E.164 field; `phone` remains for display and external calling. Circle invites use hashed one-time codes and never query user profiles by phone. `PhoneNumber.defaultDialCode` is `27`, so supporting users outside South Africa still needs a per-user region setting. The same helper normalizes numbers for WhatsApp links.
 
-  **Heads Up expiry.** Escalation ran entirely on a client `Timer` in `HeadsUpViewModel`, so it fired only while the app was alive — the exact opposite of the scenario the feature exists for. New `expireHeadsUpWindows` scheduled function (every 1 min) sweeps `status == active && expiresAtMs <= now` and escalates transactionally. Note `expiresAtMs`: `expiresAt` is serialised with `toIso8601String()` on a *local* `DateTime`, so it carries no timezone and the server cannot compare it to its own clock — the new epoch-millis field is what the sweep queries (composite index added). The client no longer writes the expiry at all: if it flipped the status to `expired` first, the document would drop out of the sweep's `status == active` query and could be stranded with no alert ever sent. Cost is up to ~60s latency on a 30–120 min window, in exchange for the escalation being guaranteed. The sweep also copies coordinates from the original `_alert` document, which the old client path never did — the most urgent alert type in the app was reaching contacts with no location. **Heads Up windows already active at deploy time have no `expiresAtMs` and so will not be swept**; range queries skip documents missing the field. They are ≤120 min old, so this self-resolves.
+  **Heads Up expiry.** Escalation originally depended on a client timer, then on a minute scheduler. It now uses one delayed Cloud Task per window, created by `onHeadsUpCreated`, so escalation remains server-owned without continuous polling. The task reads the window at expiry, exits if the user already checked in or cancelled, and transactionally creates the deterministic expiry alert. `expiresAtMs` remains the unambiguous UTC scheduling value. The expiry task copies coordinates from the original `_alert` document before creating the notification-triggering alert.
 
   **Platform config.** `POST_NOTIFICATIONS` was missing, which blocks *all* notifications on Android 13+. `tel` was absent from `<queries>` and `LSApplicationQueriesSchemes`, so `canLaunchUrl` returned false and every "Call" button — the single most important action a caregiver takes — did nothing, silently, on Android 11+ and iOS. All three call sites now go through `CallService` (`lib/core/services/call_service.dart`), which falls back to copying the number to the clipboard and saying so rather than failing mute. Also added: FCM `default_notification_channel_id` meta-data (without it, backgrounded pushes bypass the `Importance.max` channel), `whatsapp`/`https` query entries, iOS `remote-notification` background mode. The channel was named `channel_id` / "Channel name" — user-visible in Android settings — now `seizure_alerts` / "Emergency alerts", and the id is duplicated in the manifest so **keep `LocalNotificationsService.alertChannelId` and the manifest meta-data in sync**.
 
@@ -566,7 +595,9 @@ Update this file after every completed feature. Any AI agent reading this should
 
 - Feature 15 follow-up (password change): `ChangePasswordSheet` (current password, new password, confirm) reuses the same re-auth-then-mutate shape as email change — `FirebaseAuthController.changePassword` reauthenticates with the current password via `EmailAuthProvider.credential`, then calls `updatePassword`. Unlike email change this takes effect immediately (no confirmation link), so the sheet's success state is just a static "Password updated" confirmation. Reached via a new "Password" row in the Profile Settings section (`Icons.key_outlined`, next to the still-unimplemented "Privacy" stub).
 
-- Feature 23: Adding a contact now checks (via `sendCircleInvite` callable) whether the phone belongs to a registered user. If so, the `ContactDto` is created with `status: pending` — `notifyContacts`/`getPeopleIWatch`/`getAlertDetail` in `functions/index.js` all skip `pending` contacts, so they receive no alerts and don't show up as "people I watch" until they accept. Accept/decline happens on a new `/circle-invite` route (`CircleInviteView`), reachable either by tapping the push notification (`FirebaseMessagingService` routes `data.type == 'circle_invite'` before the existing SOS branch) or from a banner on Home (`HomeViewModel.pendingInvites`, a live `watchPendingInvites` stream). Declining **deletes** the contact on the sender's side (both invite status mutation and the cross-user contact write happen inside `respondToInvite`, which runs under the Cloud Functions Admin SDK — no new Firestore rule was needed for that cross-user write, only a read rule on the new `invites` collection). If the phone doesn't match a registered user, behavior is unchanged from Feature 18 (falls back to `InvitePickerSheet`).
+- Feature 23: `createCircleInvite` generates a 128-bit one-time code, stores only its SHA-256 hash, and expires it after 24 hours. The sender shares it through SMS/WhatsApp. A signed-in recipient opens My Circle or Mode → Enter invite code, previews the sender, and explicitly accepts or declines. Preview and redemption are App Check protected, authenticated, and rate-limited; redemption and contact linking happen in one transaction. There is no phone-profile lookup or automatic in-app invite notification. Existing legacy pending invites must be reissued.
+
+  Updated invite design: `createCircleInvite` generates a 128-bit one-time code, stores only its SHA-256 hash, and expires it after 24 hours. The sender shares it through SMS/WhatsApp. A signed-in recipient opens My Circle or Mode → Enter invite code, previews the sender, and explicitly accepts or declines. Preview and redemption are App Check protected, authenticated, and rate-limited; redemption and contact linking happen in one transaction. There is no phone-profile lookup or automatic in-app invite notification. Existing legacy pending invites must be reissued.
 
 - Feature 17: `AlertResponsesWidget` (`lib/core/widgets/`) is a `StatefulWidget` that subscribes to `watchAlertResponses(alertId)`. Placed in two locations: (1) active SOS screen — below the map, using `sosVm.activeSos.value?.id`; (2) `_AlertDetailSheet` in alert history — using `alert.id`. Empty state shows "Waiting for your circle to respond..."; populated state shows avatar initials + name + "Responding" (black filled) or "Seen" (subtle) badge. Active SOS view was refactored from `Expanded` map to `SingleChildScrollView` + fixed 150px map + responses section, keeping the cancel button pinned at the bottom.
 
@@ -574,15 +605,62 @@ Update this file after every completed feature. Any AI agent reading this should
 
 - Feature 18: `InviteService` (`lib/core/services/`) is a stateless helper — `sendSmsInvite`/`sendWhatsAppInvite` via `url_launcher`, falling back to a clipboard copy + snackbar if the app isn't installed. The picker UI (`InvitePickerSheet`, `_ChannelRow`) lives in `lib/features/contacts/widgets/invite_picker_sheet.dart` since it's only used by the contacts feature — `InviteService` itself has no UI-showing responsibility. Triggered from `AddContactBottomSheet` (post-save, if the "Send invite" toggle is on) and from a send-invite icon on each `ContactCard`.
 
-
-
 - FCM token is fetched and saved to Firestore on every app launch via `FirebaseMessagingService.init()` — this keeps tokens fresh without a manual refresh flow.
-- `HeadsUpViewModel` auto-escalates to `headsUpExpired` alert type when the countdown reaches zero — the Cloud Function picks this up and notifies contacts.
+- `HeadsUpViewModel` clears local state when the countdown reaches zero; the delayed `expireHeadsUpWindow` task owns escalation and contact notification.
 - The 28-day activity grid in `HomeViewModel.gridData` returns a 28-element list of booleans; `true` means at least one seizure occurred on that day. The grid renders 4 rows × 7 columns (oldest → newest, left to right, top to bottom).
 - `AlertDto.type` drives the Cloud Function notification copy — keep the three string values (`sos`, `headsUp`, `headsUpExpired`) in sync between the Flutter app and `functions/index.js`.
 - `firestore.rules` uses `request.auth.uid == resource.data.userId` for ownership checks on contacts, seizureLogs, alerts, and headsUp. The `alert_responses` collection path was fixed to match `FirebaseCollectionKeys.responses` ('alert_responses') — it previously read `/responses/{responseId}`, which never matched the collection the app actually writes to, so every read/write was denied by Firestore's default-deny. The update/delete rule checks a `responderId` field — as of Feature 22, `AlertResponseDto.responderId` exists and is populated by `IncomingAlertViewModel` (the first real caller of `upsertAlertResponse`), so the rule and the write path now agree.
 - `lib/core/widgets/alert_map_widget.dart` displays a `flutter_map` centred on alert coordinates. It is wired into `_AlertDetailSheet` (Feature 16, alert history), the redesigned active-SOS status board (Feature 22), and `IncomingAlertView` (Feature 22).
 
+- Feature 33 (Safety expansion, 2026-10-11): added the Safety Readiness screen,
+  richer seizure records, monthly calendar and 90-day summary, PDF/CSV sharing,
+  caregiver action plans, local medication reminders, a nearby audible alert,
+  delivery-state tracking, and bounded priority escalation for unanswered alerts.
+  Escalation creates at most three delayed tasks per alert and exits when the
+  alert is resolved, cancelled, or acknowledged. All functions retain
+  `minInstances: 0` and there is no polling scheduler.
+
+- Feature 34 (Garmin manual companion, 2026-10-11): added a Connect IQ project
+  under `garmin/` with six-digit pairing, revocable hashed credentials, current
+  safety status, a ten-second manual SOS countdown, Heads Up, check-in, and
+  battery heartbeat. Firebase exposes three scale-to-zero HTTPS endpoints and
+  owner-only wearable management callables. Automatic seizure detection remains
+  outside the implementation scope. Connect IQ compilation and physical-watch
+  validation remain release requirements because the SDK is not installed in
+  the development environment.
+
 - Feature 22 follow-up (Caregiver mode perf): `getPeopleIWatch` was doing 3 sequential Firestore reads per watched person (owner doc → SOS query → conditional Heads Up query) inside its per-contact `Promise.all` fan-out; `getAlertDetail` was 4 fully sequential reads. Both now parallelize the reads that don't depend on each other's results (`functions/index.js`) — `getPeopleIWatch` always fetches the Heads Up query alongside SOS now (previously conditional on SOS being empty), trading one occasionally-unnecessary read for removing a full round-trip wait. Both callables also got `{ minInstances: 1 }` to eliminate cold starts — **this was reverted in Feature 25, do not re-add it without checking the budget first.** On the Flutter side, `CaregiverService.getPeopleIWatch` now caches its last successful result for 30s (`_cacheTtl`) so navigating away and back to Caregiver mode within that window is instant instead of re-invoking the callable; pull-to-refresh passes `forceRefresh: true` to bypass the cache. `getAlertDetail` is intentionally not cached — it's emergency-detail data that must stay live.
 
 - Feature 22 (Caregiver mode): SOS send-countdown (`CountdownAlertDialog` in `sos_button_widget.dart`) and the active-alert screen (`SosView._buildActiveState`) were redesigned into a full-bleed black "status board" — `SosStatusBoardHeader` (elapsed timer, segmented seen-indicator, "Cancel" text action) + `ContactStatusRow` per contact (initials avatar, Responding/Seen/Not seen yet, tel: call button), backed by a new `SosViewModel.alertResponses` stream (subscribed alongside `activeSos`, cancelled on `cancelSos`/`onClose`). Caregiver mode itself is a new feature folder (`lib/features/caregiver/`): `CaregiverView` ("People I watch", black emphasized cards for SOS/Heads Up with a "View details"/"Check on them" action, plain rows for monitoring) and `IncomingAlertView` (dark alert-detail screen — medical ID, emergency note, distance via `Geolocator.distanceBetween`, "I'm responding" + "Call {name}"). Since `firestore.rules` is strictly owner-only, cross-user reads go through two new admin-privileged Cloud Functions — `getPeopleIWatch` and `getAlertDetail` (`functions/index.js`, both `onCall`, deployed to `us-central1`) — reached via the new `cloud_functions` dependency and `lib/core/services/caregiver_service.dart`. `getAlertDetail` authorizes the caller by matching their phone against the alert owner's `contacts`, and also returns `callerContactId`/`callerContactName` so the client can write a correctly-keyed `AlertResponseDto` without its own risky lookup. Opening `IncomingAlertView` auto-marks the response `seen: true`; tapping "I'm responding" additionally sets `responding: true` — this is the first code path that ever writes to `alert_responses`, so the sender's status board now reflects real data instead of always showing "Not seen yet". `_handleNotificationNavigation` (`firebase_messaging_service.dart`) deep-links a tapped SOS push into `IncomingAlertView`; it checks the new `alertStatus` FCM data field to skip cancelled-alert notifications (which share the same `alertType`).
+
+### 13 October 2026 hardening pass
+Profile and email writes now update only edited fields, preserving safety plans/reminders/consent/tokens. Caregiver cache is user scoped and rejects late requests after invalidation. Removed inert auto-answer UI/state, duplicate Mode watch list and misleading alert-override shortcut. Settings navigation uses the tested wrapping value-row layout. Added honest dashboard failure states and safe profile-editor disposal/failure handling. Full details: docs/production/hardening-2026-10-13.md. No feature development or deployment performed.
+
+### Heads Up and Android notification sound � 13 October 2026
+Fixed short-screen Heads Up overlap and added custom check-in minutes (1�1,440). Bundled an original 3.9-second ascending paired-tone alert for Android, using a new seizure_alerts_v2 channel because Android channel sounds are immutable. Manifest fallback and foreground notifications use the same channel. Updated FCM Android sound payload; backend deployment remains pending. iOS keeps its existing default sound. Actual volume and DND remain controlled by system settings. Flutter regression suite: 269 passed; Node suite: 26 passed.
+
+### GetX lifecycle hardening � 13 October 2026
+Retained/cancelled messaging streams, made messaging/home-widget startup idempotent, moved Heads Up ownership to RootBinding, guarded cached alert restore by active account and disposal, blocked timer resurrection in caregiver screens and disposed safety-plan text controller access, and prevented duplicate home retry subscriptions. Added five async/disposal regression cases; all 274 tests pass with clean analysis. Details: docs/production/getx-lifecycle-2026-10-13.md. Device heap profiling remains unperformed.
+
+### UI overhaul trial — 13 October 2026
+Replaced raised navigation with adaptive labelled bars; patient opens Home. SOS/Heads Up share a scrollable page with inline duration/custom minutes and a visible active check-in action. Home prioritises active alerts and recent entries before statistics; completed setup is compact. Caregiver readiness moves below active watch-list cards. Shared entry rows and activity legends wrap at larger text sizes. Removed the obsolete draggable idle sheet. 280 Flutter tests passed; preview captured under .buildlog/ui-overhaul-sos.png. No real alerts sent.
+
+
+### Current UI direction — 13 October 2026
+The owner reverted the UI overhaul trial. Its labelled navigation, inline Heads Up and reordered Home layout are historical proposals, not the current baseline. Preserve the Apple-style floating pill navigation, raised SOS and existing hierarchy. The subsequent focused pass reduces navigation item padding on narrow screens, fits the SOS circle/label to available width, and measures the Heads Up heading for large-text clearance. Validation: clean Flutter analysis and 276 passing tests.
+
+
+### Dark-mode implementation — 13 October 2026
+Enabled the existing persisted ThemeController preference and added Profile > Appearance (System/Light/Dark). Custom UI now resolves monochrome roles from its inherited theme via AppPalette; dark background #181818 and cards #2D2D2D. Navigation and screen hierarchy preserved. Heads Up restored to the earlier 10% collapsed extent per owner request. Theme-aware system bars and scrollable appearance controls included. Clean analysis and 285 passing tests, including preference restoration, live theme switching without losing the open sheet, system brightness, patient/caregiver navigation at 280/390dp, short-screen large text, contrast and compact sheet extent. Rendered Home/SOS/Settings component previews reviewed; physical device testing remains with the owner.
+
+
+### Apple-design review fixes — 13 October 2026
+Implemented the owner's requested contrast, label-size, selection-indicator, navigation-hit-target and accessible Heads Up fixes. Existing floating navigation, font and compact drawer preserved. Validation: clean Flutter analysis, 289 passing tests, including measured secondary-text contrast in both appearances, minimum navigation dimensions, dark selected-dot colour and tap/semantic toggling with reduced motion. Physical screen-reader testing remains a manual check.
+
+
+### Overflow findings fixed — 14 October 2026
+Resolved all seven confirmed overflow/clipping findings. Reproduction matrix now reports zero framework overflows and zero duration-preset clipping in all 270 configurations. Added test/responsive_layout_test.dart with those cases and explicit selected-dropdown/preset intrinsic-height checks. Full suite: 559 passing tests. Static analysis clean; signed arm64 APK built. Representative 320dp/2x dark-mode renders inspected. No backend operations, real alerts or device installation performed.
+
+
+### Owner screenshot fixes — 19 October 2026
+Fixed shared drawer actions behind Android system navigation via bottom SafeArea plus existing keyboard avoidance. Added six modal-route inset tests across 0/24/48dp system bars, keyboard opening/closing, and scrollable/non-scrollable contents. Replaced completed-setup X with horizontal swipe dismissal using the existing persisted preference; incomplete checks cannot dismiss. Added three swipe/persistence checks. Restored trailing contact notification icon alignment and inspected a rendered contact preview with real fonts/icons. Full suite: 568 passing tests, including all 270 responsive scenarios. Analysis clean. Signed arm64 APK prepared for owner testing.

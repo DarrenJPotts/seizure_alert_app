@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
-import 'package:seizure_app/core/constants/image_list.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/widgets/app_text_form_field.dart';
 import 'package:seizure_app/core/widgets/buttons/app_button.dart';
 import 'package:seizure_app/core/widgets/buttons/button_styles/base_button_style.dart';
-import 'package:seizure_app/core/widgets/picture.dart';
+import 'package:seizure_app/core/widgets/app_wordmark.dart';
 import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/features/login/view_models/login_view_model.dart';
 import 'package:seizure_app/features/login/widgets/forgot_password_sheet.dart';
@@ -23,7 +22,7 @@ class LoginView extends GetView<LoginViewModel> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 600),
+            constraints: const BoxConstraints(maxWidth: 600),
             child: SingleChildScrollView(
               child: Form(
                 key: _formKey,
@@ -34,7 +33,7 @@ class LoginView extends GetView<LoginViewModel> {
                     Column(
                       spacing: Dimensions.sixteen,
                       children: [
-                        PictureWidget(imagePath: ImageList.appLogo, width: 220),
+                        const AppWordmark(),
                         Text(
                           'Instantly notify trusted contacts during a seizure',
                           textAlign: TextAlign.center,
@@ -43,47 +42,45 @@ class LoginView extends GetView<LoginViewModel> {
                       ],
                     ),
 
-                    Column(
-                      spacing: Dimensions.sixteen,
-                      children: [
-                        AppTextFormField(
-                          controller: controller.emailController,
-                          labelText: 'Email',
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        AppTextFormField(
-                          controller: controller.passwordController,
-                          labelText: 'Password',
-                          obscureText: true,
-                          textInputAction: TextInputAction.done,
-                        ),
-
-                        Obx(() {
-                          final error = controller.errorMessage.value;
-                          if (error == null || error.isEmpty) {
-                            return SizedBox.shrink();
-                          }
-                          return Text(
-                            error,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                          );
-                        }),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => ForgotPasswordSheet.show(
-                              context,
-                              controller.emailController.text,
-                            ),
-                            child: const Text('Forgot password?'),
+                    Obx(
+                      () => Column(
+                        spacing: Dimensions.sixteen,
+                        children: [
+                          AppTextFormField(
+                            controller: controller.emailController,
+                            labelText: 'Email',
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
                           ),
-                        ),
-                      ],
+                          AppTextFormField(
+                            controller: controller.passwordController,
+                            labelText: 'Password',
+                            obscureText: true,
+                            textInputAction: TextInputAction.done,
+                          ),
+
+                          if (controller.errorMessage.value
+                              case final String error when error.isNotEmpty)
+                            Text(
+                              error,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                            ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () => ForgotPasswordSheet.show(
+                                context,
+                                controller.emailController.text,
+                              ),
+                              child: const Text('Forgot password?'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     Column(
@@ -114,12 +111,13 @@ class LoginView extends GetView<LoginViewModel> {
                             context: context,
                           ),
                           buttonText: 'Create an account',
-                            onTap: () async {
-                              await OnboardingViewModel.discardDraft();
-                              Get.toNamed(AppRoutes.onboarding, arguments: {
-                                'mode': OnboardingMode.preSignup,
-                              });
-                            },
+                          onTap: () async {
+                            await OnboardingViewModel.discardDraft();
+                            Get.toNamed(
+                              AppRoutes.onboarding,
+                              arguments: {'mode': OnboardingMode.preSignup},
+                            );
+                          },
                         ),
                       ],
                     ),

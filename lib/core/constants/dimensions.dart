@@ -16,5 +16,6 @@ abstract class Dimensions {
   static const double twentyEight = 28;
   static const double thirtyTwo = 32;
   static const double thirtySix = 36;
+  static const double fortyEight = 48;
   static const double circular = 99;
 }

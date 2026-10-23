@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -12,11 +13,11 @@ class OnboardingStepPermissions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(Dimensions.twentyFour),
+      padding: const EdgeInsets.all(Dimensions.twentyFour),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: Dimensions.eight,
@@ -29,11 +30,11 @@ class OnboardingStepPermissions extends StatelessWidget {
                 'Enable these so your circle can be reached and your location shared when it matters most.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
               ),
             ],
           ),
-          SizedBox(height: Dimensions.thirtyTwo),
+          const SizedBox(height: Dimensions.thirtyTwo),
           Obx(
             () => PermissionRow(
               icon: Icons.notifications_outlined,
@@ -48,7 +49,7 @@ class OnboardingStepPermissions extends StatelessWidget {
                   : vm.requestNotifications,
             ),
           ),
-          SizedBox(height: Dimensions.sixteen),
+          const SizedBox(height: Dimensions.sixteen),
           Obx(
             () => PermissionRow(
               icon: Icons.location_on_outlined,
@@ -61,13 +62,13 @@ class OnboardingStepPermissions extends StatelessWidget {
               onTap: vm.locationGranted.value ? null : vm.requestLocation,
             ),
           ),
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           Text(
             'You can change these later in Profile. The app still works without them — '
             'it just has fewer ways to reach people.',
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+            ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
           ),
         ],
       ),

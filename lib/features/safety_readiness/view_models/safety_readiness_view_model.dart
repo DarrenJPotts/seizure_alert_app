@@ -83,12 +83,20 @@ class SafetyReadinessViewModel extends GetxController {
 
   Future<void> refreshReadiness() async {
     loading.value = true;
-    await _messaging?.refreshReadiness();
-    if (isClosed) return;
-    final granted = await Permission.locationWhenInUse.isGranted;
-    if (isClosed) return;
-    locationReady.value = granted;
-    loading.value = false;
+    error.value = null;
+    try {
+      await _messaging?.refreshReadiness();
+      if (isClosed) return;
+      final granted = await Permission.locationWhenInUse.isGranted;
+      if (isClosed) return;
+      locationReady.value = granted;
+    } catch (_) {
+      if (!isClosed) {
+        error.value = 'Readiness could not be refreshed. Try again.';
+      }
+    } finally {
+      if (!isClosed) loading.value = false;
+    }
   }
 
   Future<ResultDto<WearablePairingCode>> createPairingCode() async {

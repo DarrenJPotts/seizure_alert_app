@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/shared_pref_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../themes/app_design.dart';
 
 class ThemeController extends GetxService {
   ThemeController(this._prefs);
 
+  AppDesignStyle get resolvedDesign => AppDesign.defaultStyle;
+
   static ThemeController instance() => Get.find<ThemeController>();
 
-  static const bool darkModeAvailable = false;
+  static const bool darkModeAvailable = true;
 
   static const ThemeMode defaultMode = ThemeMode.system;
 

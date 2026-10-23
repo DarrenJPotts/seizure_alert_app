@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -63,17 +64,17 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
           _sent ? 'Check your email' : 'Reset password',
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        SizedBox(height: Dimensions.eight),
+        const SizedBox(height: Dimensions.eight),
         Text(
           _sent
               ? 'If an account exists for that address, a password reset link has been sent.'
               : 'Enter your account email and we will send a reset link.',
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+          ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
         ),
         if (!_sent) ...<Widget>[
-          SizedBox(height: Dimensions.sixteen),
+          const SizedBox(height: Dimensions.sixteen),
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
@@ -83,7 +84,7 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
             onSubmitted: (_) => _send(),
           ),
           if (_error != null) ...<Widget>[
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
             Text(
               _error!,
               style: Theme.of(
@@ -91,21 +92,21 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
               ).textTheme.bodySmall?.copyWith(color: Colors.red.shade700),
             ),
           ],
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           ElevatedButton(
             onPressed: _sending ? null : _send,
             child: _sending
                 ? SizedBox.square(
                     dimension: Dimensions.twenty,
-                    child: const CircularProgressIndicator(
-                      color: Colors.white,
+                    child: CircularProgressIndicator(
+                      color: context.paper,
                       strokeWidth: 2,
                     ),
                   )
                 : const Text('Send reset link'),
           ),
         ] else ...<Widget>[
-          SizedBox(height: Dimensions.twentyFour),
+          const SizedBox(height: Dimensions.twentyFour),
           ElevatedButton(onPressed: Get.back<void>, child: const Text('Done')),
         ],
       ],

@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:seizure_app/core/dtos/cycle_tracking_dto.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
@@ -10,18 +12,27 @@ import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SeizureReportService {
-  const SeizureReportService();
+  const SeizureReportService({this.share});
+  final Future<ShareResult> Function(ShareParams)? share;
 
   Future<ResultDto<void>> shareClinicalReport({
     required UserDto? user,
     required List<SeizureLogDto> logs,
     Rect? sharePositionOrigin,
+    bool includeCycleData = false,
+    List<CycleEntryDto> cycleEntries = const [],
   }) async {
     try {
       final String date = _date(DateTime.now());
       final Uint8List csv = Uint8List.fromList(utf8.encode(_buildCsv(logs)));
-      final Uint8List pdf = await _buildPdf(user, logs);
-      await SharePlus.instance.share(
+      final includedCycles = includeCycleData
+          ? cycleEntries
+          : <CycleEntryDto>[];
+      final Uint8List pdf = await _buildPdf(user, logs, includedCycles);
+      final cycleCsv = Uint8List.fromList(
+        utf8.encode(_buildCycleCsv(includedCycles)),
+      );
+      await (share ?? SharePlus.instance.share)(
         ShareParams(
           subject: 'Seizure record $date',
           text:
@@ -29,10 +40,13 @@ class SeizureReportService {
           files: <XFile>[
             XFile.fromData(csv, mimeType: 'text/csv'),
             XFile.fromData(pdf, mimeType: 'application/pdf'),
+            if (includeCycleData)
+              XFile.fromData(cycleCsv, mimeType: 'text/csv'),
           ],
           fileNameOverrides: <String>[
             'seizure-record-$date.csv',
             'seizure-record-$date.pdf',
+            if (includeCycleData) 'cycle-record-$date.csv',
           ],
           sharePositionOrigin: sharePositionOrigin,
         ),
@@ -82,8 +96,33 @@ class SeizureReportService {
         .join('\r\n');
   }
 
-  Future<Uint8List> _buildPdf(UserDto? user, List<SeizureLogDto> logs) async {
-    final pw.Document document = pw.Document();
+  String _buildCycleCsv(List<CycleEntryDto> entries) => [
+    ['Start date', 'End date', 'Ongoing', 'Flow', 'Symptoms', 'Notes'],
+    for (final entry in entries)
+      [
+        _date(entry.start),
+        entry.end == null ? '' : _date(entry.end!),
+        entry.end == null ? 'Yes' : 'No',
+        entry.flow.label,
+        entry.symptoms,
+        entry.notes,
+      ],
+  ].map((row) => row.map(_csvCell).join(',')).join('\r\n');
+
+  Future<Uint8List> _buildPdf(
+    UserDto? user,
+    List<SeizureLogDto> logs,
+    List<CycleEntryDto> cycleEntries,
+  ) async {
+    final regular = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/RedHatDisplay-Regular.ttf'),
+    );
+    final bold = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/RedHatDisplay-Bold.ttf'),
+    );
+    final pw.Document document = pw.Document(
+      theme: pw.ThemeData.withFont(base: regular, bold: bold),
+    );
     final int totalSeconds = logs.fold<int>(
       0,
       (int value, SeizureLogDto log) => value + (log.durationSeconds ?? 0),
@@ -199,6 +238,39 @@ class SeizureReportService {
               ),
             ),
           if (logs.isEmpty) pw.Text('No seizure events have been recorded.'),
+          if (cycleEntries.isNotEmpty) ...[
+            pw.SizedBox(height: 24),
+            pw.Text(
+              'Cycle and seizure timeline',
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Text(
+              'Included by the user. Period dates, flow, symptoms and notes are self-reported. Unrecorded days are unknown. This does not diagnose catamenial epilepsy, measure hormones or establish a cause of seizures.',
+            ),
+            pw.SizedBox(height: 12),
+            for (final entry in cycleEntries) ...[
+              pw.Text(
+                '${_date(entry.start)} - ${entry.end == null ? 'Ongoing (through ${_date(DateTime.now())})' : _date(entry.end!)}',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
+              pw.Text('Flow: ${entry.flow.label}'),
+              if (entry.symptoms.isNotEmpty)
+                pw.Text('Symptoms: ${entry.symptoms}'),
+              if (entry.notes.isNotEmpty) pw.Text('Notes: ${entry.notes}'),
+              pw.Text(
+                'Recorded seizures on these days: ${logs.where((log) => entry.contains(log.occurredAt.toLocal(), DateTime.now())).length}',
+              ),
+              for (final log in logs.where(
+                (log) =>
+                    entry.contains(log.occurredAt.toLocal(), DateTime.now()),
+              ))
+                pw.Text(
+                  '  ${_dateTime(log.occurredAt.toLocal())} - ${log.seizureType ?? 'Type not recorded'}',
+                ),
+              pw.SizedBox(height: 12),
+            ],
+          ],
         ],
       ),
     );
@@ -240,7 +312,10 @@ class SeizureReportService {
   }
 
   String _csvCell(Object? value) {
-    final String text = value?.toString() ?? '';
+    var text = value?.toString() ?? '';
+    if (RegExp(r'^[\s]*[=+@-]').hasMatch(text)) {
+      text = "'$text";
+    }
     return '"${text.replaceAll('"', '""')}"';
   }
 

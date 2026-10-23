@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
@@ -13,12 +14,14 @@ class AlertHistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(context.design.cardRadius),
       child: Container(
-        padding: EdgeInsets.all(Dimensions.sixteen),
+        padding: const EdgeInsets.all(Dimensions.sixteen),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.black12),
-          borderRadius: BorderRadius.circular(12),
+          color: context.cardSurface,
+          border: context.designBorder,
+          boxShadow: context.designShadows,
+          borderRadius: BorderRadius.circular(context.design.cardRadius),
         ),
         child: Row(
           children: [
@@ -27,15 +30,15 @@ class AlertHistoryCard extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black.withValues(alpha: 0.06),
+                color: context.ink.withValues(alpha: 0.06),
               ),
               child: Icon(
                 alertIconForType(alert.type),
                 size: 20,
-                color: Colors.black54,
+                color: context.secondaryInk,
               ),
             ),
-            SizedBox(width: Dimensions.twelve),
+            const SizedBox(width: Dimensions.twelve),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,28 +52,34 @@ class AlertHistoryCard extends StatelessWidget {
                   ),
                   Text(
                     formatAlertDate(alert.createdAt),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.secondaryInk,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.ink.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      alertLabelForStatus(alert.status),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: context.secondaryInk,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                alertLabelForStatus(alert.status),
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: Colors.black54),
-              ),
+            const SizedBox(width: Dimensions.eight),
+            Icon(
+              Icons.chevron_right,
+              color: context.ink.withValues(alpha: 0.26),
             ),
-            SizedBox(width: Dimensions.eight),
-            const Icon(Icons.chevron_right, color: Colors.black26),
           ],
         ),
       ),

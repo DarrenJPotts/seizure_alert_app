@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -14,7 +15,7 @@ class OnboardingView extends GetView<OnboardingViewModel> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.paper,
     body: SafeArea(
       child: Column(
         children: <Widget>[
@@ -40,13 +41,13 @@ class OnboardingView extends GetView<OnboardingViewModel> {
           OnboardingBottomNav(vm: controller),
           Obx(() {
             if (controller.mode.value != OnboardingMode.preSignup) {
-              return SizedBox(height: Dimensions.eight);
+              return const SizedBox(height: Dimensions.eight);
             }
             return Padding(
-              padding: EdgeInsets.only(bottom: Dimensions.twelve),
+              padding: const EdgeInsets.only(bottom: Dimensions.twelve),
               child: TextButton(
                 onPressed: controller.goToSignIn,
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
+                style: TextButton.styleFrom(foregroundColor: context.ink),
                 child: const Text('I already have an account'),
               ),
             );

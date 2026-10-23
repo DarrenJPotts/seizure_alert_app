@@ -5,6 +5,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/dependency_injection.dart';
 import 'package:seizure_app/firebase_options.dart';
@@ -80,16 +81,31 @@ class MyApp extends StatelessWidget {
         title: 'Seizure alert',
         debugShowCheckedModeBanner: false,
         opaqueRoute: true,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        // `resolvedMode`, not `themeMode`: the user's choice is stored, but it
-        // stays clamped to light until the widget sweep lands. See
-        // ThemeController.darkModeAvailable.
+        theme: AppTheme.lightFor(themeController.resolvedDesign),
+        darkTheme: AppTheme.darkFor(themeController.resolvedDesign),
         themeMode: themeController.resolvedMode,
+        builder: (context, child) {
+          final theme = Theme.of(context);
+          final dark = theme.brightness == Brightness.dark;
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: dark
+                  ? Brightness.light
+                  : Brightness.dark,
+              statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+              systemNavigationBarColor: theme.scaffoldBackgroundColor,
+              systemNavigationBarIconBrightness: dark
+                  ? Brightness.light
+                  : Brightness.dark,
+            ),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         initialRoute: initialRoute,
         getPages: routes,
         defaultTransition: Transition.cupertino,
-        transitionDuration: Duration(milliseconds: 250),
+        transitionDuration: const Duration(milliseconds: 250),
         textDirection: TextDirection.ltr,
       ),
     );

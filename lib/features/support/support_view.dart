@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +24,7 @@ class _SupportViewState extends State<SupportView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.paper,
     body: SafeArea(
       bottom: false,
       child: Column(
@@ -40,7 +41,7 @@ class _SupportViewState extends State<SupportView> {
               builder: (context, snapshot) {
                 final PackageInfo? info = snapshot.data;
                 return ListView(
-                  padding: EdgeInsets.fromLTRB(
+                  padding: const EdgeInsets.fromLTRB(
                     Dimensions.twenty,
                     Dimensions.twentyTwo,
                     Dimensions.twenty,
@@ -71,7 +72,7 @@ class _SupportViewState extends State<SupportView> {
                           ),
                       ],
                     ),
-                    SizedBox(height: Dimensions.twentySix),
+                    const SizedBox(height: Dimensions.twentySix),
                     SettingsSection(
                       label: 'App',
                       children: <Widget>[
