@@ -1,3 +1,5 @@
+import 'package:seizure_app/features/home/widgets/completed_setup_dismissible.dart';
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -12,9 +14,16 @@ import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
 
 class SetupCheckCard extends GetView<ContactsViewModel> {
-  const SetupCheckCard({super.key, required this.onTap});
+  const SetupCheckCard({
+    super.key,
+    required this.onTap,
+    this.spacingBefore = 0,
+  });
 
   final VoidCallback onTap;
+
+  /// Owned by the optional section so hiding it also removes its spacing.
+  final double spacingBefore;
 
   @override
   Widget build(BuildContext context) => Obx(() {
@@ -161,91 +170,89 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
       action = () => _confirmAndSendTest(context);
     }
 
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Dimensions.twelve),
-        side: const BorderSide(color: Colors.black12),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Dimensions.twelve),
-        onTap: () {
-          HapticFeedback.selectionClick();
-          action();
-        },
-        child: Padding(
-          padding: EdgeInsets.all(Dimensions.sixteen),
-          child: Row(
-            children: [
-              if (sendingTest)
-                SizedBox.square(
-                  dimension: Dimensions.twentyFour,
-                  child: CircularProgressIndicator(
-                    strokeWidth: Dimensions.two,
-                    color: Colors.black,
+    return Padding(
+      padding: EdgeInsets.only(top: spacingBefore),
+      child: CompletedSetupDismissible(
+        enabled: complete && mode != null,
+        onDismissed: () => mode?.setHideCompletedSetup(true),
+        child: Material(
+          color: context.paper,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimensions.twelve),
+            side: BorderSide(color: context.ink.withValues(alpha: 0.12)),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Dimensions.twelve),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              action();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(Dimensions.sixteen),
+              child: Row(
+                children: [
+                  if (sendingTest)
+                    SizedBox.square(
+                      dimension: Dimensions.twentyFour,
+                      child: CircularProgressIndicator(
+                        strokeWidth: Dimensions.two,
+                        color: context.ink,
+                      ),
+                    )
+                  else
+                    Icon(
+                      ready
+                          ? Icons.check_circle_outline
+                          : Icons.notification_important_outlined,
+                      color: context.ink,
+                    ),
+                  const SizedBox(width: Dimensions.twelve),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: Dimensions.four,
+                      children: [
+                        Text(
+                          'Setup check',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: context.secondaryInk,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          detail,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.secondaryInk),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              else
-                Icon(
-                  ready
-                      ? Icons.check_circle_outline
-                      : Icons.notification_important_outlined,
-                  color: Colors.black,
-                ),
-              SizedBox(width: Dimensions.twelve),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: Dimensions.four,
-                  children: [
-                    Text(
-                      'Setup check',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  const SizedBox(width: Dimensions.eight),
+                  Text(
+                    actionLabel,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color:
+                          notificationsLoading || contactsLoading || sendingTest
+                          ? context.ink.withValues(alpha: 0.38)
+                          : context.ink,
+                      fontWeight: FontWeight.w600,
                     ),
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      detail,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    ),
+                  ),
+                  if (!notificationsLoading &&
+                      !contactsLoading &&
+                      !sendingTest) ...[
+                    const SizedBox(width: Dimensions.four),
+                    Icon(Icons.chevron_right, color: context.secondaryInk),
                   ],
-                ),
+                ],
               ),
-              SizedBox(width: Dimensions.eight),
-              if (complete && mode != null)
-                IconButton(
-                  tooltip: 'Hide completed setup check',
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    mode.setHideCompletedSetup(true);
-                  },
-                  icon: const Icon(Icons.close),
-                ),
-              Text(
-                actionLabel,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: notificationsLoading || contactsLoading || sendingTest
-                      ? Colors.black38
-                      : Colors.black,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (!notificationsLoading &&
-                  !contactsLoading &&
-                  !sendingTest) ...[
-                SizedBox(width: Dimensions.four),
-                const Icon(Icons.chevron_right, color: Colors.black54),
-              ],
-            ],
+            ),
           ),
         ),
       ),

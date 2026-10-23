@@ -8,7 +8,7 @@ import 'package:seizure_app/features/safety_plan/view_models/safety_plan_view_mo
 
 class LoadedPlan extends SafetyPlanViewModel {
   LoadedPlan({this.loaded = true})
-    : super(FirestoreService(FakeFirebaseFirestore()), null);
+    : super(FirestoreService(FakeFirebaseFirestore()));
   final bool loaded;
   @override
   bool get hasLoadedPlan => loaded;

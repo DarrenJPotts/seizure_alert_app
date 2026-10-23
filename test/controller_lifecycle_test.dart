@@ -70,9 +70,7 @@ void main() {
     'closing safety plan during load never touches disposed text controllers',
     (tester) async {
       final db = _DelayedFirestore();
-      final vm = Get.put(
-        SafetyPlanViewModel(db, null, currentUid: () => 'user'),
-      );
+      final vm = Get.put(SafetyPlanViewModel(db, currentUid: () => 'user'));
       await Get.delete<SafetyPlanViewModel>();
       db.completion.complete(ResultDto.success(Fixtures.user()));
       await tester.pump();

@@ -69,9 +69,15 @@ class CircleInviteService {
       final data = Map<String, dynamic>.from(result.data as Map);
       final code = data['code'] as String;
       final expiry = data['expiresAt'];
-      if (generation == _cacheGeneration && owner != null &&
-          FirebaseAuth.instance.currentUser?.uid == owner && expiry is num) {
-        _codes.put(contactId, code, DateTime.fromMillisecondsSinceEpoch(expiry.toInt(), isUtc: true));
+      if (generation == _cacheGeneration &&
+          owner != null &&
+          FirebaseAuth.instance.currentUser?.uid == owner &&
+          expiry is num) {
+        _codes.put(
+          contactId,
+          code,
+          DateTime.fromMillisecondsSinceEpoch(expiry.toInt(), isUtc: true),
+        );
       }
       return ResultDto.success(code);
     } on FirebaseFunctionsException catch (error) {

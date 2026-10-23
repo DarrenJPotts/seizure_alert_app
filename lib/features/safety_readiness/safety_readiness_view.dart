@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -16,11 +17,10 @@ class SafetyReadinessView extends GetView<SafetyReadinessViewModel> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.paper,
     body: SafeArea(
-      bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      bottom: true,
+      child: ListView(
         children: <Widget>[
           SettingsScreenHeader(
             title: 'Safety readiness',
@@ -35,34 +35,46 @@ class SafetyReadinessView extends GetView<SafetyReadinessViewModel> {
                 icon: controller.loading.value
                     ? SizedBox.square(
                         dimension: Dimensions.eighteen,
-                        child: const CircularProgressIndicator(
+                        child: CircularProgressIndicator(
                           strokeWidth: 1.5,
-                          color: Colors.black,
+                          color: context.ink,
                         ),
                       )
                     : const Icon(Icons.refresh),
               ),
             ),
           ),
-          Expanded(
-            child: Obx(
-              () => ListView(
-                padding: EdgeInsets.fromLTRB(
-                  Dimensions.twentyFour,
-                  Dimensions.twentyFour,
-                  Dimensions.twentyFour,
-                  Dimensions.twentyFour,
-                ),
-                children: <Widget>[
-                  _OverallStatus(controller: controller),
-                  SizedBox(height: Dimensions.twentyFour),
-                  _PhoneSection(controller: controller),
-                  SizedBox(height: Dimensions.twentyFour),
-                  _CaregiverSection(controller: controller),
-                  SizedBox(height: Dimensions.twentyFour),
-                  _WearableSection(controller: controller),
-                ],
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Dimensions.twentyFour,
+              Dimensions.twentyFour,
+              Dimensions.twentyFour,
+              Dimensions.twentyFour,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Obx(() {
+                  final error = controller.error.value;
+                  if (error == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: Dimensions.twentyFour,
+                    ),
+                    child: Text(
+                      error,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  );
+                }),
+                _OverallStatus(controller: controller),
+                const SizedBox(height: Dimensions.twentyFour),
+                _PhoneSection(controller: controller),
+                const SizedBox(height: Dimensions.twentyFour),
+                _CaregiverSection(controller: controller),
+                const SizedBox(height: Dimensions.twentyFour),
+                _WearableSection(controller: controller),
+              ],
             ),
           ),
         ],
@@ -77,44 +89,56 @@ class _OverallStatus extends StatelessWidget {
   final SafetyReadinessViewModel controller;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Obx(() => _content(context));
+
+  Widget _content(BuildContext context) {
+    final bool loading = controller.loading.value;
     final bool ready =
+        !loading &&
         controller.networkAvailable.value &&
         controller.notificationsReady &&
         controller.locationReady.value &&
         controller.readyCaregiverCount > 0;
     return Container(
-      padding: EdgeInsets.all(Dimensions.twenty),
+      padding: const EdgeInsets.all(Dimensions.twenty),
       decoration: BoxDecoration(
-        color: ready ? Colors.black : Colors.white,
-        border: Border.all(color: Colors.black12),
+        color: ready ? context.ink : context.paper,
+        border: context.designBorder,
         borderRadius: BorderRadius.circular(Dimensions.sixteen),
       ),
       child: Row(
         children: <Widget>[
           Icon(
             ready ? Icons.check_circle_outline : Icons.warning_amber_outlined,
-            color: ready ? Colors.white : Colors.black,
+            color: ready ? context.paper : context.ink,
           ),
-          SizedBox(width: Dimensions.twelve),
+          const SizedBox(width: Dimensions.twelve),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  ready ? 'Core alerts are ready' : 'Setup needs attention',
+                  loading
+                      ? 'Checking readiness'
+                      : ready
+                      ? 'Core alerts are ready'
+                      : 'Setup needs attention',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: ready ? Colors.white : Colors.black,
+                    color: ready ? context.paper : context.ink,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                SizedBox(height: Dimensions.four),
+                const SizedBox(height: Dimensions.four),
                 Text(
-                  ready
+                  loading
+                      ? 'Checking this phone and your connected caregivers.'
+                      : ready
                       ? 'This phone can send an alert to at least one connected caregiver.'
                       : 'Review the checks below before relying on alerts.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: ready ? Colors.white70 : Colors.black54,
+                    color: ready
+                        ? context.paper.withValues(alpha: 0.7)
+                        : context.secondaryInk,
                   ),
                 ),
               ],
@@ -132,7 +156,9 @@ class _PhoneSection extends StatelessWidget {
   final SafetyReadinessViewModel controller;
 
   @override
-  Widget build(BuildContext context) => SettingsSection(
+  Widget build(BuildContext context) => Obx(() => _content(context));
+
+  Widget _content(BuildContext context) => SettingsSection(
     label: 'This phone',
     children: <Widget>[
       _ReadinessRow(
@@ -163,7 +189,9 @@ class _CaregiverSection extends StatelessWidget {
   final SafetyReadinessViewModel controller;
 
   @override
-  Widget build(BuildContext context) => SettingsSection(
+  Widget build(BuildContext context) => Obx(() => _content(context));
+
+  Widget _content(BuildContext context) => SettingsSection(
     label: 'Caregiver delivery',
     children: <Widget>[
       _ReadinessRow(
@@ -210,7 +238,9 @@ class _WearableSection extends StatelessWidget {
   final SafetyReadinessViewModel controller;
 
   @override
-  Widget build(BuildContext context) => SettingsSection(
+  Widget build(BuildContext context) => Obx(() => _content(context));
+
+  Widget _content(BuildContext context) => SettingsSection(
     label: 'Wearables',
     children: <Widget>[
       if (controller.devices.isEmpty)
@@ -226,12 +256,12 @@ class _WearableSection extends StatelessWidget {
             trailing: controller.removingDeviceId.value == device.id
                 ? SizedBox.square(
                     dimension: Dimensions.eighteen,
-                    child: const CircularProgressIndicator(
-                      color: Colors.black,
+                    child: CircularProgressIndicator(
+                      color: context.ink,
                       strokeWidth: 1.5,
                     ),
                   )
-                : const Icon(Icons.delete_outline, color: Colors.black54),
+                : Icon(Icons.delete_outline, color: context.secondaryInk),
             onTap: controller.removingDeviceId.value == null
                 ? () => _removeDevice(context, device)
                 : null,
@@ -275,11 +305,11 @@ class _WearableSection extends StatelessWidget {
               'Pair Garmin watch',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             const Text(
               'Open Seizure Alert on the watch and enter this six-digit code.',
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
             Semantics(
               label: 'Pairing code ${pairing.code.split('').join(' ')}',
               child: SelectableText(
@@ -290,14 +320,14 @@ class _WearableSection extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             Text(
               'Expires at ${TimeOfDay.fromDateTime(pairing.expiresAt).format(context)}.',
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+              ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
             ),
-            SizedBox(height: Dimensions.twentyFour),
+            const SizedBox(height: Dimensions.twentyFour),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -364,6 +394,6 @@ class _ReadinessRow extends StatelessWidget {
     icon: icon,
     label: title,
     value: value,
-    valueColor: ready ? Colors.black54 : Colors.black,
+    valueColor: ready ? context.secondaryInk : context.ink,
   );
 }

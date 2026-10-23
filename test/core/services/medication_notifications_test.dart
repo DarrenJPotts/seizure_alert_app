@@ -19,6 +19,7 @@ void main() {
   late LocalNotificationsService service;
   late List<MethodCall> calls;
   String? zone;
+  bool launchedFromReminder = false;
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
@@ -27,10 +28,22 @@ void main() {
     AndroidFlutterLocalNotificationsPlugin.registerWith();
     calls = <MethodCall>[];
     zone = 'Asia/Tokyo';
+    launchedFromReminder = false;
     messenger.setMockMethodCallHandler(zoneChannel, (_) async => zone);
     messenger.setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       if (call.method == 'initialize') return true;
+      if (call.method == 'getNotificationAppLaunchDetails' &&
+          launchedFromReminder) {
+        return {
+          'notificationLaunchedApp': true,
+          'notificationResponse': {
+            'notificationId': 100123,
+            'notificationResponseType': 0,
+            'payload': '/reminders',
+          },
+        };
+      }
       if (call.method == 'pendingNotificationRequests') {
         return <Map<String, Object>>[
           {
@@ -120,4 +133,104 @@ void main() {
       expect(calls.where((call) => call.method == 'zonedSchedule'), isEmpty);
     },
   );
+
+  test(
+    'cold notification launch is queued until authentication and cleared on account cleanup',
+    () async {
+      launchedFromReminder = true;
+      final cold = await LocalNotificationsService().init();
+      expect(cold.reminderLaunchRequested, isTrue);
+      await cold.clearMedicationReminders();
+      expect(cold.reminderLaunchRequested, isFalse);
+      cold.onClose();
+    },
+  );
+
+  test(
+    'weekly and monthly schedules use native repeats; appointments do not repeat',
+    () async {
+      await service.replaceMedicationReminders(
+        previous: [],
+        current: [
+          const MedicationReminderDto(
+            id: 'weekly',
+            name: 'Vitamins',
+            hour: 9,
+            minute: 0,
+            kind: ReminderKind.supplement,
+            repeat: ReminderRepeat.weekdays,
+            weekdays: [1, 7],
+          ),
+          const MedicationReminderDto(
+            id: 'monthly',
+            name: 'Refill',
+            hour: 10,
+            minute: 0,
+            repeat: ReminderRepeat.monthly,
+            monthDay: 31,
+          ),
+          MedicationReminderDto(
+            id: 'appointment',
+            name: 'Appointment',
+            hour: 14,
+            minute: 0,
+            repeat: ReminderRepeat.once,
+            startDate: DateTime.now().add(const Duration(days: 3)),
+          ),
+        ],
+      );
+      final scheduled = calls
+          .where((c) => c.method == 'zonedSchedule')
+          .map((c) => c.arguments as Map)
+          .toList();
+      expect(scheduled.length, 4);
+      expect(
+        scheduled
+            .where(
+              (c) =>
+                  c['matchDateTimeComponents'] ==
+                  DateTimeComponents.dayOfWeekAndTime.index,
+            )
+            .length,
+        2,
+      );
+      expect(
+        scheduled
+            .where(
+              (c) =>
+                  c['matchDateTimeComponents'] ==
+                  DateTimeComponents.dayOfMonthAndTime.index,
+            )
+            .length,
+        1,
+      );
+      expect(
+        scheduled
+            .where((c) => !c.containsKey('matchDateTimeComponents'))
+            .length,
+        1,
+      );
+      expect(scheduled.every((c) => c['payload'] == '/reminders'), isTrue);
+      expect(scheduled.map((c) => c['id']).toSet().length, 4);
+    },
+  );
+
+  test('invalid schedules never cancel existing native reminders', () async {
+    await expectLater(
+      service.replaceMedicationReminders(
+        previous: [],
+        current: const [
+          MedicationReminderDto(
+            id: 'invalid',
+            name: 'Invalid',
+            hour: 9,
+            minute: 0,
+            repeat: ReminderRepeat.weekly,
+          ),
+        ],
+      ),
+      throwsArgumentError,
+    );
+    expect(calls.where((call) => call.method == 'cancel'), isEmpty);
+  });
 }

@@ -17,6 +17,182 @@ After building any widget — update this file with the widget name, file path, 
 
 ## Widgets
 
+### Insights preview — 2026-10-21
+
+Branch `codex/analytics-preview`. Entry: Home → View insights. Page uses the
+standard AppBar, 24px screen padding, and safe bottom/side insets. Metric cards
+use `context.cardSurface`, `context.designBorder`, `context.designShadows`,
+the design card radius, 20px inner padding, and 12px related-item gaps. Sections
+are separated by 24px. Theme text styles supply all typography.
+
+30/90-day choices use monochrome ChoiceChips with selected ink/paper inversion.
+Frequency and time-of-day charts have 8px bars, numeric counts, and screen-reader
+labels. Text wraps with system scaling. Duration and recovery show sample counts
+and Not recorded for missing measurements. Copy consistently says recorded
+events; it makes no seizure-risk or unlogged seizure-free claims.
+
+Files: `lib/features/analytics/analytics_view.dart`,
+`lib/features/analytics/models/analytics_summary.dart`,
+`lib/features/analytics/view_models/analytics_view_model.dart`.
+
+### Dark-mode page audit — 2026-10-21
+
+SOS cancellation dialogs inherit the dialog theme, and white fallback call
+buttons use `context.heroSurface` foregrounds. Login/signup use `AppWordmark`
+with theme-resolved ink rather than the raster-backed SVG's white background.
+See `docs/design/dark-mode-audit.md` for scope and verification limits.
+
+### Mode screen background — 2026-10-21
+
+ModeView inherits `ThemeData.scaffoldBackgroundColor` instead of overriding it
+with a fixed light grey. Its page surface now matches the active design and
+appearance, including the dark Soft editorial surface.
+
+### Shared duration stepper — 2026-10-20
+
+`lib/core/widgets/duration_stepper_field.dart` now owns the compact numeric
+minus/value/plus field used by both Heads Up and Add/Edit entry. Heads Up uses
+Hours : Minutes; seizure entries use Minutes : Seconds. Entry duration remains
+optional: 00:00 saves as unspecified, while positive values save in seconds.
+Existing longer entry durations are preserved without truncation. Limits for new
+entry adjustments remain 99 minutes / 59 seconds. The shared field retains the
+compact phone layout, narrow fallback, accessible labels and 48px tap targets.
+
+### Heads Up custom duration — 2026-10-20
+
+Custom duration uses two bordered numeric controls in an `HH : MM` layout,
+with minus/value/plus on one row per field when space allows. Hours run 0–24
+and minutes 0–59. At 24 hours minutes reset to zero and both minute buttons disable.
+Zero duration disables Send and shows an actionable hint. Selection is stored as
+total minutes in the existing view model; presets and note entry are unchanged.
+Controls use themed card surfaces and borders, 4px internal padding and label
+gaps, accessible button labels and 48px touch targets. Very narrow fields retain
+a stacked button fallback. Two-digit values scale down to fit narrow screens
+and large text. On a 360px phone each field, including its label, is under 90px tall.
+
+### Direct Heads Up drawer — 2026-10-20
+
+With no active Heads Up, pulling the SOS Heads Up handle upward or tapping it
+opens the main `HeadsUpBottomSheet` directly. The intermediate duration-options
+panel stays hidden. A single-opening guard prevents duplicate modal routes
+during a drag; dismissal resets the underlying handle to its collapsed extent.
+When a Heads Up is active, the existing inline check-in controls remain available.
+The main drawer continues using shared Android navigation/keyboard safe areas.
+
+Regression: `test/heads_up_improvements_test.dart` covers pull, tap, repeat
+opening, reduced motion, and bottom action clearance above a 48px Android bar.
+
+### Contact card surface — 2026-10-20
+
+ContactCard explicitly fills its surface with `context.cardSurface`, matching
+the other cards: white on the pale grey Soft editorial page, charcoal in dark
+mode. The swipe-to-remove background stays behind the opaque card.
+
+AlertHistoryCard also explicitly uses `context.cardSurface` for the same
+white/charcoal treatment, retaining its existing border, shadow and status badge.
+
+### Main style and Android drawers — 2026-10-20
+
+`AppDesign.defaultStyle` is now **Soft editorial** for fresh installs and normal
+release builds. Existing development choices are retained by the style switcher.
+This supersedes the earlier experimental Bold-default entries below.
+
+All modal drawers, including Appearance and Design style, use
+`AppBottomSheetContent` for one handle, scrolling, and shared inset handling.
+It reserves `max(viewInsets.bottom, viewPadding.bottom)` outside content, plus
+24px normal inner padding. Side safe areas are protected; keyboard and Android
+navigation insets are not added twice. The embedded Heads Up panel uses SafeArea
+and adds any unconsumed navigation inset to its collapsed extent.
+
+Regression coverage: `test/settings_sheet_insets_test.dart` and
+`test/bottom_sheet_insets_test.dart` exercise 0/24/48px navigation bars, keyboard
+opening/closing, side insets, and reachability of the bottom action.
+
+### Optional section spacing — 2026-10-20
+
+Hidden widgets remain children of a `Column` even when they return
+`SizedBox.shrink()`, so a spaced parent still inserts gaps. Optional sections
+must own their adjacent spacing inside the same visibility condition, or be
+omitted from the parent's children with a collection `if`.
+
+- Home's setup card owns its `spacingBefore`, applied only while visible. The
+  summary owns one normal section gap. Dismissing setup leaves exactly one gap
+  between the greeting and summary in every development style.
+- Form errors and contact badges/actions are omitted from their parent lists
+  when absent, rather than leaving empty children in spaced columns.
+- Alert responses and optional caregiver statistics own their top padding and
+  remove it while hidden/loading.
+- Keep intentional placeholders (such as calendar leading cells) intact.
+
+Regression: `test/conditional_spacing_test.dart` measures section positions
+through dismissal, persisted hiding, and reappearance after a readiness failure.
+
+### Soft editorial — 2026-10-20
+
+Seventh development variant, based on the user's monochrome podcast reference.
+Storage name: `softEditorial`. Light page: `#F3F3F3`; cards: white; charcoal header
+and hero: `#303030`. Dark page: `#161616`; panels: `#252525`.
+
+- Standard cards: 24 radius; feature panels: 32 radius; 20 internal padding.
+- Borders: 1px at 4% ink. Shared raised cards add a shadow with blur 24, y-offset
+  8, and black at 7% in light / 18% in dark. Pressed action cards remove shadows.
+- Headings: Red Hat Display 600. Body sizes and accessible secondary text remain
+  unchanged. Summary number: 64, weight 700, height 1; home section gaps: 32.
+- DaysFreeCard uses a charcoal title cap and a rounded white/dark content panel.
+- Settings, contact/history cards, readiness cards, and caregiver person panels
+  use the same raised-surface treatment. Navigation uses 28 radius and the
+  existing selected-item inversion.
+- No added illustrations or decorative graphics. The switcher remains gated by
+  the existing development flag; the production default stays Bold.
+
+Preview: `docs/design/softEditorial-aesthetic-preview.png`.
+
+### Development design styles — 2026-10-19
+
+Files: `lib/core/themes/app_design.dart`, `lib/core/themes/app_theme.dart`,
+`lib/core/widgets/design_style_sheet.dart`.
+
+The experiment now has shared style tokens. These override the historical fixed
+values below when a development style is active. New themed surfaces should use
+`context.design.cardRadius`, `context.design.featureRadius`,
+`context.designBorder`, and `context.cardSurface` rather than hard-coded values.
+Use `Theme.of(context).textTheme` for headings and body copy.
+
+| Style | Card / feature radius | Outline | Treatment |
+|---|---|---|---|
+| Clinical | 12 / 16 | 1px, 12% ink | Quiet headings, 56px summary |
+| Bold | 12 / 16 | 2px, solid ink | Heavy headings, 96px summary |
+| Swiss | 8 / 8 | 1px, 35% ink | Tight heading tracking, 80px summary |
+| Soft minimal | 20 / 24 | 1px, 8% ink | Subtle filled cards, 64px summary |
+| Editorial | 4 / 4 | 1px, 20% ink | 40px display heading, 88px summary |
+| Instrument panel | 8 / 8 | 1px, 35% ink | Compact section gaps, 60px tabular summary |
+
+All variants use Red Hat Display and the existing semantic light/dark palette.
+Home section gaps are 24 by default, 32 for Soft/Editorial, and 16 for Instrument.
+Typography scales with system settings; long summary values scale down to fit.
+Navigation retains 48px minimum targets and its existing destinations.
+
+The picker is a safe-area, scrollable bottom sheet with 24px padding, six labelled
+options, a selected checkmark, independent appearance chips, and a Done button.
+It opens by holding the version footer in Profile. The choice persists locally.
+Debug builds enable it; release test builds require `ENABLE_DESIGN_SWITCHER=true`.
+Normal releases ignore development preferences and keep the Bold branch default.
+
+See `docs/design/design-switcher.md` for build and regeneration commands.
+
+### Bold aesthetic experiment — 2026-10-19
+
+Branch: `codex/bold-app-aesthetic`. Builds on the existing uncommitted design and dark-mode work.
+
+- Shared typography: Red Hat Display, weight 700 for display, headline, titleLarge and titleMedium styles. Body sizes remain unchanged. Headline tracking is -0.8 / -0.5 / -0.3.
+- Home greeting: `headlineLarge`; wraps with system text scaling.
+- DaysFreeCard: existing 16 radius and semantic hero colors, 24 padding, 16 gaps; `displayLarge` number with scale-down for long values, a subtle divider, and full-contrast supporting text.
+- StatChip and QuickActionCard: 2-pixel ink outlines, 12 radius, 16 padding. Quick actions use bold labels and the existing 140ms press inversion with easeInOut.
+- Patient and caregiver navigation: 2-pixel ink outlines; selected items use an ink surface with paper icons and dots. Touch targets remain at least 48 pixels.
+- Light and dark palettes, clinical wording, SOS behavior, and monochrome live status remain in use.
+
+Preview: `docs/design/bold-aesthetic-preview.png` shows real home widgets with illustrative data, rather than a signed-in screen. Regenerate with `flutter test --dart-define=BOLD_PREVIEW=true test/bold_aesthetic_test.dart`.
+
 ### Standard Card Container
 
 Reusable decoration pattern — not a dedicated widget file, used inline everywhere.
@@ -129,6 +305,25 @@ passing if you touch this widget.
 
 ---
 
+### Elevation
+
+Shadows are near-absent by design. Anything above 5% opacity has to justify itself as *functional*
+elevation rather than decoration.
+
+| Surface | Value | Why |
+|---|---|---|
+| Cards, grouped settings, hero cards | none | Hairline borders carry separation |
+| Floating nav bar | `Colors.black` @ 4%, blur 16, offset `(0, 6)` | Lifts the bar off the scroll surface |
+| SOS idle drawer | `Colors.black` @ 4%, blur 16, offset `(0, -4)` | Same, upward |
+| Elevated SOS control (nav) | `Colors.black` @ 12%, blur 16, offset `(0, 4)` | **Functional** — the one control that must read as raised above the bar |
+| SOS button (resting) | `Colors.black` @ 8%, blur 16, offset `(0, 4)` | As above; removed entirely on press |
+| Map marker pin | `Colors.black` @ 35%, blur 6, offset `(0, 2)` | **Functional** — a pin has to separate from arbitrary map imagery, which is the one surface whose colour this app does not control |
+
+Nav and drawer shadows were `10%`/`8%` at blur 20 before the minimalist-ui pass. The two exceptions
+above are deliberate and documented rather than oversights.
+
+---
+
 ### Grouped-card settings language  ← **use this for any list-of-rows screen**
 
 Files: `lib/core/widgets/settings/settings_group.dart`,
@@ -192,6 +387,14 @@ per entry, which read as a stack of unrelated cards rather than a record). Do no
 the title row (a "CAREGIVER" pill, a live `ACTIVE mm:ss` pill) that `SettingsScreenHeader` does not
 model. Their metrics match it exactly; if a third such screen appears, widen the shared header instead
 of copying again.
+
+The caregiver Alerts and Profile tabs use `SettingsScreenHeader` inside the root shell.
+A shell tab must not add a nested `Scaffold` or `AppBar`, because that changes its top inset and title
+alignment. The standalone patient Alert History route keeps its route AppBar.
+
+Async settings actions use the row's `loading` state. While busy, the trailing value or toggle becomes
+a compact monochrome progress indicator and repeat taps are blocked. Invite-code actions follow the
+same rule: retain the action, replace its icon with a spinner, and show `Loading…` until the sheet opens.
 
 ---
 
@@ -351,12 +554,14 @@ Two variants, selected by the `caregiver` flag, matching the two shells `RootVie
 
 | Property | Value |
 |---|---|
-| Height | 70, margin `twentyFour` sides / `twenty` bottom |
+| Height | 70, margin `twentyFour` sides; bottom `SafeArea` minimum `twenty` |
 | Background | `Colors.white`, `BorderRadius.circular(35)` |
-| Shadow | `Colors.black` @ 10%, blur 20, offset `(0, 10)` |
+| Shadow | `Colors.black` @ 4%, blur 16, offset `(0, 6)` |
 | Selected icon | `Colors.black` (filled variant) + 6px black dot |
 | Unselected icon | `Colors.black38` (patient) / `Colors.black` @ 35% (caregiver) |
 | Semantics | every item passes `semanticLabel`; items are icon-only and would otherwise be unlabelled buttons |
+
+**System inset:** The shared navigation widget is wrapped in a bottom `SafeArea` with a `Dimensions.twenty` minimum. Android gesture and three-button navigation insets therefore replace the minimum when larger, keeping both patient and caregiver bars fully above system controls.
 
 **Patient variant (default)** — 5 destinations: home, log, *elevated SOS*, circle, profile. The SOS is a
 65px black circle in a `Positioned(top: -25)`, `Icons.emergency` at 32px white, labelled "SOS".
@@ -400,17 +605,20 @@ File: `lib/core/widgets/alert_responses_widget.dart`
 
 ### Alert History Card
 
-File: `lib/features/alert_history/alert_history_view.dart` (`_AlertCard`)
+File: `lib/features/alert_history/widgets/alert_history_card.dart`
+Last updated: 2026-10-09
 
 | Property | Value |
 |---|---|
 | Container | Standard card (border `Colors.black12`, radius 12, padding `sixteen`) |
 | Icon circle | 40×40, `Colors.black.withValues(alpha: 0.06)`, `BoxShape.circle` |
 | Icon | 20px, `Colors.black54` — `warning_amber_rounded` (SOS), `timer_outlined` (Heads Up), `timer_off_outlined` (Expired) |
-| Type label | `textTheme.bodyMedium` |
+| Type label | `textTheme.bodyMedium`; caregiver mode prefixes the type with `ownerName ·` |
 | Timestamp | `textTheme.bodySmall`, `Colors.black45` |
 | Status badge | `Colors.black.withValues(alpha: 0.06)` bg, `BorderRadius.circular(20)`, `textTheme.labelSmall` `Colors.black54` — "Active" / "Resolved" / "Cancelled" |
 | Chevron | `Icons.chevron_right`, `Colors.black26` |
+
+**Pattern notes:** Patient history shows alerts sent by the signed-in patient. Caregiver history uses the same card but includes the watched person's name and loads through the bounded `getCaregiverAlertHistory` callable. Caregiver records open the status-aware incoming alert view; terminal records expose call and back actions without creating a new response.
 
 ---
 
@@ -455,6 +663,7 @@ File: `lib/features/sos/widgets/sos_status_board_header.dart`
 |---|---|
 | Container | `Colors.black`, full width, padding `EdgeInsets.fromLTRB(twentyFour, twentyFour, twentyFour, twenty)` |
 | Status indicator | `LiveIndicator(size: 12, color: Colors.white)` (was an 8×8 `Colors.greenAccent` circle) |
+| Undelivered state | `SENDING…`, `NOT CONFIRMED` (no server acknowledgment yet), or `NOT SENT` (write rejected) |
 | "SOS ACTIVE" label | `textTheme.labelSmall`, `Colors.white`, `FontWeight.w600`, `letterSpacing: 3` |
 | "Cancel" text action | `textTheme.bodyMedium`, `Colors.white.withValues(alpha: 0.7)`, `FontWeight.w600` — plain `GestureDetector`, no button chrome |
 | Elapsed timer | explicit `fontSize: 40`, `FontWeight.w700`, `height: 1`, `Colors.white`, tabular figures (display element) |
@@ -552,7 +761,7 @@ File: `lib/features/sos/sos_view.dart` (`_CompactIdleSheet` / `_CompactIdleSheet
 |---|---|
 | Layout | `StatefulWidget` — owns a `DraggableScrollableController` (created in `initState`, disposed in `dispose`) so it can react to drag position and clean up properly; internally a `LayoutBuilder` → `Stack` with the SOS hero in `Positioned.fill(bottom: sheetMinHeight, ...)` behind the sheet |
 | Sheet sizing | `initialChildSize`/`minChildSize`: `0.10`, `maxChildSize`: `0.85` (`SosView._sheetMinSize`/`_sheetMaxSize`) |
-| Sheet container | `Colors.white`, `BorderRadius.vertical(top: Radius.circular(20))`, `BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: Offset(0, -4))` |
+| Sheet container | `Colors.white`, `BorderRadius.vertical(top: Radius.circular(20))`, `BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: Offset(0, -4))` |
 | Collapsed state (always visible) | Drag handle (36×4, `Colors.black12`, `BorderRadius.circular(Dimensions.circular)`, centred, `Dimensions.sixteen` bottom margin) + a plain 1px `Colors.black12` divider — nothing else |
 | Revealed content | Roster summary + Heads Up card, wrapped in `AnimatedBuilder(animation: controller, ...)` — renders `SizedBox.shrink()` while `controller.size <= sheetMinSize + 0.02`, otherwise the real content, padded `Dimensions.twentyFour` from the divider |
 
@@ -570,10 +779,10 @@ Shown on the SOS idle screen, above the Heads Up options card, so the user sees 
 |---|---|
 | Avatar | 34×34 circle, `Border.all(color: Colors.white, width: 2)`, overlapping at 24px offsets (`Stack` + `Positioned`) |
 | Avatar fill (push-notified contact) | `Colors.black` bg, white initials, `textTheme.labelSmall` `FontWeight.w700` |
-| Avatar fill (SMS-only contact) | `Colors.black.withValues(alpha: 0.08)` bg, `Colors.black54` initials |
-| Overflow avatar (`+N`) | Same muted style as SMS-only avatar, shown when >3 contacts |
-| Summary line 1 | `textTheme.bodyMedium` — "N contacts will be notified" |
-| Summary line 2 | `textTheme.bodySmall`, `Colors.black45` — "N by push · N by SMS · location included" |
+| Avatar fill (linked push contact) | `Colors.black` bg, white initials |
+| Overflow avatar (`+N`) | Same style, shown when >3 linked push contacts |
+| Summary line 1 | `textTheme.bodyMedium` — "N contacts set to receive alerts" |
+| Summary line 2 | `textTheme.bodySmall`, `Colors.black45` — "Push notifications only" |
 | Empty state | `textTheme.bodySmall`, `Colors.black45` — "You have no contacts to notify yet." (no avatars) |
 | Section divider (in `sos_view.dart`) | `Border(top: BorderSide(color: Colors.black12))`, `Dimensions.sixteen` top padding — separates this row from the SOS button above it |
 
@@ -610,42 +819,127 @@ File: `lib/features/contacts/widgets/contact_card.dart` (`_PendingBadge`)
 | Text | "Pending", `textTheme.labelSmall`, `Colors.black54` |
 | Placement | Inline next to the contact name (`Row` inside the existing name/subtitle `Column`, name wrapped in `Flexible` + ellipsis so long names don't push the badge off-card) |
 
-**Pattern notes:** Shown only when `contact.status == ContactStatus.pending` (an in-app circle invite is outstanding — see Circle Invite screen below). Same visual language as the Alert History status badge — reuse this exact shape for any future "awaiting something" badge rather than inventing a new one.
+**Pattern notes:** Shown only for legacy contacts whose status remains `pending`. New code-based invites do not change contact status until accepted. Same visual language as the Alert History status badge — reuse this exact shape for any future "awaiting something" badge rather than inventing a new one.
 
 ---
 
-### Circle Invite Screen (accept/decline)
+### Circle Invite Code Screen
 
 File: `lib/features/circle_invite/circle_invite_view.dart`
 
 | Property | Value |
 |---|---|
-| `Scaffold.backgroundColor` | `Colors.white` — light, unlike `IncomingAlertView`'s dark screen, because this isn't an emergency |
-| `AppBar` | `Colors.white`, `elevation: 0`, no title (back arrow only) |
-| Icon | `Icons.group_add_outlined`, 48px, `Colors.black` |
-| Headline | `textTheme.headlineSmall`, `FontWeight.bold` — "`{senderName}` wants to add you to their circle" |
-| Body copy | `textTheme.bodyMedium`, `Colors.black54` |
-| Primary "Accept" | Full-width `ElevatedButton`, `Colors.black` bg / `Colors.white` fg, radius 12 |
-| Secondary "Decline" | Full-width `OutlinedButton`, `Colors.black` fg, `Colors.black26` border, radius 10 |
-| Already-responded / error state | Centred icon (`Icons.check_circle_outline` / `Icons.error_outline`, 48px, `Colors.black26`) + `bodyMedium` `Colors.black54` message, no buttons |
+| `Scaffold.backgroundColor` | `Colors.white` — light and calm since accepting an invite is not an emergency |
+| `AppBar` | `Colors.white`, `elevation: 0`, back arrow |
+| Headline | `textTheme.headlineSmall`, bold — "Enter invite code" |
+| Code field | Uppercase text input limited to hex digits, spaces, and hyphens |
+| Preview | Standard bordered card identifying the sender and contact role before consent |
+| Primary action | Full-width black `ElevatedButton`; Continue before preview, Accept after preview |
+| Secondary action | Full-width `OutlinedButton` to decline after preview |
 
-**Pattern notes:** Design precedent is `IncomingAlertView`/`IncomingAlertBinding` (notification-triggered full-screen route + `Get.arguments`), but inverted to light/calm since accepting a circle invite isn't urgent. `CircleInviteBinding` reads `inviteId` from **either** `Get.arguments` (background/terminated notification tap) **or** `Get.parameters` (foreground tap, where the local notification payload is a bare route string with a query param) — needed because those are two different delivery paths into the same screen.
+**Pattern notes:** Invites are code-based, not routed from FCM or matched to profile phone numbers. The sender shares the code through SMS or WhatsApp; the signed-in recipient opens this screen from My Circle or Mode settings. Codes expire after 24 hours.
 
----
+### Contact Invite Actions
 
-### Circle Invite Banner (Home)
+Files: `lib/features/contacts/widgets/contact_card.dart`, `lib/features/contacts/widgets/invite_picker_sheet.dart`
+Last updated: 2026-10-10
 
-File: `lib/features/home/widgets/circle_invite_banner.dart`
+| Contact state | Action |
+|---|---|
+| Never invited | `Invite` |
+| Awaiting response | `View code` |
+| Expired | `New code` |
+| Declined | `Invite again` |
+| Connected | No invite action |
+
+**Pattern notes:** Opening an unexpired pending invite returns its existing code and does not invalidate it. The picker labels SMS and WhatsApp under `Share or resend`; regeneration remains a separate confirmed action because it immediately invalidates the previous code. Pending invite state stays visible until accepted, declined, expired, or regenerated.
+
+### Onboarding Contact Invite
+
+File: `lib/features/onboarding/widgets/onboarding_step_emergency_contact.dart`
+Last updated: 2026-10-10
 
 | Property | Value |
 |---|---|
-| Container | Standard card (border `Colors.black12`, radius 12, padding `sixteen`) |
-| Icon circle | 40×40, `Colors.black.withValues(alpha: 0.06)`, `BoxShape.circle` — `Icons.group_add_outlined`, `Colors.black54` |
-| Title | `textTheme.bodyMedium` — "Circle invite" |
-| Subtitle | `textTheme.bodySmall`, `Colors.black45` — "`{senderName}` wants to add you to their circle" |
-| Chevron | `Icons.chevron_right`, `Colors.black26` |
+| Placement | Always visible below the emergency-contact fields |
+| Surface | White, `Colors.black12` border, radius `Dimensions.twelve` |
+| Title | `bodyMedium` — “Invite them to join your circle” |
+| Supporting text | `bodySmall`, `Colors.black54`; explains what is required or what happens after setup |
+| Control | Adaptive monochrome switch; disabled until both name and phone are present |
+| Default | Enabled automatically once the contact details are complete; the user can opt out |
 
-**Pattern notes:** Shown above the greeting on Home only when `HomeViewModel.pendingInvites` (a live `watchPendingInvites` stream) is non-empty — reuses the exact same row shape as the Alert History card. Placed inside the same `Obx` as `GreetingWidget` (not a separate one) so the Column's `spacing` doesn't leave a stray gap when there's no invite to show.
+**Pattern notes:** The invite choice remains visible before data entry so it cannot be missed behind conditional rendering or the keyboard. Account creation and contact saving complete before the callable creates the invite. The resulting code opens in the shared invite picker after navigation, with SMS, WhatsApp, copy, and regenerate actions.
+
+---
+### Setup Check Card
+
+File: `lib/features/home/widgets/setup_check_card.dart`
+Last updated: 2026-10-09
+
+| Property | Value |
+|---|---|
+| Background | `Colors.white` |
+| Border | `Colors.black12`, 1 px |
+| Border radius | `Dimensions.twelve` |
+| Padding | `Dimensions.sixteen` |
+| Text — primary | `bodyMedium`, `Colors.black`, `FontWeight.w600` |
+| Text — secondary | `bodySmall`, `Colors.black54` |
+| Spacing | `Dimensions.four`, `Dimensions.eight`, `Dimensions.twelve` |
+| Interaction | Whole card runs the displayed action; `HapticFeedback.selectionClick()` |
+| Trailing action | `labelSmall`, `FontWeight.w600`, chevron when actionable |
+| Shadow | none |
+| Accent usage | Monochrome status icon |
+
+**Pattern notes:** The test action requires notification permission, a current FCM device token, and at least one contact whose invite is accepted, push alerts are enabled, and `linkedUid` is present. The card describes those contacts as connected; only a successful drill confirms that a caregiver device is currently reachable. Disabled permission shows `Open settings` or `Enable`; failed token registration shows `Retry`; contact setup opens Contacts. Device and contact checks have bounded loading states. `linkedUid`, `lastTestStatus`, and `lastTestedAtMs` are populated by Cloud Functions and are intentionally not written by the client. A completed test persists a monochrome `Test successful`, `Device offline`, or `Test failed` state on each linked contact. The setup card summarizes those results and tells the patient to ask an offline caregiver to reopen the app before testing again. Sending replaces the icon with a compact progress indicator and blocks repeat taps. Successful means FCM accepted the message; device settings can still prevent the operating system from displaying it.
+
+### Caregiver Alert Drill Confirmation
+
+File: `lib/features/home/widgets/setup_check_card.dart`
+Last updated: 2026-10-10
+
+| Property | Value |
+|---|---|
+| Surface | Standard `AlertDialog` using the global monochrome dialog theme |
+| Title | `Send test alert?` |
+| Body | States who receives it and confirms that no emergency alert or seizure record is created |
+| Actions | `Cancel` and `Send test` using plain clinical verbs |
+| Result | Bottom snackbar reports sent-device counts and the remaining OS-delivery limitation |
+
+**Pattern notes:** Any non-emergency drill that contacts another person requires an explicit confirmation immediately before dispatch. The server controls recipients and copy, enforces App Check and authentication, limits attempts to two per ten minutes, caps unique devices at twenty, and gives the notification a five-minute TTL. The client never supplies a recipient ID, notification body, or emergency status.
+
+---
+
+### Offline Banner
+
+File: `lib/core/widgets/offline_banner.dart`
+
+| Property | Value |
+|---|---|
+| Background | `Colors.black` |
+| Text | `bodyMedium` / `bodySmall`, `Colors.white` / `Colors.white70` |
+| Padding | Horizontal `Dimensions.twentyFour`, vertical `Dimensions.twelve` |
+| Icon | `Icons.cloud_off_outlined`, white, 20 px |
+| Shadow | none |
+| Accent usage | Monochrome |
+
+**Pattern notes:** Shown above the root shell's selected screen for both patient and caregiver modes. It appears only when the platform reports no active network interface. Connectivity reports interface availability, while Firestore write acknowledgments determine whether an alert reached the server.
+
+---
+
+### Active Heads Up Card
+
+File: `lib/features/sos/widgets/active_heads_up_card.dart`
+
+| Property | Value |
+|---|---|
+| Background | White |
+| Border | `Colors.black12`, radius 12 |
+| Padding | `Dimensions.sixteen` |
+| Text | `bodyMedium` title; `bodySmall` timer and delivery state |
+| Spacing | `Dimensions.four`, `Dimensions.twelve` |
+| Shadow | none |
+
+**Pattern notes:** Delivery text distinguishes sending, server-accepted, queued, failed, and unconfirmed-after-restart states. Server acceptance does not guarantee that an individual contact's push notification reached their device.
 
 ---
 
@@ -693,3 +987,204 @@ Used in Profile view to show notification and location permission state.
 | Label | `textTheme.bodyMedium`, `Colors.black` |
 | Status text | `textTheme.bodySmall`, `Colors.black54` |
 | Action | `TextButton` with "Enable" / "Open Settings" |
+
+---
+
+### Home Screen Widget
+
+Files: `android/app/src/main/res/layout/seizure_alert_widget.xml`, `lib/core/services/home_widget_service.dart`
+Last updated: 2026-10-09
+
+| Property | Value |
+|---|---|
+| Size | Android 2 × 2; iOS small (`systemSmall`) |
+| Background | White tile with a 16 dp radius |
+| Status | Small uppercase state above the control with a muted last-updated time below |
+| Primary action | Concentric 148 dp circular control: faint outer ring, white centre, 3 dp black border, bold black label |
+| States | All clear, Heads Up active, SOS active, setup required, signed out |
+| Privacy | No name, contact, location, diagnosis, or medication data |
+| Refresh | Event-driven when the app starts, resumes, signs in or out, or changes safety/setup state |
+
+**Pattern notes:** Android RemoteViews and the iOS WidgetKit extension mirror the shape and hierarchy of the main SOS button at a compact native-widget scale. Both use the same privacy-safe keys and deep-link actions. The widget never writes to Firebase or sends an alert directly. `SOS` opens the app's existing 10-second confirmation flow. Cold-start launch data is consumed before live widget clicks are subscribed, and the root shell holds a countdown-open latch, so one tap cannot create stacked countdown dialogs. A cold start shows a monochrome `Checking your circle…` loader until the first contact-stream result arrives; recipient readiness is never inferred from the list's initial empty value. Native widgets cannot reliably run the app's pulsing `LiveIndicator`, so active state is stated explicitly in text. The widget has no timer, worker, or scheduled refresh.
+
+### Home Screen Widget Row (Profile)
+
+File: `lib/features/profile/views/profile_view.dart`
+
+| Property | Value |
+|---|---|
+| Placement | Settings section |
+| Icon | `Icons.widgets_outlined` |
+| Label | `Home screen widget` |
+| Trailing text | `Add`, changing to `Adding…` while the Android launcher request is open |
+| Interaction | Existing `SettingsNavRow` pattern with selection haptic |
+
+**Pattern notes:** Android opens the system launcher confirmation. Unsupported launchers receive a short snackbar directing the user to the launcher widget menu. iOS shows `Available` and explains the standard Home Screen long-press and `+` flow because WidgetKit does not provide an app-driven pin request.
+
+---
+
+### Mode Badge
+
+File: `lib/features/root/widgets/mode_badge.dart`
+Last updated: 2026-10-09
+
+| Property | Value |
+|---|---|
+| Background | `colorScheme.surface`; inverted to `inverseSurface` while pressed |
+| Border | `colorScheme.outline`, 1 px |
+| Border radius | `Dimensions.circular` pill |
+| Text | `labelSmall`, semibold, uppercase, 0.6 letter spacing |
+| Icon | `person_outline` for patient; `shield_outlined` for caregiver; `Dimensions.fourteen` |
+| Spacing | `Dimensions.ten` horizontal, `Dimensions.six` vertical, `Dimensions.six` icon gap |
+| Touch target | Minimum 48 logical pixels high |
+| Alignment | Visible pill is shrink-wrapped and anchored to the left edge of its touch target |
+| Interaction | 140 ms pressed inversion, selection haptic on gesture start, tooltip and semantic mode-switch label |
+| Loading | Replaces the icon with a compact monochrome progress indicator and prevents repeat taps |
+| Shadow | none |
+
+**Pattern notes:** The badge always names the active device mode. It appears in the patient AppBar and the caregiver watch-list header, and tapping it switches directly to the other mode. Use this shared component anywhere the active patient/caregiver context needs to be both visible and switchable.
+
+---
+
+### Caregiver Alert Readiness Card
+
+File: `lib/features/caregiver/widgets/caregiver_readiness_card.dart`
+Last updated: 2026-10-09
+
+| Property | Value |
+|---|---|
+| Background | `colorScheme.surface`; inverted to `inverseSurface` while pressed |
+| Border | `colorScheme.outlineVariant`, 1 px |
+| Border radius | `Dimensions.twelve` |
+| Padding | `Dimensions.sixteen` |
+| Label | `labelSmall`, semibold, uppercase, 0.6 letter spacing |
+| Primary text | `bodyMedium`, semibold |
+| Supporting text | `bodySmall`, `colorScheme.onSurfaceVariant` |
+| Spacing | `Dimensions.four`, `Dimensions.eight`, `Dimensions.twelve`, and `Dimensions.sixteen` |
+| Interaction | Whole card runs the displayed repair action; 140 ms pressed inversion and selection haptic |
+| Loading | 24 px monochrome progress indicator and disabled interaction |
+| Shadow | none |
+
+**Pattern notes:** The card stays visible above every caregiver watch-list state. Readiness requires notification authorization, a current FCM token, and a successfully refreshed non-empty watch list. Failures name the exact repair action. The ready-state action requests a local test notification through the existing maximum-importance alert channel, so the caregiver can check this device without invoking Firebase or a Cloud Function. The test does not claim to verify end-to-end FCM delivery, and silent-mode behavior remains controlled by the OS. The card reads existing reactive state and creates no timer, polling loop, or additional background request.
+
+---
+
+### Help & Diagnostics Screen
+
+File: `lib/features/support/support_view.dart`
+Last updated: 2026-10-10
+
+| Property | Value |
+|---|---|
+| Background | `Colors.white` |
+| Groups | Shared `SettingsSection` and `SettingsGroup` containers |
+| Border | Shared settings border using low-opacity black |
+| Border radius | Shared settings group radius |
+| Primary text | Theme settings-row typography in `Colors.black` |
+| Secondary text | Shared settings value typography with muted black |
+| Spacing | `Dimensions.twenty` screen gutters and token-based section spacing |
+| Interactive state | Selection haptic through `SettingsNavRow`; compact monochrome loader while an action is running |
+| Shadow | none |
+| Accent usage | none |
+
+**Pattern notes:** Operational and support details use the existing Profile settings vocabulary so they remain calm and familiar. Diagnostics contain only app version, platform, and push readiness. Copying, opening support, and opening the privacy policy disable repeat taps and show a row-level loader until the platform action completes.
+
+---
+
+### Safety Readiness Screen
+
+File: `lib/features/safety_readiness/safety_readiness_view.dart`
+Last updated: 2026-10-11
+
+| Property | Value |
+|---|---|
+| Background | `Colors.white` |
+| Status card | White standard card when attention is needed; black inverted hero card when core alerts are ready |
+| Border | `Colors.black12`, 1 px |
+| Border radius | `Dimensions.sixteen` for the overall status; shared settings-row radius elsewhere |
+| Text | Theme `titleMedium`, `bodyMedium`, `bodySmall`, and `labelSmall` with monochrome hierarchy |
+| Spacing | `Dimensions.twentyFour` screen padding and section gap; `Dimensions.twenty` hero padding |
+| Loading | Compact monochrome progress indicators replace refresh, pair, and remove actions |
+| Shadow | none |
+| Accent usage | none |
+
+**Pattern notes:** Readiness is a checklist, not a guarantee. It keeps all checks in familiar settings rows, states unavailable services plainly, and uses the inverted card only when the minimum alert path is currently ready.
+
+---
+
+### Safety Plan Screen
+
+File: `lib/features/safety_plan/safety_plan_view.dart`
+Last updated: 2026-10-11
+
+| Property | Value |
+|---|---|
+| Background | `Colors.white` |
+| Containers | Shared `SettingsSection` and settings-row components |
+| Border | Shared low-opacity black settings border |
+| Border radius | Shared settings radius; form fields use theme radius 12 |
+| Text | Theme styles with direct clinical labels and supporting copy |
+| Spacing | `Dimensions.twentyFour` screen padding and section gap; `Dimensions.sixteen` form padding |
+| Interactive state | Selection haptic for save; disabled primary button with white loader while saving |
+| Shadow | none |
+| Accent usage | Red remains limited to form validation supplied by the app theme |
+
+**Pattern notes:** Safety-plan data uses editable form fields inside settings sections. Daily reminders remain on-device. Destructive reminder removal uses an explicit row whose wording names the medication.
+
+---
+
+### Seizure Calendar Summary
+
+File: `lib/features/seizure_log/widgets/seizure_calendar_summary.dart`
+Last updated: 2026-10-11
+
+| Property | Value |
+|---|---|
+| Background | `Colors.white` |
+| Border | `Colors.black12`, 1 px |
+| Border radius | `Dimensions.twelve` |
+| Text | Theme `titleMedium`, `bodyMedium`, `bodySmall`, and `labelSmall` |
+| Spacing | `Dimensions.sixteen` internal padding; `Dimensions.twelve` between calendar and summaries |
+| Event marker | Black circle with white date; current empty day uses a black outline |
+| Shadow | none |
+| Accent usage | none |
+
+**Pattern notes:** Event days remain legible without colour and expose a concise semantic event count. The three summary metrics use the same compact label hierarchy as other clinical stats.
+
+### Invite drawer loading
+The invite sheet opens before the invite request completes. Only its bordered code section shows centred monochrome progress or an inline retry message. The contact heading, sharing choices and Done action remain visible. Copy and share actions enable after the code is ready.
+
+### Settings value rows — responsive text
+Short label/value pairs stay inline. Pairs that do not fit at the active system text size stack with the value below the label. Both texts wrap fully and the row grows vertically; icon and disclosure stay fixed. Loading uses the same layout and disables taps. Verified at 280dp width with 1x, 2x and 3x text sizes.
+
+### Safety plan warning and emergency information patterns — 13 October 2026
+Save/reminder warnings remain inline above the editable form; only an initial-load failure uses a blocking placeholder. Caregiver screens show emergency notes, caregiver instructions, rescue medication and call timing as independent content, without using one text field as a fallback for another.
+
+### Existing feature cleanup — 13 October 2026
+Navigation rows share the value-row text-fit layout. Mode contains the device role setting; caregiver lists remain on the caregiver home screen, and notification controls stay in Profile/readiness. Removed the inert auto-answer control and misleading silent-override shortcut. Medical-ID medication copy distinguishes the medication list from local reminders. Home data errors show Retry and no empty statistics. Emergency timing explicitly states that it is manual caregiver guidance.
+
+### Floating bottom navigation and SOS — 13 October 2026
+The owner reverted the overhaul trial and prefers the existing Apple-style floating white pill, raised black SOS button and existing screen hierarchy. Keep those as the baseline. Navigation uses Dimensions.eight horizontal and Dimensions.twelve vertical item padding to fit narrow screens. SOS keeps its circular appearance and default diameter, adapts to available width, and scales its display label to fit. Heads Up remains in the draggable sheet with a flexible heading. Do not restore the rejected labelled navigation or inline Heads Up redesign.
+
+
+### Charcoal dark appearance — 13 October 2026
+The owner explicitly requested dark mode using a charcoal reference. Preserve the existing floating Apple-style navigation and screen hierarchy. Dark page background is #181818; raised cards/navigation use #2D2D2D, with white primary text and monochrome opacity hierarchy. Hero surfaces stay charcoal with white text in dark mode and black with white text in light mode. Custom widget roles come from the inherited theme through AppPalette (ink, paper, heroSurface, heroInk); shadows remain black. Existing Red Hat Display typography, Dimensions spacing, shapes and SOS interaction stay intact. Profile > Appearance offers System, Light and Dark and saves locally through the existing ThemeController. System bars follow appearance. Sheets and forms adapt; fixed splash and incoming emergency surfaces retain their deliberate black/white pairing. The Heads Up drawer now restores its earlier 10% collapsed extent at the owner's request; only its collapsed heading scales down to fit, while expanded content uses normal accessibility text scaling.
+
+
+### Accessibility refinements following Apple-design review — 13 October 2026
+Secondary text uses AppPalette.secondaryInk: #595959 in light appearance and #B0B0B0 in dark appearance, with primary ink when the system requests high contrast. These replace low-opacity muted text across custom screens. The smallest shared label style is 12. Floating navigation remains icon-only; its selected dots use ink, ordinary targets have minimum 48x48 hit bounds, and patient navigation uses Dimensions.sixteen side margins below 296dp to accommodate these targets (otherwise Dimensions.twentyFour). The raised SOS keeps its existing appearance. Heads Up retains the 10% collapsed extent and dragging, with a labelled tap/semantic action to expand or collapse; reduced motion changes the extent immediately. No layout overhaul or font-family change.
+
+
+### Responsive forms and list content — 14 October 2026
+Seizure Severity/Awareness choices use full-width expanding dropdowns with intrinsic item heights; a measured text-width check stacks them when two fields cannot fit. Selected labels wrap at the active text size. Shared SettingsTileRow uses a minimum height and Dimensions.twelve vertical padding, with wrapping title/subtitle content. Contact names wrap; status badge sits below the name; notification/invite actions wrap beneath supporting text; avatar stays aligned to the top. Activity legend wraps complete dot/label groups. Calendar heading/count wrap as independent labels, and alert status metadata sits below title/date. Heads Up duration controls use minimum 48 height plus Dimensions.sixteen horizontal/Dimensions.twelve vertical padding, and wrap into rows; they grow with text. Existing monochrome theme, fonts, floating navigation and compact drawer remain.
+
+
+### Drawer insets, setup swipe and contact icons — 19 October 2026
+Shared AppBottomSheetContent reserves keyboard viewInsets, then uses a bottom-only SafeArea around its contents so Android gesture/three-button navigation cannot overlap actions. Standard Dimensions.twentyFour content spacing remains in addition to the system inset. Completed setup checks dismiss with a horizontal swipe using a subtle monochrome hide background; no visible X. The existing hide preference persists; incomplete/readiness-error states stay visible. Contact cards keep the notification indicator at the trailing edge alongside the top contact information, rather than in a separate row below the details. Invite actions retain their wrapping body placement for narrow layouts and large text.
+
+Home greeting action (2026-10-22): View insights sits at the right of the greeting in a Row with Expanded greeting and Dimensions.twelve gap. Narrow widths or enlarged text use an Insights icon button with a View insights tooltip. No action or trailing spacing remains below the activity grid.
+## Reminders — 2026-10-22
+
+Profile has a dedicated Reminders row; Safety plan links to the same screen. Theme-aware reminder cards use `context.cardSurface`, `designBorder`, `designShadows`, `cardRadius`, and Dimensions spacing. Reminders/History choices wrap on narrow screens. Each card shows its schedule, next occurrence, and explicit actions for a due occurrence; actions wrap rather than squeezing text. History uses clinical language and does not infer missed doses.
+
+Add/Edit and Snooze use `AppBottomSheet` plus `AppBottomSheetContent` for keyboard and Android navigation-bar insets. The editor scrolls, weekday chips wrap, and type/repeat/date/time controls use the existing monochrome theme. Saving acts immediately with a disabled saving state; removing requires confirmation. Source: `lib/features/reminders/`.

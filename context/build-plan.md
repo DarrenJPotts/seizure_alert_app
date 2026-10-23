@@ -36,7 +36,7 @@ Development roadmap for the Seizure Alert app. Features are grouped into phases.
 - [x] **09 Seizure log — List view** — List of seizure entries, newest first, empty state
 - [x] **10 Seizure log — Add entry** — Bottom sheet: date/time picker, duration, trigger, location (auto-captured), notes. Saves to Firestore.
 - [x] **11 Contacts — List view** — Priority-ordered contact list, relation badge, notification flags visible, swipe-to-delete with confirmation
-- [x] **12 Contacts — Add/edit contact** — Bottom sheet: name, phone, relation, priority, SMS/push toggles. Upsert to Firestore.
+- [x] **12 Contacts — Add/edit contact** — Bottom sheet: name, phone, relation, priority, push-alert toggle. Upsert to Firestore.
 
 ---
 
@@ -68,3 +68,7 @@ Development roadmap for the Seizure Alert app. Features are grouped into phases.
 - All timestamps stored as ISO 8601 strings in Firestore (not Firestore `Timestamp`) for consistency with DTO serialisation.
 - `priority` on `ContactDto` is a plain integer; the UI shows contacts ordered ascending by priority. Lower number = higher priority.
 - `flutter_map` is included for displaying alert location but is currently only used in `AlertMapWidget` — no feature actively navigates to it yet (planned for Phase 5 alert history).
+
+
+### Current UI direction — 13 October 2026
+The owner reverted the UI overhaul trial. Its labelled navigation, inline Heads Up and reordered Home layout are historical proposals, not the current baseline. Preserve the Apple-style floating pill navigation, raised SOS and existing hierarchy. The subsequent focused pass reduces navigation item padding on narrow screens, fits the SOS circle/label to available width, and measures the Heads Up heading for large-text clearance. Validation: clean Flutter analysis and 276 passing tests.

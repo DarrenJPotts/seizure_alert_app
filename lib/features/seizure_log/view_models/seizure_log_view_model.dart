@@ -10,7 +10,14 @@ import 'package:seizure_app/core/services/seizure_report_service.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 
 class SeizureLogViewModel extends GetxController {
-  SeizureLogViewModel(this._firestoreService);
+  SeizureLogViewModel(
+    this._firestoreService, {
+    String? Function()? currentUid,
+    SeizureReportService? reportService,
+  }) : _currentUid = currentUid,
+       _reportService = reportService ?? const SeizureReportService();
+  final String? Function()? _currentUid;
+  final SeizureReportService _reportService;
 
   final FirestoreService _firestoreService;
 
@@ -20,7 +27,11 @@ class SeizureLogViewModel extends GetxController {
 
   StreamSubscription<List<SeizureLogDto>>? _logsSub;
 
-  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get _uid =>
+      (_currentUid == null
+          ? FirebaseAuth.instance.currentUser?.uid
+          : _currentUid()) ??
+      '';
 
   @override
   void onInit() {
@@ -81,19 +92,36 @@ class SeizureLogViewModel extends GetxController {
     return result.isSuccess;
   }
 
-  Future<String?> shareReport({Rect? sharePositionOrigin}) async {
+  Future<String?> shareReport({
+    Rect? sharePositionOrigin,
+    bool includeCycleData = false,
+  }) async {
     if (exporting.value) return null;
     exporting.value = true;
     try {
-      final userResult = await _firestoreService.getUser(_uid);
-      final result = await const SeizureReportService().shareClinicalReport(
+      final uid = _uid;
+      if (uid.isEmpty) return 'Sign in to share your report.';
+      final userResult = await _firestoreService.getUser(uid);
+      final cycles = includeCycleData
+          ? await _firestoreService.getCycleTracking(uid)
+          : null;
+      if (isClosed || uid != _uid) {
+        return 'The account changed. Open your report again.';
+      }
+      if (includeCycleData &&
+          (cycles?.isSuccess != true || cycles?.data?.enabled != true)) {
+        return 'Cycle data could not be included. Refresh cycle tracking and try again.';
+      }
+      final result = await _reportService.shareClinicalReport(
         user: userResult.data,
         logs: List<SeizureLogDto>.from(logs),
         sharePositionOrigin: sharePositionOrigin,
+        includeCycleData: includeCycleData,
+        cycleEntries: cycles?.data?.entries ?? const [],
       );
       return result.isSuccess ? null : result.error;
     } finally {
-      exporting.value = false;
+      if (!isClosed) exporting.value = false;
     }
   }
 

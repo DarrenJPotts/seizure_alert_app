@@ -1,3 +1,4 @@
+const { deleteDailyData } = require("./delete-daily-data");
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { onTaskDispatched } = require("firebase-functions/v2/tasks");
@@ -1857,7 +1858,7 @@ const unlinked = linkedContacts.docs;
   }
   deleted.unlinked = unlinked.length;
 
-  await db.collection("users").doc(callerUid).delete();
+  deleted.dailyLogs = await deleteDailyData(db, db.collection("users").doc(callerUid));
 
 console.log(`Erased data for ${callerUid}:`, deleted);
 

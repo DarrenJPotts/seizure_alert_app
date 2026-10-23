@@ -1,3 +1,7 @@
+import 'package:seizure_app/features/daily_log/view_models/daily_log_view_model.dart';
+import 'package:seizure_app/features/cycle/view_models/cycle_view_model.dart';
+import 'package:seizure_app/features/reminders/view_models/reminders_view_model.dart';
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -36,6 +40,9 @@ import 'package:seizure_app/features/splash/widgets/splash_body.dart';
 class RootBinding extends Bindings {
   @override
   void dependencies() {
+    RemindersBinding().dependencies();
+    CycleBinding().dependencies();
+    DailyLogBinding().dependencies();
     Get.lazyPut(
       () => ProfileViewModel(FirestoreService.instance()),
       fenix: true,
@@ -127,7 +134,7 @@ class RootViewModel extends GetxController {
         try {
           await Get.find<LocalNotificationsService>()
               .replaceMedicationReminders(
-                previous: const [],
+                previous: [],
                 current: result.data!.medicationReminders,
               );
         } catch (_) {
@@ -156,6 +163,17 @@ class RootViewModel extends GetxController {
 
     if (!isClosed && FirebaseAuth.instance.currentUser?.uid == uid) {
       ready.value = true;
+      if (Get.isRegistered<LocalNotificationsService>()) {
+        final notifications = Get.find<LocalNotificationsService>();
+        if (notifications.reminderLaunchRequested) {
+          notifications.reminderLaunchRequested = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!isClosed && FirebaseAuth.instance.currentUser?.uid == uid) {
+              Get.toNamed(AppRoutes.reminders);
+            }
+          });
+        }
+      }
     }
   }
 
@@ -288,14 +306,14 @@ class RootView extends GetView<RootViewModel> {
   Widget _buildPatientShell(BuildContext context) => Scaffold(
     appBar: AppBar(
       elevation: 0,
-      foregroundColor: Colors.black,
+      foregroundColor: context.ink,
       centerTitle: false,
       title: ModeBadge(
         caregiver: false,
         loading: controller.switchingMode.value,
         onTap: controller.toggleMode,
       ),
-      actionsPadding: EdgeInsets.only(right: Dimensions.twelve),
+      actionsPadding: const EdgeInsets.only(right: Dimensions.twelve),
       actions: [
         IconButton(
           onPressed: () => Get.toNamed(AppRoutes.alertHistory),
@@ -346,7 +364,7 @@ class RootView extends GetView<RootViewModel> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.black),
+            style: TextButton.styleFrom(foregroundColor: context.ink),
             child: const Text('Sign out'),
           ),
         ],

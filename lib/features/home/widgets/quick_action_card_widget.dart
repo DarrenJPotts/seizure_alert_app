@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
@@ -23,12 +24,12 @@ class _QuickActionCardState extends State<QuickActionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final Color foreground = _isPressed ? Colors.white : Colors.black;
+    final Color foreground = _isPressed ? context.paper : context.ink;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
         onTapDown: (_) {
           setState(() => _isPressed = true);
           HapticFeedback.selectionClick();
@@ -40,14 +41,14 @@ class _QuickActionCardState extends State<QuickActionCard> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
+          curve: Curves.easeInOut,
           width: double.infinity,
-          padding: EdgeInsets.symmetric(vertical: Dimensions.sixteen),
+          padding: EdgeInsets.all(context.design.cardPadding),
           decoration: BoxDecoration(
-            color: _isPressed ? Colors.black : Colors.transparent,
-            border: Border.all(
-              color: _isPressed ? Colors.black : Colors.black12,
-            ),
-            borderRadius: BorderRadius.circular(12),
+            color: _isPressed ? context.ink : context.cardSurface,
+            border: context.designBorder,
+            boxShadow: _isPressed ? const [] : context.designShadows,
+            borderRadius: BorderRadius.circular(context.design.cardRadius),
           ),
           child: Column(
             spacing: Dimensions.eight,
@@ -55,9 +56,10 @@ class _QuickActionCardState extends State<QuickActionCard> {
               Icon(widget.icon, size: Dimensions.twentyFour, color: foreground),
               Text(
                 widget.label,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: foreground),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w700,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],

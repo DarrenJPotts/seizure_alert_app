@@ -1,8 +1,9 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
-import 'package:seizure_app/core/dtos/medication_reminder_dto.dart';
+import 'package:seizure_app/core/routes/app_routes.dart';
 import 'package:seizure_app/core/widgets/settings/settings_group.dart';
 import 'package:seizure_app/core/widgets/settings/settings_screen_header.dart';
 import 'package:seizure_app/features/safety_plan/view_models/safety_plan_view_model.dart';
@@ -12,7 +13,7 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: context.paper,
     body: SafeArea(
       bottom: false,
       child: Column(
@@ -26,8 +27,8 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
           Expanded(
             child: Obx(() {
               if (controller.loading.value) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.black),
+                return Center(
+                  child: CircularProgressIndicator(color: context.ink),
                 );
               }
               if (controller.error.value != null && !controller.hasLoadedPlan) {
@@ -41,7 +42,7 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
                 );
               }
               return ListView(
-                padding: EdgeInsets.fromLTRB(
+                padding: const EdgeInsets.fromLTRB(
                   Dimensions.twentyFour,
                   Dimensions.twentyFour,
                   Dimensions.twentyFour,
@@ -50,12 +51,12 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
                 children: <Widget>[
                   if (controller.error.value != null) ...[
                     SettingsMessageRow(controller.error.value!),
-                    SizedBox(height: Dimensions.twelve),
+                    const SizedBox(height: Dimensions.twelve),
                   ],
                   _ActionPlanSection(controller: controller),
-                  SizedBox(height: Dimensions.twentyFour),
+                  const SizedBox(height: Dimensions.twentyFour),
                   _MedicationSection(controller: controller),
-                  SizedBox(height: Dimensions.twentyFour),
+                  const SizedBox(height: Dimensions.twentyFour),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -65,8 +66,8 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
                       child: controller.saving.value
                           ? SizedBox.square(
                               dimension: Dimensions.twenty,
-                              child: const CircularProgressIndicator(
-                                color: Colors.white,
+                              child: CircularProgressIndicator(
+                                color: context.paper,
                                 strokeWidth: 2,
                               ),
                             )
@@ -90,7 +91,7 @@ class SafetyPlanView extends GetView<SafetyPlanViewModel> {
       SnackBar(
         content: Text(
           saved
-              ? 'Safety plan and reminders saved.'
+              ? 'Safety plan saved.'
               : controller.error.value ?? 'Could not save your safety plan.',
         ),
       ),
@@ -108,7 +109,7 @@ class _ActionPlanSection extends StatelessWidget {
     label: 'Seizure action plan',
     children: <Widget>[
       Padding(
-        padding: EdgeInsets.all(Dimensions.sixteen),
+        padding: const EdgeInsets.all(Dimensions.sixteen),
         child: Column(
           children: <Widget>[
             TextField(
@@ -123,7 +124,7 @@ class _ActionPlanSection extends StatelessWidget {
                     'Describe what to do, what to avoid, and when to call emergency services.',
               ),
             ),
-            SizedBox(height: Dimensions.twelve),
+            const SizedBox(height: Dimensions.twelve),
             TextField(
               controller: controller.rescueMedicationController,
               maxLength: 200,
@@ -180,131 +181,16 @@ class _ActionPlanSection extends StatelessWidget {
 
 class _MedicationSection extends StatelessWidget {
   const _MedicationSection({required this.controller});
-
   final SafetyPlanViewModel controller;
-
   @override
-  Widget build(BuildContext context) => Obx(
-    () => SettingsSection(
-      label: 'Medication reminders',
-      children: <Widget>[
-        if (controller.reminders.isEmpty)
-          const SettingsMessageRow(
-            'No reminders added. Reminders are scheduled on this device.',
-          )
-        else
-          for (final MedicationReminderDto reminder in controller.reminders)
-            SettingsSwitchRow(
-              icon: Icons.medication_outlined,
-              title: reminder.name,
-              subtitle: <String>[
-                if (reminder.dose?.trim().isNotEmpty == true)
-                  reminder.dose!.trim(),
-                _formatTime(reminder.hour, reminder.minute),
-              ].join(' · '),
-              value: reminder.enabled,
-              onChanged: (bool enabled) =>
-                  controller.setReminderEnabled(reminder.id, enabled),
-            ),
-        SettingsActionRow(
-          title: 'Add medication reminder',
-          onTap: () => _addReminder(context),
-        ),
-        if (controller.reminders.isNotEmpty)
-          for (final MedicationReminderDto reminder in controller.reminders)
-            SettingsTileRow(
-              title: 'Remove ${reminder.name}',
-              subtitle: 'Stops this reminder on this device',
-              trailing: const Icon(Icons.delete_outline, color: Colors.black54),
-              onTap: () => controller.removeReminder(reminder.id),
-            ),
-      ],
-    ),
-  );
-
-  Future<void> _addReminder(BuildContext context) async {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController doseController = TextEditingController();
-    final Rx<TimeOfDay> time = const TimeOfDay(hour: 8, minute: 0).obs;
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
-    final bool? add = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('Medication reminder'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextFormField(
-                controller: nameController,
-                maxLength: 100,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Medication'),
-                validator: (String? value) =>
-                    value == null || value.trim().isEmpty
-                    ? 'Enter a medication name'
-                    : null,
-              ),
-              SizedBox(height: Dimensions.twelve),
-              TextFormField(
-                controller: doseController,
-                maxLength: 100,
-                decoration: const InputDecoration(labelText: 'Dose (optional)'),
-              ),
-              SizedBox(height: Dimensions.twelve),
-              Obx(
-                () => OutlinedButton.icon(
-                  onPressed: () async {
-                    final TimeOfDay? chosen = await showTimePicker(
-                      context: dialogContext,
-                      initialTime: time.value,
-                    );
-                    if (chosen != null) time.value = chosen;
-                  },
-                  icon: const Icon(Icons.schedule_outlined),
-                  label: Text(time.value.format(dialogContext)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() == true) {
-                Navigator.of(dialogContext).pop(true);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
+  Widget build(BuildContext context) => SettingsSection(
+    label: 'Reminders',
+    children: [
+      SettingsNavRow(
+        icon: Icons.notifications_active_outlined,
+        title: 'Manage reminders',
+        onTap: () => Get.toNamed(AppRoutes.reminders),
       ),
-    );
-    if (add == true) {
-      controller.addReminder(
-        MedicationReminderDto(
-          id: DateTime.now().microsecondsSinceEpoch.toString(),
-          name: nameController.text.trim(),
-          dose: doseController.text.trim().isEmpty
-              ? null
-              : doseController.text.trim(),
-          hour: time.value.hour,
-          minute: time.value.minute,
-        ),
-      );
-    }
-    nameController.dispose();
-    doseController.dispose();
-  }
-
-  static String _formatTime(int hour, int minute) {
-    final int displayHour = hour % 12 == 0 ? 12 : hour % 12;
-    return '$displayHour:${minute.toString().padLeft(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}';
-  }
+    ],
+  );
 }

@@ -1,3 +1,5 @@
+import 'package:seizure_app/core/dtos/daily_log_dto.dart';
+import 'package:seizure_app/core/dtos/cycle_tracking_dto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -12,6 +14,7 @@ import 'package:seizure_app/core/dtos/user_dto.dart';
 import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/dtos/heads_up_dto.dart';
+import 'package:seizure_app/core/dtos/medication_reminder_dto.dart';
 
 class FirestoreService {
   FirestoreService(this._db);
@@ -130,6 +133,248 @@ class FirestoreService {
       return ResultDto.success(null);
     } catch (error) {
       return ResultDto.failure(error.toString());
+    }
+  }
+
+  /// A transaction preserves other reminders when two devices update the list.
+  Future<ResultDto<List<MedicationReminderDto>>> updateReminders(
+    String uid,
+    List<MedicationReminderDto> Function(List<MedicationReminderDto>) change,
+  ) async {
+    try {
+      if (uid.isEmpty) return ResultDto.failure('Sign in to manage reminders.');
+      final ref = _db.collection(FirebaseCollectionKeys.users).doc(uid);
+      final saved = await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(ref);
+        if (!snapshot.exists) throw StateError('User not found');
+        final current = (snapshot.data()?['medicationReminders'] as List? ?? [])
+            .whereType<Map>()
+            .map(
+              (value) => MedicationReminderDto.fromMap(
+                Map<String, dynamic>.from(value),
+              ),
+            )
+            .toList();
+        final next = change(current);
+        if (next.length > 20 ||
+            next.map((e) => e.id).toSet().length != next.length ||
+            next.any((e) => e.validationError != null)) {
+          throw StateError('Invalid reminders');
+        }
+        transaction.update(ref, {
+          'medicationReminders': next.map((e) => e.toMap()).toList(),
+        });
+        return next;
+      });
+      return ResultDto.success(saved);
+    } catch (_) {
+      return ResultDto.failure(
+        'Could not save. Refresh your reminders and try again.',
+      );
+    }
+  }
+
+  Future<ResultDto<DailyLogDto?>> getDailyLog(String uid, DateTime day) async {
+    if (uid.isEmpty) {
+      return ResultDto.failure('Sign in to view your daily log.');
+    }
+    try {
+      final doc = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('dailyLogs')
+          .doc(dailyDateKey(day))
+          .get();
+      return ResultDto.success(
+        doc.exists ? DailyLogDto.fromMap(doc.data()!) : null,
+      );
+    } catch (_) {
+      return ResultDto.failure(
+        'Your daily entry could not be loaded. Try again.',
+      );
+    }
+  }
+
+  Stream<List<DailyLogDto>> watchDailyLogs(
+    String uid,
+    DateTime start,
+    DateTime end,
+  ) {
+    if (uid.isEmpty) return Stream.error(StateError('Sign in required'));
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('dailyLogs')
+        .where('date', isGreaterThanOrEqualTo: dailyDateKey(start))
+        .where('date', isLessThanOrEqualTo: dailyDateKey(end))
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => DailyLogDto.fromMap(doc.data()))
+              .toList(),
+        );
+  }
+
+  Future<ResultDto<List<DailyLogDto>>> getDailyLogs(
+    String uid,
+    DateTime start,
+    DateTime end,
+  ) async {
+    if (uid.isEmpty) {
+      return ResultDto.failure('Sign in to share daily entries.');
+    }
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('dailyLogs')
+          .where('date', isGreaterThanOrEqualTo: dailyDateKey(start))
+          .where('date', isLessThanOrEqualTo: dailyDateKey(end))
+          .orderBy('date', descending: true)
+          .get();
+      return ResultDto.success(
+        snapshot.docs.map((doc) => DailyLogDto.fromMap(doc.data())).toList(),
+      );
+    } catch (_) {
+      return ResultDto.failure('Daily entries could not be loaded.');
+    }
+  }
+
+  Future<ResultDto<DailyLogDto>> saveDailyLog(
+    String uid,
+    DailyLogDto entry, {
+    DailyLogDto? expected,
+  }) async {
+    if (uid.isEmpty) {
+      return ResultDto.failure('Sign in to save your daily entry.');
+    }
+    final validation = entry.validate(DateTime.now());
+    if (validation != null) return ResultDto.failure(validation);
+    try {
+      final owner = _db.collection('users').doc(uid);
+      final ref = owner.collection('dailyLogs').doc(dailyDateKey(entry.date));
+      final saved = await _db.runTransaction((transaction) async {
+        if (!(await transaction.get(owner)).exists) {
+          throw StateError('Profile missing');
+        }
+        final snapshot = await transaction.get(ref);
+        final current = snapshot.exists
+            ? DailyLogDto.fromMap(snapshot.data()!)
+            : null;
+        if (current?.revision != expected?.revision ||
+            current?.updatedAt != expected?.updatedAt) {
+          throw StateError('Daily entry changed');
+        }
+        final next = entry.saved((current?.revision ?? 0) + 1, DateTime.now());
+        transaction.set(ref, next.toMap());
+        return next;
+      });
+      return ResultDto.success(saved);
+    } catch (_) {
+      return ResultDto.failure(
+        'Could not save. Refresh the daily entry and review your changes before trying again.',
+      );
+    }
+  }
+
+  Future<ResultDto<void>> deleteDailyLog(
+    String uid,
+    DailyLogDto expected,
+  ) async {
+    if (uid.isEmpty) {
+      return ResultDto.failure('Sign in to remove a daily entry.');
+    }
+    try {
+      final ref = _db
+          .collection('users')
+          .doc(uid)
+          .collection('dailyLogs')
+          .doc(dailyDateKey(expected.date));
+      await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(ref);
+        if (!snapshot.exists) return;
+        final current = DailyLogDto.fromMap(snapshot.data()!);
+        if (current.revision != expected.revision ||
+            current.updatedAt != expected.updatedAt) {
+          throw StateError('Daily entry changed');
+        }
+        transaction.delete(ref);
+      });
+      return ResultDto.success(null);
+    } catch (_) {
+      return ResultDto.failure(
+        'Could not remove. Refresh the daily entry and try again.',
+      );
+    }
+  }
+
+  Future<ResultDto<CycleTrackingDto>> getCycleTracking(String uid) async {
+    if (uid.isEmpty) {
+      return ResultDto.failure('Sign in to view cycle tracking.');
+    }
+    try {
+      final snapshot = await _db
+          .collection(FirebaseCollectionKeys.users)
+          .doc(uid)
+          .get();
+      if (!snapshot.exists) {
+        return ResultDto.failure('Your profile could not be found.');
+      }
+      return ResultDto.success(
+        CycleTrackingDto.fromMap(
+          snapshot.data()?['cycleTracking'] == null
+              ? null
+              : Map<String, dynamic>.from(
+                  snapshot.data()!['cycleTracking'] as Map,
+                ),
+        ),
+      );
+    } catch (_) {
+      return ResultDto.failure(
+        'Cycle tracking could not be loaded. Try again.',
+      );
+    }
+  }
+
+  Future<ResultDto<CycleTrackingDto>> updateCycleTracking(
+    String uid,
+    int expectedRevision,
+    CycleTrackingDto Function(CycleTrackingDto) change,
+  ) async {
+    if (uid.isEmpty) {
+      return ResultDto.failure('Sign in to manage cycle tracking.');
+    }
+    try {
+      final ref = _db.collection(FirebaseCollectionKeys.users).doc(uid);
+      final saved = await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(ref);
+        if (!snapshot.exists) throw StateError('Profile missing');
+        final raw = snapshot.data()?['cycleTracking'];
+        final current = CycleTrackingDto.fromMap(
+          raw == null ? null : Map<String, dynamic>.from(raw as Map),
+        );
+        if (current.revision != expectedRevision) {
+          throw StateError('Changed on another device');
+        }
+        final next = change(current);
+        if (next.revision != current.revision + 1 ||
+            next.entries.length > 120 ||
+            next.entries.map((entry) => entry.id).toSet().length !=
+                next.entries.length ||
+            next.entries.any(
+              (entry) => entry.validate(DateTime.now()) != null,
+            )) {
+          throw StateError('Invalid cycle data');
+        }
+        transaction.update(ref, {'cycleTracking': next.toMap()});
+        return next;
+      });
+      return ResultDto.success(saved);
+    } catch (_) {
+      return ResultDto.failure(
+        'Could not save. Refresh cycle tracking and try again.',
+      );
     }
   }
 

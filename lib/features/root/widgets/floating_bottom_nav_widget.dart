@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -18,27 +19,27 @@ class FloatingBottomNavWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SafeArea(
     top: false,
-    minimum: EdgeInsets.only(bottom: Dimensions.twenty),
+    minimum: const EdgeInsets.only(bottom: Dimensions.twenty),
     child: caregiver
-        ? _buildCaregiverNav()
+        ? _buildCaregiverNav(context)
         : Padding(
-            padding: EdgeInsets.only(top: Dimensions.thirtyTwo),
-            child: _buildPatientNav(),
+            padding: const EdgeInsets.only(top: Dimensions.thirtyTwo),
+            child: _buildPatientNav(context),
           ),
   );
 
-  Widget _buildCaregiverNav() => Container(
-    margin: EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
+  Widget _buildCaregiverNav(BuildContext context) => Container(
+    margin: const EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
     height: 70,
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(35),
-      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+      color: context.paper,
+      borderRadius: BorderRadius.circular(context.design.navRadius),
+      border: context.designBorder,
       boxShadow: [
         BoxShadow(
           color: Colors.black.withValues(alpha: 0.04),
           blurRadius: 16,
-          offset: Offset(0, 6),
+          offset: const Offset(0, 6),
         ),
       ],
     ),
@@ -72,112 +73,126 @@ class FloatingBottomNavWidget extends StatelessWidget {
     ),
   );
 
-  Widget _buildPatientNav() => Container(
-    margin: EdgeInsets.symmetric(horizontal: Dimensions.twentyFour),
-    child: Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.bottomCenter,
-      children: [
-        Container(
-          height: 70,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(35),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Obx(
-            () => Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _FloatingNavItem(
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home,
-                  isActive: controller.currentIndex.value == 0,
-                  onTap: () => controller.changePage(0),
-                  semanticLabel: 'Home',
-                ),
-                _FloatingNavItem(
-                  icon: Icons.book_outlined,
-                  activeIcon: Icons.book_rounded,
-                  isActive: controller.currentIndex.value == 1,
-                  onTap: () => controller.changePage(1),
-                  semanticLabel: 'Seizure log',
-                ),
-                const SizedBox(width: 56),
-                _FloatingNavItem(
-                  icon: Icons.people_outline,
-                  activeIcon: Icons.people,
-                  isActive: controller.currentIndex.value == 3,
-                  onTap: () => controller.changePage(3),
-                  semanticLabel: 'My circle',
-                ),
-                _FloatingNavItem(
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
-                  isActive: controller.currentIndex.value == 4,
-                  onTap: () => controller.changePage(4),
-                  semanticLabel: 'Profile',
+  Widget _buildPatientNav(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: constraints.maxWidth < 296
+            ? Dimensions.sixteen
+            : Dimensions.twentyFour,
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.bottomCenter,
+        children: [
+          Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: context.paper,
+              borderRadius: BorderRadius.circular(context.design.navRadius),
+              border: context.designBorder,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
-          ),
-        ),
-
-        Positioned(
-          top: -25,
-          child: Semantics(
-            button: true,
-            label: 'SOS',
-            child: GestureDetector(
-              onTap: () => controller.changePage(2),
-              child: Container(
-                width: 65,
-                height: 65,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(Icons.emergency, color: Colors.white, size: 32),
+            child: Obx(
+              () => Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _FloatingNavItem(
+                    icon: Icons.home_outlined,
+                    activeIcon: Icons.home,
+                    isActive: controller.currentIndex.value == 0,
+                    onTap: () => controller.changePage(0),
+                    semanticLabel: 'Home',
+                  ),
+                  _FloatingNavItem(
+                    icon: Icons.book_outlined,
+                    activeIcon: Icons.book_rounded,
+                    isActive: controller.currentIndex.value == 1,
+                    onTap: () => controller.changePage(1),
+                    semanticLabel: 'Daily log',
+                  ),
+                  const SizedBox(width: Dimensions.fortyEight),
+                  _FloatingNavItem(
+                    icon: Icons.people_outline,
+                    activeIcon: Icons.people,
+                    isActive: controller.currentIndex.value == 3,
+                    onTap: () => controller.changePage(3),
+                    semanticLabel: 'My circle',
+                  ),
+                  _FloatingNavItem(
+                    icon: Icons.person_outline,
+                    activeIcon: Icons.person,
+                    isActive: controller.currentIndex.value == 4,
+                    onTap: () => controller.changePage(4),
+                    semanticLabel: 'Profile',
+                  ),
+                ],
               ),
             ),
           ),
-        ),
 
-        Obx(() {
-          double? dotPosition;
-          if (controller.currentIndex.value == 2) {
-            dotPosition = null;
-          }
-
-          if (dotPosition == null && controller.currentIndex.value == 2) {
-            return Positioned(
-              bottom: 8,
-              child: Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black,
+          Positioned(
+            top: -25,
+            child: Semantics(
+              button: true,
+              label: 'SOS',
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  controller.changePage(2);
+                },
+                child: Container(
+                  width: 65,
+                  height: 65,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.heroSurface,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.emergency,
+                    color: context.heroInk,
+                    size: 32,
+                  ),
                 ),
               ),
-            );
-          }
-          return SizedBox.shrink();
-        }),
-      ],
+            ),
+          ),
+
+          Obx(() {
+            double? dotPosition;
+            if (controller.currentIndex.value == 2) {
+              dotPosition = null;
+            }
+
+            if (dotPosition == null && controller.currentIndex.value == 2) {
+              return Positioned(
+                bottom: 8,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.ink,
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+        ],
+      ),
     ),
   );
 }
@@ -210,24 +225,43 @@ class _FloatingNavItem extends StatelessWidget {
         },
         behavior: HitTestBehavior.opaque,
         child: Container(
-          padding: EdgeInsets.all(Dimensions.twelve),
+          constraints: const BoxConstraints(
+            minWidth: Dimensions.fortyEight,
+            minHeight: Dimensions.fortyEight,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Dimensions.eight,
+            vertical: Dimensions.twelve,
+          ),
+          decoration: BoxDecoration(
+            color: isActive && context.design.filledSelection
+                ? context.ink
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(context.design.cardRadius),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 isActive ? activeIcon : icon,
-                color: isActive ? Colors.black : Colors.black38,
+                color: isActive
+                    ? (context.design.filledSelection
+                          ? context.paper
+                          : context.ink)
+                    : context.secondaryInk,
                 size: 26,
               ),
-              SizedBox(height: Dimensions.four),
+              const SizedBox(height: Dimensions.four),
               AnimatedContainer(
-                duration: Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 200),
                 width: isActive ? 6 : 0,
                 height: 6,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.black,
+                  color: context.design.filledSelection
+                      ? context.paper
+                      : context.ink,
                 ),
               ),
             ],

@@ -1,3 +1,4 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 
@@ -25,7 +26,7 @@ class SettingsScreenHeader extends StatelessWidget {
     );
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         Dimensions.twenty,
         Dimensions.eight,
         Dimensions.twenty,
@@ -48,13 +49,14 @@ class SettingsScreenHeader extends StatelessWidget {
                       Icon(
                         Icons.arrow_back,
                         size: 20,
-                        color: Colors.black.withValues(alpha: 0.55),
+                        color: context.secondaryInk,
                       ),
-                      SizedBox(width: Dimensions.six),
-                      Text(
-                        backLabel!,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Colors.black.withValues(alpha: 0.55),
+                      const SizedBox(width: Dimensions.six),
+                      Flexible(
+                        child: Text(
+                          backLabel!,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(color: context.secondaryInk),
                         ),
                       ),
                     ],
@@ -62,7 +64,7 @@ class SettingsScreenHeader extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: Dimensions.ten),
+            const SizedBox(height: Dimensions.ten),
           ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -70,12 +72,9 @@ class SettingsScreenHeader extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
-                    height: 1.1,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineLarge?.copyWith(height: 1.1),
                 ),
               ),
               ?trailing,
@@ -108,24 +107,24 @@ class SettingsScreenPlaceholder extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.black45),
+          ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
         );
 
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
-      padding: EdgeInsets.all(Dimensions.twentyFour),
+      padding: const EdgeInsets.all(Dimensions.twentyFour),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         spacing: Dimensions.twelve,
         children: <Widget>[
-          Icon(icon, size: 48, color: Colors.black26),
+          Icon(icon, size: 48, color: context.ink.withValues(alpha: 0.26)),
           Text(
             message,
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+            ).textTheme.bodyMedium?.copyWith(color: context.secondaryInk),
           ),
           ?_detailText(context),
           ?action,

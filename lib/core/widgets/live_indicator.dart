@@ -1,16 +1,17 @@
+import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
 
 class LiveIndicator extends StatefulWidget {
   const LiveIndicator({
     super.key,
     this.size = 14,
-    this.color = Colors.black,
+    this.color,
     this.period = const Duration(milliseconds: 1800),
   });
 
   final double size;
 
-  final Color color;
+  final Color? color;
 
   final Duration period;
 
@@ -84,7 +85,7 @@ class _LiveIndicatorState extends State<LiveIndicator>
               height: dotSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: widget.color,
+                color: widget.color ?? context.ink,
               ),
             ),
           ],
@@ -102,7 +103,9 @@ class _LiveIndicatorState extends State<LiveIndicator>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: widget.color.withValues(alpha: 0.35 * opacity),
+              color: (widget.color ?? context.ink).withValues(
+                alpha: 0.35 * opacity,
+              ),
             ),
           ),
         ),
@@ -113,14 +116,14 @@ class LiveStatusLabel extends StatelessWidget {
   const LiveStatusLabel({
     super.key,
     required this.label,
-    this.color = Colors.black,
+    this.color,
     this.textStyle,
     this.indicatorSize = 14,
     this.gap = 8,
   });
 
   final String label;
-  final Color color;
+  final Color? color;
   final TextStyle? textStyle;
   final double indicatorSize;
   final double gap;
@@ -142,7 +145,7 @@ class LiveStatusLabel extends StatelessWidget {
               style:
                   textStyle ??
                   Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: color.withValues(alpha: 0.7),
+                    color: (color ?? context.ink).withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                   ),
             ),

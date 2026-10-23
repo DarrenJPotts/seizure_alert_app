@@ -53,7 +53,7 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Padding(
-          padding: EdgeInsets.fromLTRB(
+          padding: const EdgeInsets.fromLTRB(
             Dimensions.twenty,
             Dimensions.twelve,
             Dimensions.twenty,
@@ -83,7 +83,7 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
         ),
         Expanded(
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
+            padding: const EdgeInsets.fromLTRB(
               Dimensions.twenty,
               Dimensions.twenty,
               Dimensions.twenty,
@@ -93,7 +93,7 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Container(
-                  padding: EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: Dimensions.twelve,
                     vertical: Dimensions.four,
                   ),
@@ -111,7 +111,7 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                     ),
                   ),
                 ),
-                SizedBox(height: Dimensions.ten),
+                const SizedBox(height: Dimensions.ten),
                 Text(
                   controller.heading,
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
@@ -122,7 +122,7 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                     height: 1.1,
                   ),
                 ),
-                SizedBox(height: Dimensions.ten),
+                const SizedBox(height: Dimensions.ten),
                 Text(
                   controller.summaryLine,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -131,9 +131,8 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                     color: _alertInk.withValues(alpha: 0.6),
                   ),
                 ),
-                SizedBox(height: Dimensions.twenty),
+                const SizedBox(height: Dimensions.twenty),
                 const _LocationCard(),
-                SizedBox(height: Dimensions.twenty),
                 _StatCardRow(
                   owner: owner,
                   medication: controller.primaryMedication,
@@ -142,7 +141,7 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                     owner.emergencyNote?.trim().isNotEmpty == true ||
                     owner.rescueMedication?.trim().isNotEmpty == true ||
                     owner.callEmergencyAfterMinutes > 0) ...<Widget>[
-                  SizedBox(height: Dimensions.twelve),
+                  const SizedBox(height: Dimensions.twelve),
                   _EmergencyNote(
                     note: owner.carePlanSteps.join('\n'),
                     emergencyNote: owner.emergencyNote,
@@ -150,7 +149,7 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                     callAfterMinutes: owner.callEmergencyAfterMinutes,
                   ),
                 ],
-                SizedBox(height: Dimensions.twenty),
+                const SizedBox(height: Dimensions.twenty),
               ],
             ),
           ),
@@ -187,7 +186,7 @@ class _LocationCard extends GetView<IncomingAlertViewModel> {
                 : const _NoLocation(),
           ),
           Container(
-            padding: EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: Dimensions.sixteen,
               vertical: Dimensions.fourteen,
             ),
@@ -203,7 +202,7 @@ class _LocationCard extends GetView<IncomingAlertViewModel> {
                   size: 20,
                   color: _alertInk.withValues(alpha: 0.7),
                 ),
-                SizedBox(width: Dimensions.ten),
+                const SizedBox(width: Dimensions.ten),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,7 +223,7 @@ class _LocationCard extends GetView<IncomingAlertViewModel> {
                         final String? distance = controller.distanceLabel();
                         if (distance == null) return const SizedBox.shrink();
                         return Padding(
-                          padding: EdgeInsets.only(top: Dimensions.two),
+                          padding: const EdgeInsets.only(top: Dimensions.two),
                           child: Text(
                             distance,
                             style: Theme.of(context).textTheme.bodySmall
@@ -316,7 +315,10 @@ class _StatCardRow extends StatelessWidget {
 
     if (cards.isEmpty) return const SizedBox.shrink();
 
-    return Row(spacing: Dimensions.eight, children: cards.take(2).toList());
+    return Padding(
+      padding: const EdgeInsets.only(top: Dimensions.twenty),
+      child: Row(spacing: Dimensions.eight, children: cards.take(2).toList()),
+    );
   }
 }
 
@@ -329,7 +331,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Expanded(
     child: Container(
-      padding: EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: Dimensions.fourteen,
         vertical: Dimensions.twelve,
       ),
@@ -381,7 +383,7 @@ class _EmergencyNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: EdgeInsets.all(Dimensions.sixteen),
+    padding: const EdgeInsets.all(Dimensions.sixteen),
     decoration: BoxDecoration(
       border: Border.all(color: _alertInk.withValues(alpha: 0.15)),
       borderRadius: BorderRadius.circular(16),
@@ -397,7 +399,7 @@ class _EmergencyNote extends StatelessWidget {
             letterSpacing: 1.4,
           ),
         ),
-        SizedBox(height: Dimensions.eight),
+        const SizedBox(height: Dimensions.eight),
         if (emergencyNote?.trim().isNotEmpty == true) ...[
           Text(
             'Emergency note',
@@ -405,12 +407,12 @@ class _EmergencyNote extends StatelessWidget {
               context,
             ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          SizedBox(height: Dimensions.four),
+          const SizedBox(height: Dimensions.four),
           Text(
             emergencyNote!.trim(),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          SizedBox(height: Dimensions.twelve),
+          const SizedBox(height: Dimensions.twelve),
         ],
         if (note.isNotEmpty)
           Text(
@@ -422,7 +424,7 @@ class _EmergencyNote extends StatelessWidget {
             ),
           ),
         if (rescueMedication.isNotNullOrEmpty) ...<Widget>[
-          SizedBox(height: Dimensions.twelve),
+          const SizedBox(height: Dimensions.twelve),
           Text(
             'Rescue medication: $rescueMedication',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -431,7 +433,7 @@ class _EmergencyNote extends StatelessWidget {
             ),
           ),
         ],
-        SizedBox(height: Dimensions.twelve),
+        const SizedBox(height: Dimensions.twelve),
         Text(
           'Call emergency services after $callAfterMinutes minutes unless the plan says sooner.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -448,7 +450,7 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
+    padding: const EdgeInsets.fromLTRB(
       Dimensions.twenty,
       Dimensions.twenty,
       Dimensions.twenty,
@@ -480,7 +482,7 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
             ),
           ),
         ),
-        SizedBox(height: Dimensions.twelve),
+        const SizedBox(height: Dimensions.twelve),
         if (!controller.isAlertActive)
           SizedBox(
             height: 60,
@@ -522,9 +524,9 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
                         ),
                       ),
                       child: controller.isResponding.value
-                          ? SizedBox.square(
+                          ? const SizedBox.square(
                               dimension: Dimensions.twenty,
-                              child: const CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 color: _alertInk,
                                 strokeWidth: 2,
                               ),
@@ -569,7 +571,7 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Text('More', style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: Dimensions.sixteen),
+            const SizedBox(height: Dimensions.sixteen),
             if (controller.hasLocation)
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -601,7 +603,7 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
                 title: const Text('All medications'),
                 subtitle: Text(owner!.medications.join(', ')),
               ),
-            SizedBox(height: Dimensions.eight),
+            const SizedBox(height: Dimensions.eight),
             TextButton(onPressed: Get.back<void>, child: const Text('Close')),
           ],
         ),
@@ -614,7 +616,7 @@ class _UnavailableState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
-      padding: EdgeInsets.all(Dimensions.twentyFour),
+      padding: const EdgeInsets.all(Dimensions.twentyFour),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         spacing: Dimensions.twelve,

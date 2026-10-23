@@ -5,7 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/dtos/medication_reminder_dto.dart';
-import 'package:seizure_app/core/helpers/medication_schedule.dart';
+import 'package:seizure_app/core/helpers/reminder_schedule.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -45,8 +45,8 @@ class LocalNotificationsService extends GetxService
   );
   final _medicationChannel = const AndroidNotificationChannel(
     medicationChannelId,
-    'Medication reminders',
-    description: 'Daily reminders for medication recorded in your care plan.',
+    'Reminders',
+    description: 'Medication, supplement, appointment, and personal reminders.',
     importance: Importance.high,
   );
 
@@ -58,6 +58,7 @@ class LocalNotificationsService extends GetxService
 
   final notificationCount = 0.obs;
   final lastNotificationPayload = Rxn<String>();
+  bool reminderLaunchRequested = false;
 
   Future<LocalNotificationsService> init() async {
     if (_isFlutterLocalNotificationInitialized) {
@@ -76,6 +77,11 @@ class LocalNotificationsService extends GetxService
         settings: initializationSettings,
         onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
       );
+      final launch = await _flutterLocalNotificationsPlugin
+          .getNotificationAppLaunchDetails();
+      reminderLaunchRequested =
+          launch?.didNotificationLaunchApp == true &&
+          launch?.notificationResponse?.payload == '/reminders';
 
       await _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
@@ -99,9 +105,6 @@ class LocalNotificationsService extends GetxService
   }
 
   void _onDidReceiveNotificationResponse(NotificationResponse response) {
-    debugPrint(
-      '[LocalNotificationsService] Foreground notification tapped: ${response.payload}',
-    );
     lastNotificationPayload.value = response.payload;
 
     _handleNotificationNavigation(response.payload);
@@ -244,15 +247,17 @@ class LocalNotificationsService extends GetxService
       tz.setLocalLocation(tz.getLocation(deviceZone.identifier));
     }
     final now = tz.TZDateTime.now(tz.local);
-    final scheduleDates = <String, tz.TZDateTime>{
-      for (final reminder in current)
-        if (reminder.enabled)
-          reminder.id: nextMedicationReminder(
-            now: now,
-            hour: reminder.hour,
-            minute: reminder.minute,
-          ),
-    };
+    final slots = reminderNotificationSlots(current, now);
+    // Resolve rare hash collisions before changing any native schedules.
+    final slotIds = <String, int>{};
+    final usedIds = <int>{};
+    for (final slot in [...slots]..sort((a, b) => a.key.compareTo(b.key))) {
+      var id = _medicationNotificationId(slot.key);
+      while (!usedIds.add(id)) {
+        id = id == 799999 ? 100000 : id + 1;
+      }
+      slotIds[slot.key] = id;
+    }
     final ids = <int>{
       for (final reminder in <MedicationReminderDto>{
         ...previous,
@@ -275,29 +280,35 @@ class LocalNotificationsService extends GetxService
     }
     _medicationReminders = List<MedicationReminderDto>.of(current);
 
-    for (final MedicationReminderDto reminder in current) {
-      if (!reminder.enabled) continue;
+    for (final slot in slots) {
+      final reminder = slot.reminder;
       await _flutterLocalNotificationsPlugin.zonedSchedule(
-        id: _medicationNotificationId(reminder.id),
-        title: 'Medication reminder',
+        id: slotIds[slot.key]!,
+        title: '${reminder.kindLabel} reminder',
         body: reminder.dose?.trim().isNotEmpty == true
             ? '${reminder.name} — ${reminder.dose!.trim()}'
             : reminder.name,
-        scheduledDate: scheduleDates[reminder.id]!,
+        scheduledDate: tz.TZDateTime.from(slot.at, tz.local),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             medicationChannelId,
-            'Medication reminders',
+            'Reminders',
             channelDescription:
-                'Daily reminders for medication recorded in your care plan.',
+                'Medication, supplement, appointment, and personal reminders.',
             importance: Importance.high,
             priority: Priority.high,
           ),
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.time,
-        payload: '/safety-plan',
+        matchDateTimeComponents: switch (slot.repeat) {
+          ReminderRepeat.once => null,
+          ReminderRepeat.daily => DateTimeComponents.time,
+          ReminderRepeat.weekly ||
+          ReminderRepeat.weekdays => DateTimeComponents.dayOfWeekAndTime,
+          ReminderRepeat.monthly => DateTimeComponents.dayOfMonthAndTime,
+        },
+        payload: '/reminders',
       );
     }
   }
@@ -311,6 +322,7 @@ class LocalNotificationsService extends GetxService
   }
 
   Future<void> clearMedicationReminders() => _queueReminderOperation(() async {
+    reminderLaunchRequested = false;
     if (!_isFlutterLocalNotificationInitialized) {
       _medicationReminders = <MedicationReminderDto>[];
       return;

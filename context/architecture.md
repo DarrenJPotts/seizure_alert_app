@@ -130,7 +130,6 @@ name          String
 phone         String
 relation      String?
 priority      int     (ordering)
-notifyViaSms  bool
 notifyViaPush bool
 createdAt     String  (ISO 8601)
 ```
@@ -203,3 +202,56 @@ respondedAt  String? (ISO 8601)
 **Auth guard**: `AuthMiddleware` runs on every navigation to `root` and `onboarding`. If `FirebaseAuth.instance.currentUser == null`, it redirects to `/login`. After login, `RootViewModel.onInit` checks whether the user has completed onboarding (by fetching their Firestore profile); if no profile exists, it redirects to `/onboarding`.
 
 **Location capture**: Always use `LocationService.getCurrentPosition()` — it handles permission checks and timeouts. Never call `Geolocator` directly in a view model.
+
+## Safety expansion collections
+
+### wearableDevices
+
+Public-to-owner device state: device name, Garmin product identifier, battery,
+pairing time, and last-seen time. Clients may read their own records but cannot
+write them.
+
+### wearable_pairings
+
+Server-only short-lived pairing challenges. The six-digit code is hashed, can
+be consumed once, and is removed by TTL after expiry.
+
+### wearable_device_credentials
+
+Server-only wearable bearer credentials. Firebase stores only the credential
+hash and revocation state. Removing a wearable revokes the credential before
+deleting its owner-visible device record.
+
+### alert_deliveries
+
+Server-owned delivery state for each alert/contact pair. The owner and linked
+responder may read their relevant rows; mobile clients cannot write them.
+Statuses distinguish FCM acceptance, unavailable installations, failures, and
+later escalation reminders.
+
+## Wearable and escalation boundaries
+
+Garmin HTTPS handlers authenticate the hashed wearable credential and call the
+same alert-document path used by the phone. The existing `onAlertCreated`
+trigger remains the only push fan-out owner. An active watch SOS is deduplicated
+against the user's current sent SOS before a new alert and seizure record are
+created.
+
+Unanswered-alert escalation is a Cloud Task chain, not a scheduled poll. Each
+stage reloads the alert and responses, exits on resolution or acknowledgement,
+and targets the next caregiver priority. The chain is capped at three stages.
+All handlers have `minInstances: 0` and the global development billing kill
+switch is checked before work proceeds.
+
+Safety plans and medication reminder definitions live on the user document.
+Medication alarms are scheduled locally by `LocalNotificationsService`; saving
+or firing them creates no recurring Firebase activity. PDF/CSV seizure reports
+are generated in memory and handed directly to the operating-system share sheet.
+
+
+### Current UI direction — 13 October 2026
+The owner reverted the UI overhaul trial. Its labelled navigation, inline Heads Up and reordered Home layout are historical proposals, not the current baseline. Preserve the Apple-style floating pill navigation, raised SOS and existing hierarchy. The subsequent focused pass reduces navigation item padding on narrow screens, fits the SOS circle/label to available width, and measures the Heads Up heading for large-text clearance. Validation: clean Flutter analysis and 276 passing tests.
+
+
+### Dark-mode implementation — 13 October 2026
+Enabled the existing persisted ThemeController preference and added Profile > Appearance (System/Light/Dark). Custom UI now resolves monochrome roles from its inherited theme via AppPalette; dark background #181818 and cards #2D2D2D. Navigation and screen hierarchy preserved. Heads Up restored to the earlier 10% collapsed extent per owner request. Theme-aware system bars and scrollable appearance controls included. Clean analysis and 285 passing tests, including preference restoration, live theme switching without losing the open sheet, system brightness, patient/caregiver navigation at 280/390dp, short-screen large text, contrast and compact sheet extent. Rendered Home/SOS/Settings component previews reviewed; physical device testing remains with the owner.
