@@ -153,6 +153,13 @@ class DailyCheckInFormState extends State<DailyCheckInForm> {
   @override
   Widget build(BuildContext context) => Obx(() {
     final busy = widget.controller.saving.value;
+    final status = busy
+        ? 'Saving…'
+        : dirty
+        ? 'Unsaved changes'
+        : expected == null
+        ? 'Not recorded'
+        : 'Saved';
     return Container(
       padding: const EdgeInsets.all(Dimensions.twenty),
       decoration: BoxDecoration(
@@ -170,12 +177,19 @@ class DailyCheckInFormState extends State<DailyCheckInForm> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: Dimensions.eight),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                status,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: context.ink,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: Dimensions.four),
             Text(
-              dirty
-                  ? 'Unsaved changes'
-                  : expected == null
-                  ? 'Not recorded · all fields optional'
-                  : 'Saved · all fields optional',
+              'All fields optional',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
