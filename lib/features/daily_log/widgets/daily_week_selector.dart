@@ -187,16 +187,12 @@ class _DailyWeekSelectorState extends State<DailyWeekSelector> {
             final minWidth = math.max(
               Dimensions.fortyEight,
               math.max(labelWidth, measure('28', numberStyle).width) +
-                  Dimensions.sixteen,
+                  Dimensions.eight,
             );
-            final columns =
-                ((constraints.maxWidth + Dimensions.four) /
-                        (minWidth + Dimensions.four))
-                    .floor()
-                    .clamp(1, 7);
-            final width =
-                (constraints.maxWidth - Dimensions.four * (columns - 1)) /
-                columns;
+            final width = math.max(
+              minWidth,
+              (constraints.maxWidth - Dimensions.four * 6) / 7,
+            );
             final height = math.max(
               Dimensions.fortyEight,
               measure('Mon', labelStyle).height +
@@ -204,9 +200,8 @@ class _DailyWeekSelectorState extends State<DailyWeekSelector> {
                   Dimensions.four +
                   Dimensions.twentyFour,
             );
-            final rows = (7 / columns).ceil();
             return SizedBox(
-              height: height * rows + Dimensions.four * (rows - 1),
+              height: height,
               child: PageView.builder(
                 key: const ValueKey('daily-week-pages'),
                 controller: _pages,
@@ -217,84 +212,91 @@ class _DailyWeekSelectorState extends State<DailyWeekSelector> {
                 onPageChanged: _selectWeek,
                 itemBuilder: (context, index) {
                   final week = _start(index);
-                  return Wrap(
-                    spacing: Dimensions.four,
-                    runSpacing: Dimensions.four,
-                    children: [
-                      for (var offset = 0; offset < 7; offset++)
-                        Builder(
-                          builder: (context) {
-                            final date = DateTime(
-                              week.year,
-                              week.month,
-                              week.day + offset,
-                            );
-                            final selected =
-                                dailyDate(widget.selectedDate) == date;
-                            final allowed =
-                                active &&
-                                !date.isAfter(dailyDate(widget.today));
-                            return Semantics(
-                              button: true,
-                              selected: selected,
-                              enabled: allowed,
-                              label: localizations.formatFullDate(date),
-                              child: SizedBox(
-                                width: width,
-                                height: height,
-                                child: Material(
-                                  color: selected
-                                      ? context.ink
-                                      : context.cardSurface,
-                                  borderRadius: BorderRadius.circular(
-                                    Dimensions.twelve,
-                                  ),
-                                  child: InkWell(
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics:
+                        width * 7 + Dimensions.four * 6 >
+                            constraints.maxWidth + 0.01
+                        ? const ClampingScrollPhysics()
+                        : const NeverScrollableScrollPhysics(),
+                    child: Row(
+                      spacing: Dimensions.four,
+                      children: [
+                        for (var offset = 0; offset < 7; offset++)
+                          Builder(
+                            builder: (context) {
+                              final date = DateTime(
+                                week.year,
+                                week.month,
+                                week.day + offset,
+                              );
+                              final selected =
+                                  dailyDate(widget.selectedDate) == date;
+                              final allowed =
+                                  active &&
+                                  !date.isAfter(dailyDate(widget.today));
+                              return Semantics(
+                                button: true,
+                                selected: selected,
+                                enabled: allowed,
+                                label: localizations.formatFullDate(date),
+                                child: SizedBox(
+                                  width: width,
+                                  height: height,
+                                  child: Material(
+                                    color: selected
+                                        ? context.ink
+                                        : context.cardSurface,
                                     borderRadius: BorderRadius.circular(
                                       Dimensions.twelve,
                                     ),
-                                    onTap: allowed
-                                        ? () => _selectDay(date)
-                                        : null,
-                                    child: Center(
-                                      child: ExcludeSemantics(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              names[offset],
-                                              style: labelStyle.copyWith(
-                                                color: selected
-                                                    ? context.paper
-                                                    : context.secondaryInk,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(
+                                        Dimensions.twelve,
+                                      ),
+                                      onTap: allowed
+                                          ? () => _selectDay(date)
+                                          : null,
+                                      child: Center(
+                                        child: ExcludeSemantics(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                names[offset],
+                                                style: labelStyle.copyWith(
+                                                  color: selected
+                                                      ? context.paper
+                                                      : context.secondaryInk,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(
-                                              height: Dimensions.four,
-                                            ),
-                                            Text(
-                                              '${date.day}',
-                                              style: numberStyle.copyWith(
-                                                color: selected
-                                                    ? context.paper
-                                                    : context.ink.withValues(
-                                                        alpha: allowed
-                                                            ? 1
-                                                            : 0.38,
-                                                      ),
+                                              const SizedBox(
+                                                height: Dimensions.four,
                                               ),
-                                            ),
-                                          ],
+                                              Text(
+                                                '${date.day}',
+                                                style: numberStyle.copyWith(
+                                                  color: selected
+                                                      ? context.paper
+                                                      : context.ink.withValues(
+                                                          alpha: allowed
+                                                              ? 1
+                                                              : 0.38,
+                                                        ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                    ],
+                              );
+                            },
+                          ),
+                      ],
+                    ),
                   );
                 },
               ),
