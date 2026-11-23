@@ -26,7 +26,12 @@ import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
 /// screen showed a live alert — the user believed their circle had been told
 /// when nothing had left the phone. That is the worst failure this app has,
 /// and it was invisible.
-enum SosDelivery { sending, delivered, queued, failed }
+///
+/// [notNotified] covers the next gap: the server has the alert, but no contact
+/// was sent a push within [SosViewModel.notifyGrace] — or every push failed.
+/// The server can drop the fan-out (an outage, a disabled flag, a contact with
+/// no device), and "SOS ACTIVE" would then be a lie.
+enum SosDelivery { sending, delivered, queued, failed, notNotified }
 
 class SosViewModel extends GetxController {
   SosViewModel({String? Function()? currentUid}) : _currentUid = currentUid;
@@ -34,6 +39,10 @@ class SosViewModel extends GetxController {
   static const _storageKey = 'active_sos';
 
   static const Duration deliveryGrace = Duration(seconds: 8);
+
+  /// How long after the server has the alert we wait for at least one
+  /// contact's push to be confirmed before telling the user nobody knows.
+  static const Duration notifyGrace = Duration(seconds: 30);
 
   final Rxn<AlertDto> activeSos = Rxn<AlertDto>();
   final Rx<Duration> elapsed = Duration.zero.obs;
@@ -43,6 +52,8 @@ class SosViewModel extends GetxController {
 
   Timer? _elapsedTimer;
   Timer? _deliveryWatchdog;
+  Timer? _notifyWatchdog;
+  bool _notifyGraceElapsed = false;
   StreamSubscription<List<AlertResponseDto>>? _responsesSub;
   StreamSubscription<List<AlertDeliveryDto>>? _deliveriesSub;
 
@@ -65,6 +76,7 @@ class SosViewModel extends GetxController {
   void onClose() {
     _elapsedTimer?.cancel();
     _deliveryWatchdog?.cancel();
+    _notifyWatchdog?.cancel();
     _responsesSub?.cancel();
     _deliveriesSub?.cancel();
     super.onClose();
@@ -73,7 +85,8 @@ class SosViewModel extends GetxController {
   /// True while the circle has *not* been told, for whatever reason.
   bool get isUndelivered =>
       delivery.value == SosDelivery.queued ||
-      delivery.value == SosDelivery.failed;
+      delivery.value == SosDelivery.failed ||
+      delivery.value == SosDelivery.notNotified;
 
   Future<void> _restoreActiveSos() async {
     try {
@@ -181,12 +194,47 @@ class SosViewModel extends GetxController {
 
         if (result.isSuccess) {
           delivery.value = SosDelivery.delivered;
+          _startNotifyWatchdog(alertId);
         } else {
           debugPrint('[SosVM] Alert write rejected: ${result.error}');
           delivery.value = SosDelivery.failed;
         }
       }),
     );
+  }
+
+  void _startNotifyWatchdog(String alertId) {
+    _notifyWatchdog?.cancel();
+    _notifyGraceElapsed = false;
+    _notifyWatchdog = Timer(notifyGrace, () {
+      if (!_sessionActive || activeSos.value?.id != alertId) return;
+      _notifyGraceElapsed = true;
+      reconcileNotified();
+    });
+    reconcileNotified();
+  }
+
+  /// Moves between [SosDelivery.delivered] and [SosDelivery.notNotified]
+  /// from the server's per-contact delivery records. Only runs once the
+  /// server has the alert; the offline and rejected states take priority.
+  @visibleForTesting
+  void reconcileNotified({bool? graceElapsed}) {
+    if (graceElapsed != null) _notifyGraceElapsed = graceElapsed;
+    if (activeSos.value == null) return;
+    if (delivery.value != SosDelivery.delivered &&
+        delivery.value != SosDelivery.notNotified) {
+      return;
+    }
+    final bool anySent = alertDeliveries.any(
+      (AlertDeliveryDto d) => d.status == 'sent',
+    );
+    if (anySent) {
+      delivery.value = SosDelivery.delivered;
+    } else if (_notifyGraceElapsed || alertDeliveries.isNotEmpty) {
+      // Either the grace period passed with no record, or the server has
+      // written its records and none of them is a successful send.
+      delivery.value = SosDelivery.notNotified;
+    }
   }
 
   Future<void> cancelSos() async {
@@ -216,6 +264,8 @@ class SosViewModel extends GetxController {
       }
 
       _deliveryWatchdog?.cancel();
+      _notifyWatchdog?.cancel();
+      _notifyGraceElapsed = false;
       delivery.value = SosDelivery.delivered;
 
       // Same reasoning as the send path: offline this never resolves, so it
@@ -266,7 +316,10 @@ class SosViewModel extends GetxController {
     _deliveriesSub = FirestoreService.instance()
         .watchAlertDeliveries(alertId)
         .listen(
-          (List<AlertDeliveryDto> list) => alertDeliveries.value = list,
+          (List<AlertDeliveryDto> list) {
+            alertDeliveries.value = list;
+            reconcileNotified();
+          },
           onError: (Object error) =>
               debugPrint('[SosVM] Error watching deliveries: $error'),
         );

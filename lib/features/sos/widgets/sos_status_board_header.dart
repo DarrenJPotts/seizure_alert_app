@@ -25,7 +25,9 @@ class SosStatusBoardHeader extends StatelessWidget {
   final VoidCallback onCallForHelp;
 
   bool get _undelivered =>
-      delivery == SosDelivery.queued || delivery == SosDelivery.failed;
+      delivery == SosDelivery.queued ||
+      delivery == SosDelivery.failed ||
+      delivery == SosDelivery.notNotified;
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +148,13 @@ class _StatusLabel extends StatelessWidget {
           ),
         ],
       ),
+      SosDelivery.notNotified => Row(
+        children: <Widget>[
+          Icon(Icons.notifications_off, size: 14, color: context.heroInk),
+          const SizedBox(width: Dimensions.eight),
+          Expanded(child: Text('NOBODY NOTIFIED', style: style)),
+        ],
+      ),
     };
   }
 }
@@ -234,9 +243,13 @@ class _UndeliveredNotice extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          delivery == SosDelivery.queued
-              ? 'The server has not confirmed this alert yet. It will keep trying when a connection is available. Call a contact instead if you need help now.'
-              : 'This alert could not be sent. Nobody has been notified.',
+          switch (delivery) {
+            SosDelivery.queued =>
+              'The server has not confirmed this alert yet. It will keep trying when a connection is available. Call a contact instead if you need help now.',
+            SosDelivery.notNotified =>
+              'Your alert was saved, but no contact has been notified. Call a contact now.',
+            _ => 'This alert could not be sent. Nobody has been notified.',
+          },
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: context.heroInk,
             height: 1.5,

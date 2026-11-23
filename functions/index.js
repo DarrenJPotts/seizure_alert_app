@@ -6,11 +6,13 @@ const { onMessagePublished } = require("firebase-functions/v2/pubsub");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getRemoteConfig } = require("firebase-admin/remote-config");
 const { getFunctions } = require("firebase-admin/functions");
 const { getMessaging } = require("firebase-admin/messaging");
 const crypto = require("node:crypto");
 const { daysSince, isEscalationStale } = require("./time");
 const { functionsEnabled } = require("./killswitch");
+const { safetyFunctionsEnabled, remoteConfigFlagLoader } = require("./safety-flag");
 
 setGlobalOptions({ maxInstances: 5, minInstances: 0 });
 
@@ -29,12 +31,24 @@ initializeApp();
 
 const db = getFirestore();
 const messaging = getMessaging();
+const loadSafetyFlag = remoteConfigFlagLoader(getRemoteConfig());
+
+/**
+ * Guard for the safety-critical functions (alerts, escalation, Heads Up,
+ * watch actions, caregiver alert screens). Ignores the budget kill switch;
+ * see safety-flag.js.
+ */
+function safetyEnabled() {
+  return safetyFunctionsEnabled(loadSafetyFlag);
+}
 
 /**
  * Stop function work when the $1 monthly budget's actual spend reaches 100%.
  * The kill switch remains off until an operator manually re-enables it in
  * Firestore. Billing notifications are delayed/estimated, so this is a safety
  * brake, not a guaranteed hard spending ceiling.
+ *
+ * This never stops the safety-critical functions; see safety-flag.js.
  */
 exports.disableFunctionsAtBudget = onMessagePublished(
   { topic: BILLING_BUDGET_TOPIC, retry: false, maxInstances: 1, minInstances: 0 },
@@ -328,7 +342,7 @@ exports.wearableAction = onRequest(
   { invoker: "public", minInstances: 0, maxInstances: 5 },
   async (request, response) => {
     if (request.method !== "POST") return sendJson(response, 405, { error: "method" });
-    if (!(await functionsEnabled(db))) {
+    if (!(await safetyEnabled())) {
       return sendJson(response, 503, { error: "disabled" });
     }
     const credential = await authenticateWearable(request);
@@ -857,7 +871,7 @@ exports.escalateUnansweredAlert = onTaskDispatched(
     maxInstances: 5,
   },
   async (request) => {
-    if (!(await functionsEnabled(db))) return;
+    if (!(await safetyEnabled())) return;
     const alertId = request.data?.alertId;
     const stage = Number(request.data?.stage);
     if (
@@ -956,8 +970,8 @@ exports.escalateUnansweredAlert = onTaskDispatched(
 );
 
 exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => {
-  if (!(await functionsEnabled(db))) {
-    console.warn("Kill switch is on; skipping onAlertCreated.");
+  if (!(await safetyEnabled())) {
+    console.warn("sos_functions_enabled is off; skipping onAlertCreated.");
     return;
   }
 
@@ -995,8 +1009,8 @@ exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => 
 });
 
 exports.onAlertUpdated = onDocumentUpdated("alerts/{alertId}", async (event) => {
-  if (!(await functionsEnabled(db))) {
-    console.warn("Kill switch is on; skipping onAlertUpdated.");
+  if (!(await safetyEnabled())) {
+    console.warn("sos_functions_enabled is off; skipping onAlertUpdated.");
     return;
   }
 
@@ -1040,8 +1054,8 @@ const HEADS_UP_ESCALATION_GRACE_MS = 60 * 60 * 1000;
 // Each Heads Up creates one delayed task. This keeps server-side escalation
 // reliable while avoiding an idle scheduler that wakes up every minute.
 exports.onHeadsUpCreated = onDocumentCreated("headsUp/{headsUpId}", async (event) => {
-  if (!(await functionsEnabled(db))) {
-    console.warn("Kill switch is on; skipping Heads Up task creation.");
+  if (!(await safetyEnabled())) {
+    console.warn("sos_functions_enabled is off; skipping Heads Up task creation.");
     return;
   }
 
@@ -1091,8 +1105,8 @@ exports.expireHeadsUpWindow = onTaskDispatched(
     maxInstances: 5,
   },
   async (request) => {
-    if (!(await functionsEnabled(db))) {
-      console.warn("Kill switch is on; skipping expireHeadsUpWindow.");
+    if (!(await safetyEnabled())) {
+      console.warn("sos_functions_enabled is off; skipping expireHeadsUpWindow.");
       return;
     }
 
@@ -1197,7 +1211,7 @@ async function latestSeizureLog(ownerId) {
 // ---------------------------------------------------------------------------
 
 exports.getPeopleIWatch = onCall(CALLABLE_OPTIONS, async (request) => {
-  if (!(await functionsEnabled(db))) {
+  if (!(await safetyEnabled())) {
     throw new HttpsError("unavailable", "This feature is temporarily disabled.");
   }
 
@@ -1365,7 +1379,7 @@ exports.getCaregiverAlertHistory = onCall(CALLABLE_OPTIONS, async (request) => {
 });
 
 exports.getAlertDetail = onCall(CALLABLE_OPTIONS, async (request) => {
-  if (!(await functionsEnabled(db))) {
+  if (!(await safetyEnabled())) {
     throw new HttpsError("unavailable", "This feature is temporarily disabled.");
   }
 
@@ -1591,7 +1605,7 @@ exports.respondToCircleInvite = onCall(CALLABLE_OPTIONS, async (request) => {
   return { status };
 });
 exports.nudgeResponder = onCall(CALLABLE_OPTIONS, async (request) => {
-  if (!(await functionsEnabled(db))) {
+  if (!(await safetyEnabled())) {
     throw new HttpsError("unavailable", "This feature is temporarily disabled.");
   }
 
@@ -1693,7 +1707,7 @@ findLinkedContacts(targetResponderId, [["userId", "==", alertUserId]]),
 const MAX_RESPONSE_NOTE = 2000;
 
 exports.submitAlertResponse = onCall(CALLABLE_OPTIONS, async (request) => {
-  if (!(await functionsEnabled(db))) {
+  if (!(await safetyEnabled())) {
     throw new HttpsError("unavailable", "This feature is temporarily disabled.");
   }
 
