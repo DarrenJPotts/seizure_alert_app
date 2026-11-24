@@ -76,6 +76,10 @@ class ContactsView extends GetView<ContactsViewModel> {
                         color: context.secondaryInk,
                       ),
                     ),
+                    OutlinedButton(
+                      onPressed: controller.retry,
+                      child: const Text('Try again'),
+                    ),
                   ],
                 ),
               );
@@ -100,7 +104,7 @@ class ContactsView extends GetView<ContactsViewModel> {
                         color: context.secondaryInk,
                       ),
                     ),
-                    TextButton(
+                    ElevatedButton(
                       onPressed: () => AddContactBottomSheet.show(
                         onAdd: controller.addContact,
                         onUpdate: controller.updateContact,

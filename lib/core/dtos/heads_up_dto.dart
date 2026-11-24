@@ -1,3 +1,5 @@
+import 'package:seizure_app/core/helpers/timestamps.dart';
+
 enum HeadsUpStatus { active, checkedIn, expired, escalated, cancelled }
 
 class HeadsUpDto {
@@ -26,8 +28,8 @@ class HeadsUpDto {
     return HeadsUpDto(
       id: map['id'] as String,
       userId: map['userId'] as String? ?? '',
-      createdAt: DateTime.parse(map['createdAt'] as String),
-      expiresAt: DateTime.parse(map['expiresAt'] as String),
+      createdAt: parseStoredTimestamp(map['createdAt'] as String),
+      expiresAt: parseStoredTimestamp(map['expiresAt'] as String),
       note: map['note'] as String?,
       status: HeadsUpStatus.values.firstWhere((e) => e.name == map['status']),
     );
@@ -41,8 +43,8 @@ class HeadsUpDto {
   Map<String, dynamic> toMap() => {
     'id': id,
     'userId': userId,
-    'createdAt': createdAt.toIso8601String(),
-    'expiresAt': expiresAt.toIso8601String(),
+    'createdAt': toStoredTimestamp(createdAt),
+    'expiresAt': toStoredTimestamp(expiresAt),
     'expiresAtMs': expiresAtMs,
     'note': note,
     'status': status.name,

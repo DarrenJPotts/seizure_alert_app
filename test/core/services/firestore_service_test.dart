@@ -93,6 +93,34 @@ void main() {
         expect(document.data()?['fcmTokenUpdatedAt'], isNotNull);
       },
     );
+
+    test('each signed-in device keeps its own token', () async {
+      await service.upsertUser(Fixtures.user());
+
+      await service.updateFcmToken('user-1', 'phone-token');
+      await service.updateFcmToken('user-1', 'tablet-token');
+
+      final Map<String, dynamic> data =
+          (await db.collection('users').doc('user-1').get()).data()!;
+      expect(data['fcmToken'], 'tablet-token');
+      expect(
+        (data['fcmTokens'] as Map).keys,
+        containsAll(<String>['phone-token', 'tablet-token']),
+      );
+    });
+
+    test('signing out one device leaves the others registered', () async {
+      await service.upsertUser(Fixtures.user());
+      await service.updateFcmToken('user-1', 'phone-token');
+      await service.updateFcmToken('user-1', 'tablet-token');
+
+      await service.detachFcmToken('user-1', 'tablet-token');
+
+      final Map<String, dynamic> data =
+          (await db.collection('users').doc('user-1').get()).data()!;
+      expect(data.containsKey('fcmToken'), isFalse);
+      expect((data['fcmTokens'] as Map).keys, <String>['phone-token']);
+    });
   });
 
   group('contacts', () {
@@ -284,6 +312,26 @@ void main() {
   });
 
   group('seizure logs', () {
+    test('editing an entry keeps its alert link and position', () async {
+      await service.addSeizureLog(Fixtures.seizureLog());
+      final SeizureLogDto edited = SeizureLogDto(
+        id: 'log-1',
+        userId: 'user-1',
+        occurredAt: Fixtures.at,
+        notes: 'Added later',
+        alertFired: true,
+      );
+
+      await service.updateSeizureLog(edited);
+
+      final Map<String, dynamic> stored =
+          (await db.collection('seizureLogs').doc('log-1').get()).data()!;
+      expect(stored['notes'], 'Added later');
+      expect(stored['alertId'], 'alert-1');
+      expect(stored['latitude'], -33.9249);
+      expect(stored['longitude'], 18.4241);
+    });
+
     test('addSeizureLog writes the entry', () async {
       await service.addSeizureLog(Fixtures.seizureLog());
 

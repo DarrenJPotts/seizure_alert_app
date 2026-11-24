@@ -311,7 +311,7 @@ class RootView extends GetView<RootViewModel> {
       title: ModeBadge(
         caregiver: false,
         loading: controller.switchingMode.value,
-        onTap: controller.toggleMode,
+        onTap: () => _confirmCaregiverMode(context),
       ),
       actionsPadding: const EdgeInsets.only(right: Dimensions.twelve),
       actions: [
@@ -349,13 +349,70 @@ class RootView extends GetView<RootViewModel> {
     bottomNavigationBar: FloatingBottomNavWidget(controller: controller),
   );
 
+  /// Caregiver mode hides the SOS button on this phone, so one stray tap on
+  /// the badge must not do it silently, and never during an active SOS.
+  Future<void> _confirmCaregiverMode(BuildContext context) async {
+    final bool sosActive =
+        Get.isRegistered<SosViewModel>() &&
+        Get.find<SosViewModel>().activeSos.value != null;
+    if (sosActive) {
+      await showDialog<void>(
+        context: context,
+        builder: (BuildContext ctx) => AlertDialog(
+          title: const Text('Your SOS is active'),
+          content: const Text(
+            'Cancel your SOS before switching to caregiver mode.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Switch to caregiver mode?'),
+        content: const Text(
+          'The SOS button will be hidden on this phone until you switch '
+          'back. Only switch if you use this phone to look after someone.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: context.ink),
+            child: const Text('Switch'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await controller.toggleMode();
+  }
+
   Future<void> _confirmSignOut(BuildContext context) async {
+    final SosViewModel? sosVm = Get.isRegistered<SosViewModel>()
+        ? Get.find<SosViewModel>()
+        : null;
+    if (sosVm?.activeSos.value != null) {
+      await _confirmSignOutDuringSos(context, sosVm!);
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Sign out?'),
         content: const Text(
-          'You will need to sign in again to continue monitoring.',
+          'Alerts will stop on this phone until you sign in again.',
         ),
         actions: [
           TextButton(
@@ -374,5 +431,58 @@ class RootView extends GetView<RootViewModel> {
     if (confirmed == true) {
       await FirebaseAuthController.instance().signOut();
     }
+  }
+
+  /// Signing out mid-SOS used to leave the alert open on the server, so
+  /// caregivers kept seeing an SOS and the watch could not send a new one.
+  Future<void> _confirmSignOutDuringSos(
+    BuildContext context,
+    SosViewModel sosVm,
+  ) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Cancel your SOS and sign out?'),
+        content: const Text(
+          'Your SOS is still active. Signing out cancels it, and your circle '
+          'will be told you are okay. Only do this if you no longer need help.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep SOS active'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red.shade400),
+            child: const Text('Cancel SOS and sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final bool cancelled = await sosVm.cancelSosAndConfirm();
+    if (!cancelled) {
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (BuildContext ctx) => AlertDialog(
+          title: const Text('SOS not cancelled'),
+          content: const Text(
+            'Your SOS could not be cancelled, so you are still signed in. '
+            'Check your connection and try again, or call your circle.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    await FirebaseAuthController.instance().signOut();
   }
 }

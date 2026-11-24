@@ -248,6 +248,7 @@ class LocalNotificationsService extends GetxService
     }
     final now = tz.TZDateTime.now(tz.local);
     final slots = reminderNotificationSlots(current, now);
+    final AndroidScheduleMode scheduleMode = await _reminderScheduleMode();
     // Resolve rare hash collisions before changing any native schedules.
     final slotIds = <String, int>{};
     final usedIds = <int>{};
@@ -300,7 +301,7 @@ class LocalNotificationsService extends GetxService
           ),
           iOS: DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         matchDateTimeComponents: switch (slot.repeat) {
           ReminderRepeat.once => null,
           ReminderRepeat.daily => DateTimeComponents.time,
@@ -310,6 +311,44 @@ class LocalNotificationsService extends GetxService
         },
         payload: '/reminders',
       );
+    }
+  }
+
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+
+  /// Anti-seizure medication is time-critical. Inexact alarms can be held
+  /// back under Doze, so reminders use exact alarms whenever the user has
+  /// allowed them (Android 12+ asks; older versions always allow).
+  Future<AndroidScheduleMode> _reminderScheduleMode() async {
+    try {
+      if (await _android?.canScheduleExactNotifications() == true) {
+        return AndroidScheduleMode.exactAllowWhileIdle;
+      }
+    } catch (_) {}
+    return AndroidScheduleMode.inexactAllowWhileIdle;
+  }
+
+  /// Whether reminders can fire at the exact time. Always true off Android.
+  Future<bool> exactRemindersAllowed() async {
+    final AndroidFlutterLocalNotificationsPlugin? android = _android;
+    if (android == null) return true;
+    try {
+      return await android.canScheduleExactNotifications() ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Opens the system setting that allows exact reminder times.
+  Future<void> requestExactReminders() async {
+    try {
+      await _android?.requestExactAlarmsPermission();
+    } catch (e) {
+      debugPrint('[LocalNotificationsService] Exact alarm request failed: $e');
     }
   }
 

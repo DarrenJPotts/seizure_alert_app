@@ -39,6 +39,14 @@ class SeizureLogViewModel extends GetxController {
     _init();
   }
 
+  /// Restarts the seizure listener after an error. A listener that errors
+  /// is closed for good, so without this the Daily log stayed empty until
+  /// the app restarted.
+  void retry() {
+    _logsSub?.cancel();
+    _init();
+  }
+
   void _init() {
     if (_uid.isEmpty) {
       screenState.value = GenericScreenStates.error;
@@ -158,7 +166,7 @@ class SeizureLogViewModel extends GetxController {
       rescueMedicationUsed: rescueMedicationUsed,
       alertFired: alertFired,
     );
-    final result = await _firestoreService.addSeizureLog(log);
+    final result = await _firestoreService.updateSeizureLog(log);
     return result.isSuccess;
   }
 

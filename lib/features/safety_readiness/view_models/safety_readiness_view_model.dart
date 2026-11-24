@@ -33,6 +33,9 @@ class SafetyReadinessViewModel extends GetxController {
   final RxnString error = RxnString();
 
   StreamSubscription<List<ContactDto>>? _contactsSubscription;
+  bool _checking = false;
+  bool _contactsLoaded = false;
+  bool _contactsFailed = false;
   StreamSubscription<List<WearableDeviceDto>>? _wearablesSubscription;
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -62,27 +65,47 @@ class SafetyReadinessViewModel extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _watchContacts();
     refreshReadiness();
-    _contactsSubscription = _firestore
-        .watchContacts(_uid)
-        .listen(
-          (List<ContactDto> value) {
-            contacts.assignAll(value);
-            loading.value = false;
-          },
-          onError: (_) {
-            error.value = 'Safety readiness could not be checked.';
-            loading.value = false;
-          },
-        );
     _wearablesSubscription = _wearables.watchDevices().listen(
       devices.assignAll,
       onError: (_) {},
     );
   }
 
+  /// A listener that errors is closed for good, so a refresh starts a new
+  /// one. Without this, a refresh after an error showed "0 ready" as if the
+  /// person had no caregivers.
+  void _watchContacts() {
+    _contactsSubscription?.cancel();
+    _contactsFailed = false;
+    _contactsSubscription = _firestore
+        .watchContacts(_uid)
+        .listen(
+          (List<ContactDto> value) {
+            contacts.assignAll(value);
+            _contactsLoaded = true;
+            _updateLoading();
+          },
+          onError: (_) {
+            _contactsFailed = true;
+            error.value = 'Safety readiness could not be checked.';
+            _updateLoading();
+          },
+        );
+  }
+
+  /// Loading lasts until the device checks and the first contacts snapshot
+  /// are both in, so the not-ready state no longer flashes on open.
+  void _updateLoading() {
+    if (isClosed) return;
+    loading.value = _checking || (!_contactsLoaded && !_contactsFailed);
+  }
+
   Future<void> refreshReadiness() async {
-    loading.value = true;
+    if (_contactsFailed) _watchContacts();
+    _checking = true;
+    _updateLoading();
     error.value = null;
     try {
       await _messaging?.refreshReadiness();
@@ -95,7 +118,8 @@ class SafetyReadinessViewModel extends GetxController {
         error.value = 'Readiness could not be refreshed. Try again.';
       }
     } finally {
-      if (!isClosed) loading.value = false;
+      _checking = false;
+      _updateLoading();
     }
   }
 

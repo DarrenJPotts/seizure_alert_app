@@ -193,6 +193,7 @@ class _DailyLogViewState extends State<DailyLogView> {
             date: day,
             entry: daily.entry.value,
             hasSeizures: events.isNotEmpty,
+            seizuresKnown: state == GenericScreenStates.loaded,
           ),
         const SizedBox(height: Dimensions.twentyFour),
         _section(context, 'Seizures', [
@@ -200,8 +201,14 @@ class _DailyLogViewState extends State<DailyLogView> {
               state == GenericScreenStates.initial)
             const LinearProgressIndicator()
           else if (state == GenericScreenStates.error)
-            const Text(
-              'Could not load seizure entries. Try again from Insights.',
+            Row(
+              children: <Widget>[
+                const Expanded(child: Text('Could not load seizure entries.')),
+                TextButton(
+                  onPressed: seizures.retry,
+                  child: const Text('Try again'),
+                ),
+              ],
             )
           else if (events.isEmpty)
             Text(

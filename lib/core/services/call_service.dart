@@ -1,10 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
-import 'package:seizure_app/core/constants/dimensions.dart';
-import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 /// Places a phone call, or tells the user why it couldn't.
 ///
@@ -33,24 +30,24 @@ class CallService {
     _notify('Could not open dialler', '$normalized copied to clipboard.');
   }
 
-  static void _notify(String title, String message) {
-    Get.snackbar(
-      '',
-      '',
-      titleText: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
-      messageText: Text(message, style: const TextStyle(color: Colors.white)),
-      snackPosition: SnackPosition.BOTTOM,
-      margin: snackbarMargin,
-      backgroundColor: Colors.black,
-      borderRadius: Dimensions.eight,
-      duration: const Duration(seconds: 4),
+  /// Emergency number dialled from the caregiver alert screens. 112 works
+  /// from any mobile in South Africa and most other countries.
+  static const String emergencyNumber = '112';
+
+  /// Dials [emergencyNumber] directly. It is too short to pass
+  /// [PhoneNumber.normalize], which is for saved contact numbers.
+  static Future<void> callEmergency() async {
+    final Uri uri = Uri(scheme: 'tel', path: emergencyNumber);
+    try {
+      if (await canLaunchUrl(uri) && await launchUrl(uri)) return;
+    } catch (_) {}
+    await Clipboard.setData(const ClipboardData(text: emergencyNumber));
+    _notify(
+      'Could not open dialler',
+      'Dial $emergencyNumber yourself. It has been copied to the clipboard.',
     );
   }
+
+  static void _notify(String title, String message) =>
+      showAppSnackbar(title, message);
 }

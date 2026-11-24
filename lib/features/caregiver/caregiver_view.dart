@@ -170,7 +170,10 @@ class _Header extends StatelessWidget {
               child: Semantics(
                 button: true,
                 label: 'Open profile',
-                child: const CaregiverAvatar(name: null, size: 34),
+                child: const SizedBox.square(
+                  dimension: Dimensions.fortyEight,
+                  child: Center(child: CaregiverAvatar(name: null, size: 34)),
+                ),
               ),
             ),
         ],
@@ -296,7 +299,7 @@ class _PersonCard extends StatelessWidget {
                 '"${person.headsUpNote}"',
                 style: Theme.of(
                   context,
-                ).textTheme.bodyLarge?.copyWith(fontSize: 14, height: 1.5),
+                ).textTheme.bodyMedium?.copyWith(height: 1.5),
               ),
             ),
           ] else if (person.daysSinceLastSeizure != null ||
@@ -332,10 +335,9 @@ class _StatusLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle? style = Theme.of(context).textTheme.bodyLarge?.copyWith(
-      fontSize: 13,
-      color: ink.withValues(alpha: 0.5),
-    );
+    final TextStyle? style = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: ink.withValues(alpha: 0.5));
 
     switch (person.status) {
       case WatchedPersonStatus.sos:
@@ -391,8 +393,8 @@ class _CallButton extends StatelessWidget {
     child: GestureDetector(
       onTap: () => CallService.call(person.ownerPhone),
       child: Container(
-        width: 44,
-        height: 44,
+        width: Dimensions.fortyEight,
+        height: Dimensions.fortyEight,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
@@ -432,10 +434,9 @@ class _StatChip extends StatelessWidget {
           children: <Widget>[
             Text(
               label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontSize: 11,
-                color: scheme.onSurfaceVariant,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -474,7 +475,6 @@ class _RecentActivitySection extends GetView<CaregiverViewModel> {
           child: Text(
             'RECENT ACTIVITY',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.6,
               color: scheme.onSurfaceVariant,
@@ -485,7 +485,7 @@ class _RecentActivitySection extends GetView<CaregiverViewModel> {
           decoration: BoxDecoration(
             color: scheme.surface,
             border: Border.all(color: scheme.outlineVariant),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(context.design.cardRadius),
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
@@ -533,18 +533,16 @@ class _ActivityRow extends StatelessWidget {
               child: Text(
                 '${event.personName.split(' ').first} · ${event.label}',
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
             Text(
               _clockOrDate(event.at),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontSize: 13,
-                color: scheme.onSurfaceVariant,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),

@@ -12,6 +12,7 @@ import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/widgets/alert_map_widget.dart';
+import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
 import 'package:seizure_app/features/heads_up/view_models/heads_up_view_model.dart';
 import 'package:seizure_app/features/heads_up/heads_up/heads_up_bottom_sheet_widget.dart';
@@ -24,6 +25,7 @@ import 'package:seizure_app/features/sos/widgets/sos_heads_up_options_card.dart'
 import 'package:seizure_app/features/sos/widgets/sos_idle_sheet.dart';
 import 'package:seizure_app/features/sos/widgets/sos_contacts_summary.dart';
 import 'package:seizure_app/features/sos/widgets/sos_status_board_header.dart';
+import 'package:seizure_app/features/sos/widgets/missed_check_in_card.dart';
 
 class SosView extends StatelessWidget {
   const SosView({super.key, required this.viewModel});
@@ -39,7 +41,6 @@ class SosView extends StatelessWidget {
     required bool hasRecipients,
     VoidCallback? onComplete,
   }) {
-    HapticFeedback.heavyImpact();
     unawaited(
       showDialog<void>(
         context: context,
@@ -78,15 +79,17 @@ class SosView extends StatelessWidget {
           return _buildWidgetLoadingState(context, sosVm);
         }
         if (contactsState == GenericScreenStates.error) {
+          // Contacts often fail to load because the phone is offline, which
+          // is exactly when an SOS must not be dropped. Start the countdown
+          // anyway: the alert queues, and the delivery states on the active
+          // screen say whether anyone was actually told.
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!viewModel.widgetSosRequested.value) return;
-            viewModel.discardWidgetSosRequest();
-            Get.snackbar(
-              'Contacts unavailable',
-              'Check your connection and try SOS again.',
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: context.ink,
-              colorText: context.paper,
+            if (!viewModel.consumeWidgetSosRequest()) return;
+            _handleSOS(
+              context,
+              sosVm,
+              hasRecipients: true,
+              onComplete: viewModel.completeWidgetSosRequest,
             );
           });
           return _buildIdleState(context, sosVm);
@@ -162,7 +165,8 @@ class SosView extends StatelessWidget {
             totalCount: totalCount,
             onCancel: sosVm.cancelSos,
             delivery: sosVm.delivery.value,
-            onCallForHelp: () => _callFirstContact(contacts),
+            onCallForHelp: () => _callForHelp(context, contacts),
+            onRetry: sosVm.retrySend,
           ),
           Expanded(
             child: SingleChildScrollView(
@@ -265,15 +269,58 @@ class SosView extends StatelessWidget {
     });
   }
 
-  void _callFirstContact(List<ContactDto> contacts) {
+  /// Lets the person choose who to call. With one contact it dials
+  /// straight away; it used to always dial the top contact without saying so.
+  void _callForHelp(BuildContext context, List<ContactDto> contacts) {
     HapticFeedback.heavyImpact();
-    if (contacts.isEmpty) {
-      CallService.call(null);
+    final List<ContactDto> ordered =
+        contacts.where((c) => c.phone.trim().isNotEmpty).toList()
+          ..sort((a, b) => a.priority.compareTo(b.priority));
+    if (ordered.length == 1) {
+      CallService.call(ordered.first.phone);
       return;
     }
-    final List<ContactDto> ordered = contacts.toList()
-      ..sort((a, b) => a.priority.compareTo(b.priority));
-    CallService.call(ordered.first.phone);
+    AppBottomSheet.show<void>(
+      context: context,
+      builder: (BuildContext sheetContext) => AppBottomSheetContent(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              'Who do you want to call?',
+              style: Theme.of(sheetContext).textTheme.titleMedium,
+            ),
+            const SizedBox(height: Dimensions.twelve),
+            for (final ContactDto contact in ordered)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                minTileHeight: 56,
+                leading: const Icon(Icons.call),
+                title: Text(contact.name),
+                subtitle: Text(contact.phone),
+                onTap: () {
+                  HapticFeedback.heavyImpact();
+                  Navigator.of(sheetContext).pop();
+                  CallService.call(contact.phone);
+                },
+              ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              minTileHeight: 56,
+              leading: const Icon(Icons.local_hospital_outlined),
+              title: const Text(
+                'Emergency services (${CallService.emergencyNumber})',
+              ),
+              onTap: () {
+                HapticFeedback.heavyImpact();
+                Navigator.of(sheetContext).pop();
+                CallService.callEmergency();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildIdleState(BuildContext context, SosViewModel sosVm) {
@@ -314,6 +361,17 @@ class SosView extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        Obx(() {
+          final HeadsUpViewModel headsUpVm = HeadsUpViewModel.instance();
+          if (headsUpVm.missedCheckIns.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: Dimensions.twentyFour),
+            child: MissedCheckInCard(
+              vm: headsUpVm,
+              alert: headsUpVm.missedCheckIns.first,
+            ),
+          );
+        }),
         Text(
           'Tap to alert your circle',
           style: Theme.of(context).textTheme.bodyMedium,
@@ -324,14 +382,51 @@ class SosView extends StatelessWidget {
           final bool hasRecipients = contactsVm.contacts.any(
             (c) => c.isPushReady,
           );
-          return Text(
-            hasRecipients
-                ? '10 seconds to cancel before your circle is notified'
-                : 'No linked contacts are ready for this SOS. Invite a contact or enable push alerts.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
-            textAlign: TextAlign.center,
+          if (hasRecipients) {
+            return Text(
+              '10 seconds to cancel before your circle is notified',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
+              textAlign: TextAlign.center,
+            );
+          }
+          // Nobody would be told. That is a warning, not a hint.
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(Dimensions.sixteen),
+            decoration: BoxDecoration(
+              border: Border.all(color: context.ink, width: 1.5),
+              borderRadius: BorderRadius.circular(context.design.cardRadius),
+            ),
+            child: Column(
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(Icons.warning_amber_rounded, color: context.ink),
+                    const SizedBox(width: Dimensions.twelve),
+                    Expanded(
+                      child: Text(
+                        'Nobody will be notified if you press SOS. Add a '
+                        'contact and turn on their alerts.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Dimensions.eight),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => viewModel.changePage(3),
+                    child: const Text('Add a contact'),
+                  ),
+                ),
+              ],
+            ),
           );
         }),
         const SizedBox(height: Dimensions.twentyFour),

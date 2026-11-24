@@ -91,7 +91,7 @@ class HomeView extends GetView<HomeViewModel> {
                     const Text('Your seizure history could not be loaded.'),
                     TextButton(
                       onPressed: controller.retry,
-                      child: const Text('Retry'),
+                      child: const Text('Try again'),
                     ),
                   ],
                 );

@@ -42,6 +42,13 @@ class HeadsUpViewModel extends GetxController {
   Timer? _deliveryWatchdog;
   String? _deliveryHeadsUpId;
 
+  /// Open missed check-ins, newest first. The server closes any still open
+  /// after [missedCheckInTtl], so older ones are not shown either.
+  final RxList<AlertDto> missedCheckIns = <AlertDto>[].obs;
+  final RxBool confirmingOk = false.obs;
+  StreamSubscription<List<AlertDto>>? _missedCheckInsSub;
+  static const Duration missedCheckInTtl = Duration(hours: 12);
+
   static const Duration deliveryGrace = Duration(seconds: 8);
 
   String get _uid =>
@@ -57,14 +64,75 @@ class HeadsUpViewModel extends GetxController {
   void onInit() {
     super.onInit();
     _restoreActiveHeadsUp();
+    _watchMissedCheckIns();
   }
 
   @override
   void onClose() {
     _countdownTimer?.cancel();
     _deliveryWatchdog?.cancel();
+    _missedCheckInsSub?.cancel();
     noteController.dispose();
     super.onClose();
+  }
+
+  void _watchMissedCheckIns() {
+    try {
+      if (!_sessionActive) return;
+      _missedCheckInsSub = FirestoreService.instance()
+          .watchOpenMissedCheckIns(_sessionUid)
+          .listen(
+            (List<AlertDto> alerts) {
+              if (!_sessionActive) return;
+              final DateTime now = DateTime.now();
+              missedCheckIns.value =
+                  alerts
+                      .where(
+                        (AlertDto a) =>
+                            now.difference(a.createdAt) <= missedCheckInTtl,
+                      )
+                      .toList()
+                    ..sort(
+                      (AlertDto a, AlertDto b) =>
+                          b.createdAt.compareTo(a.createdAt),
+                    );
+            },
+            onError: (Object e) =>
+                debugPrint('[HeadsUpVM] Error watching missed check-ins: $e'),
+          );
+    } catch (e) {
+      debugPrint('[HeadsUpVM] Could not watch missed check-ins: $e');
+    }
+  }
+
+  /// Closes a missed check-in. The server then tells the circle the person
+  /// is okay.
+  Future<void> confirmOk(AlertDto alert) async {
+    if (!_sessionActive || confirmingOk.value) return;
+    confirmingOk.value = true;
+    try {
+      final ResultDto<void> result = await FirestoreService.instance()
+          .updateAlertStatus(alert.id, AlertStatus.resolved)
+          .timeout(
+            deliveryGrace,
+            onTimeout: () => ResultDto<void>.failure('timed out'),
+          );
+      if (!_sessionActive) return;
+      if (result.isSuccess) {
+        missedCheckIns.removeWhere((AlertDto a) => a.id == alert.id);
+        _showSnackbar("You're marked okay", 'Your circle has been told.');
+      } else {
+        debugPrint(
+          '[HeadsUpVM] Error closing missed check-in: ${result.error}',
+        );
+        _showErrorSnackbar(
+          'Not updated',
+          'Your circle still thinks you missed your check-in. Try again or call them.',
+        );
+      }
+    } finally {
+      if (!isClosed) confirmingOk.value = false;
+    }
   }
 
   Future<void> _restoreActiveHeadsUp() async {
@@ -274,7 +342,7 @@ class HeadsUpViewModel extends GetxController {
     } catch (e) {
       debugPrint('[HeadsUpVM] Error cancelling Heads Up: $e');
       _showErrorSnackbar(
-        'Not Updated',
+        'Not updated',
         'Your circle may still think this is active.',
       );
     }
@@ -305,7 +373,7 @@ class HeadsUpViewModel extends GetxController {
     } catch (e) {
       debugPrint('[HeadsUpVM] Error checking in: $e');
       _showErrorSnackbar(
-        'Not Updated',
+        'Not updated',
         'Your circle may still think this is active.',
       );
     }

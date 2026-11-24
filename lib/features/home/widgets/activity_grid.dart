@@ -10,6 +10,17 @@ class ActivityGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final int seizureDays = cells.where((c) => c.hasSeizure).length;
+    return Semantics(
+      label:
+          'Activity, last 4 weeks: $seizureDays '
+          '${seizureDays == 1 ? 'day' : 'days'} with a seizure logged.',
+      excludeSemantics: true,
+      child: _buildGrid(context),
+    );
+  }
+
+  Widget _buildGrid(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -67,7 +78,7 @@ class ActivityGrid extends StatelessWidget {
                   const SizedBox(width: Dimensions.eight),
                   Flexible(
                     child: Text(
-                      seizure ? 'Seizure' : 'Seizure-free',
+                      seizure ? 'Seizure' : 'No seizure logged',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: context.secondaryInk,
                       ),

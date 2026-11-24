@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:seizure_app/core/dtos/daily_log_dto.dart';
 import 'package:seizure_app/core/dtos/cycle_tracking_dto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,6 +16,7 @@ import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/dtos/heads_up_dto.dart';
 import 'package:seizure_app/core/dtos/medication_reminder_dto.dart';
+import 'package:seizure_app/core/helpers/timestamps.dart';
 
 class FirestoreService {
   FirestoreService(this._db);
@@ -96,10 +98,17 @@ class FirestoreService {
 
   Future<ResultDto<void>> updateFcmToken(String uid, String token) async {
     try {
-      await _db.collection(FirebaseCollectionKeys.users).doc(uid).update({
-        'fcmToken': token,
-        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-      });
+      // fcmTokens holds one entry per signed-in device, so a caregiver with
+      // a phone and a tablet gets alerts on both. fcmToken (the latest
+      // device) is kept for older versions of the Cloud Functions.
+      await _db.collection(FirebaseCollectionKeys.users).doc(uid).update(
+        <Object, Object?>{
+          'fcmToken': token,
+          'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+          FieldPath(<String>['fcmTokens', token]):
+              DateTime.now().millisecondsSinceEpoch,
+        },
+      );
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
@@ -110,14 +119,18 @@ class FirestoreService {
     final ref = _db.collection(FirebaseCollectionKeys.users).doc(uid);
     await _db.runTransaction((transaction) async {
       final snapshot = await transaction.get(ref);
-      if (snapshot.exists &&
-          token != null &&
-          snapshot.data()?['fcmToken'] == token) {
-        transaction.update(ref, {
-          'fcmToken': FieldValue.delete(),
-          'fcmTokenUpdatedAt': FieldValue.delete(),
-        });
+      if (!snapshot.exists || token == null) return;
+      final Map<String, dynamic> data = snapshot.data() ?? <String, dynamic>{};
+      final Map<Object, Object?> updates = <Object, Object?>{};
+      if (data['fcmToken'] == token) {
+        updates['fcmToken'] = FieldValue.delete();
+        updates['fcmTokenUpdatedAt'] = FieldValue.delete();
       }
+      final Object? tokens = data['fcmTokens'];
+      if (tokens is Map && tokens.containsKey(token)) {
+        updates[FieldPath(<String>['fcmTokens', token])] = FieldValue.delete();
+      }
+      if (updates.isNotEmpty) transaction.update(ref, updates);
     });
   }
 
@@ -180,9 +193,9 @@ class FirestoreService {
     }
     try {
       final doc = await _db
-          .collection('users')
+          .collection(FirebaseCollectionKeys.users)
           .doc(uid)
-          .collection('dailyLogs')
+          .collection(FirebaseCollectionKeys.dailyLogs)
           .doc(dailyDateKey(day))
           .get();
       return ResultDto.success(
@@ -202,9 +215,9 @@ class FirestoreService {
   ) {
     if (uid.isEmpty) return Stream.error(StateError('Sign in required'));
     return _db
-        .collection('users')
+        .collection(FirebaseCollectionKeys.users)
         .doc(uid)
-        .collection('dailyLogs')
+        .collection(FirebaseCollectionKeys.dailyLogs)
         .where('date', isGreaterThanOrEqualTo: dailyDateKey(start))
         .where('date', isLessThanOrEqualTo: dailyDateKey(end))
         .orderBy('date', descending: true)
@@ -226,9 +239,9 @@ class FirestoreService {
     }
     try {
       final snapshot = await _db
-          .collection('users')
+          .collection(FirebaseCollectionKeys.users)
           .doc(uid)
-          .collection('dailyLogs')
+          .collection(FirebaseCollectionKeys.dailyLogs)
           .where('date', isGreaterThanOrEqualTo: dailyDateKey(start))
           .where('date', isLessThanOrEqualTo: dailyDateKey(end))
           .orderBy('date', descending: true)
@@ -252,8 +265,10 @@ class FirestoreService {
     final validation = entry.validate(DateTime.now());
     if (validation != null) return ResultDto.failure(validation);
     try {
-      final owner = _db.collection('users').doc(uid);
-      final ref = owner.collection('dailyLogs').doc(dailyDateKey(entry.date));
+      final owner = _db.collection(FirebaseCollectionKeys.users).doc(uid);
+      final ref = owner
+          .collection(FirebaseCollectionKeys.dailyLogs)
+          .doc(dailyDateKey(entry.date));
       final saved = await _db.runTransaction((transaction) async {
         if (!(await transaction.get(owner)).exists) {
           throw StateError('Profile missing');
@@ -287,9 +302,9 @@ class FirestoreService {
     }
     try {
       final ref = _db
-          .collection('users')
+          .collection(FirebaseCollectionKeys.users)
           .doc(uid)
-          .collection('dailyLogs')
+          .collection(FirebaseCollectionKeys.dailyLogs)
           .doc(dailyDateKey(expected.date));
       await _db.runTransaction((transaction) async {
         final snapshot = await transaction.get(ref);
@@ -449,9 +464,16 @@ class FirestoreService {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((s) {
-          final list = s.docs
-              .map((d) => SeizureLogDto.fromMap(d.data()))
-              .toList();
+          final List<SeizureLogDto> list = <SeizureLogDto>[];
+          for (final d in s.docs) {
+            try {
+              list.add(SeizureLogDto.fromMap(d.data()));
+            } catch (e) {
+              // A malformed entry used to fail the whole stream, which left
+              // the log, Home and Insights empty.
+              debugPrint('[FirestoreService] Skipping seizure log ${d.id}: $e');
+            }
+          }
           list.sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
           return list;
         });
@@ -481,6 +503,25 @@ class FirestoreService {
     }
   }
 
+  /// Saves an edit to an existing seizure entry. The edit form does not
+  /// show the alert link or GPS position written by an SOS or the watch, so
+  /// those are left as they are instead of being overwritten with null.
+  Future<ResultDto<void>> updateSeizureLog(SeizureLogDto log) async {
+    final Map<String, dynamic> data = log.toMap()
+      ..remove('alertId')
+      ..remove('latitude')
+      ..remove('longitude');
+    try {
+      await _db
+          .collection(FirebaseCollectionKeys.seizureLogs)
+          .doc(log.id)
+          .set(data, SetOptions(merge: true));
+      return ResultDto.success(null);
+    } catch (e) {
+      return ResultDto.failure(e.toString());
+    }
+  }
+
   Future<ResultDto<void>> createAlert(AlertDto alert) async {
     try {
       await _db
@@ -493,6 +534,23 @@ class FirestoreService {
     }
   }
 
+  /// The alert's status as the server has it, or null if it cannot be read.
+  Future<AlertStatus?> fetchAlertStatus(String alertId) async {
+    try {
+      final snap = await _db
+          .collection(FirebaseCollectionKeys.alerts)
+          .doc(alertId)
+          .get();
+      final Object? status = snap.data()?['status'];
+      for (final AlertStatus value in AlertStatus.values) {
+        if (value.name == status) return value;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<ResultDto<void>> updateAlertStatus(
     String alertId,
     AlertStatus status,
@@ -500,14 +558,37 @@ class FirestoreService {
     try {
       await _db.collection(FirebaseCollectionKeys.alerts).doc(alertId).update({
         'status': status.name,
-        'resolvedAt': status == AlertStatus.resolved
-            ? DateTime.now().toIso8601String()
-            : null,
+        'resolvedAt': status == AlertStatus.sent
+            ? null
+            : toStoredTimestamp(DateTime.now()),
       });
       return ResultDto.success(null);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }
+  }
+
+  /// The user's open SOS alerts, from any device (phone, watch, widget).
+  Stream<List<AlertDto>> watchOpenSos(String userId) {
+    return _db
+        .collection(FirebaseCollectionKeys.alerts)
+        .where('userId', isEqualTo: userId)
+        .where('type', isEqualTo: AlertType.sos.name)
+        .where('status', isEqualTo: AlertStatus.sent.name)
+        .snapshots()
+        .map((s) => s.docs.map((d) => AlertDto.fromMap(d.data())).toList());
+  }
+
+  /// Missed check-ins (written by the server) that the user has not yet
+  /// closed by saying they are okay.
+  Stream<List<AlertDto>> watchOpenMissedCheckIns(String userId) {
+    return _db
+        .collection(FirebaseCollectionKeys.alerts)
+        .where('userId', isEqualTo: userId)
+        .where('type', isEqualTo: AlertType.headsUpExpired.name)
+        .where('status', isEqualTo: AlertStatus.sent.name)
+        .snapshots()
+        .map((s) => s.docs.map((d) => AlertDto.fromMap(d.data())).toList());
   }
 
   Stream<List<AlertDto>> watchRecentAlerts(String userId) {
@@ -571,7 +652,7 @@ class FirestoreService {
   Stream<List<AlertDeliveryDto>> watchAlertDeliveries(String alertId) {
     final String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     return _db
-        .collection('alert_deliveries')
+        .collection(FirebaseCollectionKeys.deliveries)
         .where('alertId', isEqualTo: alertId)
         .where('alertOwnerId', isEqualTo: uid)
         .snapshots()

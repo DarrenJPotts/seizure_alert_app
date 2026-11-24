@@ -133,7 +133,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
             const SizedBox(height: Dimensions.eight),
           ] else ...[
             Text(
-              'Change Email',
+              'Change email',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: Dimensions.twelve),
@@ -188,6 +188,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
                     : Theme.of(context).inputDecorationTheme.focusedErrorBorder,
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => _obscure = !_obscure),
+                  tooltip: _obscure ? 'Show password' : 'Hide password',
                   icon: Icon(
                     _obscure
                         ? Icons.visibility_off_outlined

@@ -1,5 +1,10 @@
 /**
- * Kill switch for every Cloud Function in this project.
+ * Kill switch for the non-safety Cloud Functions in this project.
+ *
+ * The safety-critical functions (alerts, escalation, Heads Up, watch actions,
+ * caregiver alert screens) do NOT use this switch: it is flipped automatically
+ * by the budget handler, and an alert must never be dropped because of spend.
+ * They use the Remote Config flag in safety-flag.js instead.
  *
  * A single Firestore doc, `system/functionsConfig`, that every exported
  * function checks before doing any billable work — a query, a transaction, an

@@ -140,8 +140,10 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
   Future<void> _pickDateTime() async {
     final date = await showDatePicker(
       context: context,
-      initialDate: _occurredAt,
-      firstDate: DateTime(2020),
+      initialDate: _occurredAt.isAfter(DateTime.now())
+          ? DateTime.now()
+          : _occurredAt,
+      firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
     if (date == null || !mounted) return;
@@ -152,15 +154,15 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
     );
     if (time == null) return;
 
-    setState(() {
-      _occurredAt = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
-    });
+    final DateTime picked = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    final DateTime now = DateTime.now();
+    setState(() => _occurredAt = picked.isAfter(now) ? now : picked);
   }
 
   Future<void> _save() async {
@@ -255,7 +257,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
               children: <Widget>[
                 Expanded(
                   child: Text(
-                    _isEditing ? 'Edit Entry' : 'Add Seizure Entry',
+                    _isEditing ? 'Edit Entry' : 'Add seizure entry',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -494,7 +496,7 @@ class _AddSeizureLogBottomSheetState extends State<AddSeizureLogBottomSheet> {
                           strokeWidth: 2,
                         ),
                       )
-                    : Text(_isEditing ? 'Save Changes' : 'Save Entry'),
+                    : Text(_isEditing ? 'Save changes' : 'Save Entry'),
               ),
             ),
           ],

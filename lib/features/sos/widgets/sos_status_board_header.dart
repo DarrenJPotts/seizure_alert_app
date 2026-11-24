@@ -14,6 +14,7 @@ class SosStatusBoardHeader extends StatelessWidget {
     required this.onCancel,
     required this.delivery,
     required this.onCallForHelp,
+    this.onRetry,
   });
 
   final String elapsedLabel;
@@ -24,8 +25,13 @@ class SosStatusBoardHeader extends StatelessWidget {
 
   final VoidCallback onCallForHelp;
 
+  /// Shown when the server rejected the alert; sends it again.
+  final VoidCallback? onRetry;
+
   bool get _undelivered =>
-      delivery == SosDelivery.queued || delivery == SosDelivery.failed;
+      delivery == SosDelivery.queued ||
+      delivery == SosDelivery.failed ||
+      delivery == SosDelivery.notNotified;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +49,12 @@ class SosStatusBoardHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _StatusLabel(delivery: delivery)),
+              Expanded(
+                child: Semantics(
+                  liveRegion: true,
+                  child: _StatusLabel(delivery: delivery),
+                ),
+              ),
               _CancelButton(onCancel: onCancel),
             ],
           ),
@@ -60,7 +71,11 @@ class SosStatusBoardHeader extends StatelessWidget {
           ),
           const SizedBox(height: Dimensions.twenty),
           if (_undelivered)
-            _UndeliveredNotice(delivery: delivery, onCallForHelp: onCallForHelp)
+            _UndeliveredNotice(
+              delivery: delivery,
+              onCallForHelp: onCallForHelp,
+              onRetry: onRetry,
+            )
           else ...<Widget>[
             Row(
               children: List.generate(totalCount == 0 ? 1 : totalCount, (i) {
@@ -146,6 +161,13 @@ class _StatusLabel extends StatelessWidget {
           ),
         ],
       ),
+      SosDelivery.notNotified => Row(
+        children: <Widget>[
+          Icon(Icons.notifications_off, size: 14, color: context.heroInk),
+          const SizedBox(width: Dimensions.eight),
+          Expanded(child: Text('NOBODY NOTIFIED', style: style)),
+        ],
+      ),
     };
   }
 }
@@ -216,10 +238,12 @@ class _UndeliveredNotice extends StatelessWidget {
   const _UndeliveredNotice({
     required this.delivery,
     required this.onCallForHelp,
+    this.onRetry,
   });
 
   final SosDelivery delivery;
   final VoidCallback onCallForHelp;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -234,9 +258,13 @@ class _UndeliveredNotice extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          delivery == SosDelivery.queued
-              ? 'The server has not confirmed this alert yet. It will keep trying when a connection is available. Call a contact instead if you need help now.'
-              : 'This alert could not be sent. Nobody has been notified.',
+          switch (delivery) {
+            SosDelivery.queued =>
+              'The server has not confirmed this alert yet. It will keep trying when a connection is available. Call a contact instead if you need help now.',
+            SosDelivery.notNotified =>
+              'Your alert was saved, but no contact has been notified. Call a contact now.',
+            _ => 'This alert could not be sent. Nobody has been notified.',
+          },
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: context.heroInk,
             height: 1.5,
@@ -261,6 +289,29 @@ class _UndeliveredNotice extends StatelessWidget {
             ),
           ),
         ),
+        if (delivery == SosDelivery.failed && onRetry != null) ...<Widget>[
+          const SizedBox(height: Dimensions.ten),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton(
+              onPressed: () {
+                HapticFeedback.heavyImpact();
+                onRetry!();
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.heroInk,
+                side: BorderSide(color: context.heroInk.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    context.design.cardRadius,
+                  ),
+                ),
+              ),
+              child: const Text('Try sending again'),
+            ),
+          ),
+        ],
       ],
     ),
   );

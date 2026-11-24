@@ -1,3 +1,5 @@
+import 'package:seizure_app/core/helpers/timestamps.dart';
+
 enum AlertType { sos, headsUp, headsUpExpired }
 
 enum AlertStatus { sent, resolved, cancelled }
@@ -41,9 +43,9 @@ class AlertDto {
     locationLabel: map['locationLabel'] as String?,
     message: map['message'] as String?,
     ownerName: map['ownerName'] as String?,
-    createdAt: DateTime.parse(map['createdAt'] as String),
+    createdAt: parseStoredTimestamp(map['createdAt'] as String),
     resolvedAt: map['resolvedAt'] != null
-        ? DateTime.parse(map['resolvedAt'] as String)
+        ? parseStoredTimestamp(map['resolvedAt'] as String)
         : null,
   );
 
@@ -56,8 +58,8 @@ class AlertDto {
     'longitude': longitude,
     'locationLabel': locationLabel,
     'message': message,
-    'createdAt': createdAt.toIso8601String(),
-    'resolvedAt': resolvedAt?.toIso8601String(),
+    'createdAt': toStoredTimestamp(createdAt),
+    'resolvedAt': resolvedAt == null ? null : toStoredTimestamp(resolvedAt!),
   };
 
   AlertDto copyWith({

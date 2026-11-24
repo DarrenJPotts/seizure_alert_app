@@ -10,6 +10,7 @@ import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/core/widgets/settings/settings_group.dart';
 import 'package:seizure_app/core/widgets/settings/settings_screen_header.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 class SupportView extends StatefulWidget {
   const SupportView({super.key});
@@ -133,7 +134,7 @@ class _SupportViewState extends State<SupportView> {
     setState(() => _busyAction = 'copy');
     try {
       await Clipboard.setData(ClipboardData(text: _diagnostics(info)));
-      Get.snackbar(
+      showAppSnackbar(
         'Diagnostics copied',
         'No personal or medical data was included.',
       );
@@ -148,7 +149,7 @@ class _SupportViewState extends State<SupportView> {
     try {
       if (SupportConfig.email.isEmpty) {
         await Clipboard.setData(ClipboardData(text: _diagnostics(info)));
-        Get.snackbar(
+        showAppSnackbar(
           'Support contact unavailable',
           'Diagnostics were copied so you can include them in your report.',
         );

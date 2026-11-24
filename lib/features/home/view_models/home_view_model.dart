@@ -76,8 +76,11 @@ class HomeViewModel extends GetxController {
     if (seizureLogs.isEmpty) return null;
     final today = _today;
     final last = seizureLogs.first.occurredAt;
-    final lastNorm = DateTime(last.year, last.month, last.day);
-    return today.difference(lastNorm).inDays;
+    // Compare calendar days in UTC: on a daylight-saving change a local day
+    // is 23 or 25 hours long, and inDays on local midnights is then off by one.
+    final DateTime todayUtc = DateTime.utc(today.year, today.month, today.day);
+    final DateTime lastUtc = DateTime.utc(last.year, last.month, last.day);
+    return todayUtc.difference(lastUtc).inDays;
   }
 
   int get last7DaysCount {
@@ -88,14 +91,21 @@ class HomeViewModel extends GetxController {
   int get thisMonthCount {
     final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
-    return seizureLogs.where((l) => !l.occurredAt.isBefore(monthStart)).length;
+    return seizureLogs
+        .where(
+          (l) =>
+              !l.occurredAt.isBefore(monthStart) && !l.occurredAt.isAfter(now),
+        )
+        .length;
   }
 
   List<GridCell> get gridData {
     final today = _today;
     final start = _gridStart;
     return List.generate(28, (i) {
-      final day = start.add(Duration(days: i));
+      // Calendar arithmetic: adding 24-hour Durations to local midnight
+      // drifts to 23:00 or 01:00 after a daylight-saving change.
+      final day = DateTime(start.year, start.month, start.day + i);
       final isFuture = day.isAfter(today);
       final isToday = day == today;
       final hasSeizure =
@@ -123,9 +133,9 @@ class HomeViewModel extends GetxController {
   }
 
   DateTime get _gridStart {
-    final daysFromMonday = _today.weekday - 1;
-    final thisMonday = _today.subtract(Duration(days: daysFromMonday));
-    return thisMonday.subtract(const Duration(days: 21));
+    final DateTime today = _today;
+    final int daysFromMonday = today.weekday - 1;
+    return DateTime(today.year, today.month, today.day - daysFromMonday - 21);
   }
 
   @override

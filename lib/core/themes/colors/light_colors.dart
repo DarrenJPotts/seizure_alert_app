@@ -14,12 +14,15 @@ class AppColorsLight {
   static const Color cardBackground = Color(0xFFFAFAFA);
 
   static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF757575);
+  // #757575 was 4.2:1 on the #F3F3F3 page; #595959 is 6.4:1.
+  static const Color textSecondary = Color(0xFF595959);
   static const Color textDisabled = Color(0xFFBDBDBD);
   static const Color textHint = Color(0xFF9E9E9E);
 
   static const Color accent = Color(0xFF2196F3);
-  static const Color accentRed = Color(0xFFE53935);
+  // Used as colorScheme.error for 12px error text. #E53935 was 4.2:1;
+  // #B81510 is 6.6:1 on white.
+  static const Color accentRed = Color(0xFFB81510);
   static const Color accentGreen = Color(0xFF43A047);
   static const Color accentOrange = Color(0xFFFF9800);
 
@@ -42,7 +45,9 @@ class AppColorsLight {
   static const Color surfaceDim = Color(0xFFF0F0F0);
   static const Color surfaceBright = Color(0xFFFFFFFF);
 
-  static const Color outline = Color(0xFFBDBDBD);
+  // Outlined-button and field borders. #BDBDBD was 1.9:1 and vanished in
+  // sunlight; #8A8A8A is 3.4:1 on white.
+  static const Color outline = Color(0xFF8A8A8A);
   static const Color outlineVariant = Color(0xFFE0E0E0);
 
   static const Color errorContainer = Color(0xFFFFEBEE);

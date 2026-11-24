@@ -130,8 +130,11 @@ class _SosIdleSheetState extends State<SosIdleSheet> {
                 return Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).scaffoldBackgroundColor,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
+                    // Same top radius as every other sheet (AppBottomSheet).
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(
+                        context.design.featureRadius + Dimensions.eight,
+                      ),
                     ),
                     boxShadow: [
                       BoxShadow(

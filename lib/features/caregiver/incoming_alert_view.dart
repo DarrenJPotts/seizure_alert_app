@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/alert_detail_dto.dart';
@@ -6,11 +7,18 @@ import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/extensions/typed_extensions.dart';
 import 'package:seizure_app/core/widgets/alert_map_widget.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
+import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/widgets/live_indicator.dart';
+import 'package:seizure_app/features/caregiver/helpers/emergency_guidance.dart';
 import 'package:seizure_app/features/caregiver/view_models/incoming_alert_view_model.dart';
+import 'package:seizure_app/core/themes/app_palette.dart';
 
 const Color _alertSurface = Colors.black;
 const Color _alertInk = Colors.white;
+
+String _clock(BuildContext context, DateTime time) => MaterialLocalizations.of(
+  context,
+).formatTimeOfDay(TimeOfDay.fromDateTime(time));
 
 class IncomingAlertView extends GetView<IncomingAlertViewModel> {
   const IncomingAlertView({super.key});
@@ -31,7 +39,9 @@ class IncomingAlertView extends GetView<IncomingAlertViewModel> {
 
         if (state == GenericScreenStates.error ||
             controller.detail.value == null) {
-          return _UnavailableState();
+          return controller.alertGone.value
+              ? _UnavailableState()
+              : const _LoadFailedState();
         }
 
         return _Loaded(detail: controller.detail.value!);
@@ -62,7 +72,6 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
           child: Obx(() {
             final TextStyle? style = Theme.of(context).textTheme.labelSmall
                 ?.copyWith(
-                  fontSize: 12,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.5,
                   color: _alertInk.withValues(alpha: 0.6),
@@ -74,6 +83,9 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
 
             return LiveStatusLabel(
               label: controller.alertStatusLabel,
+              semanticsLabel: controller.startedSemantics(
+                (DateTime t) => _clock(context, t),
+              ),
               color: _alertInk,
               indicatorSize: 12,
               gap: Dimensions.eight,
@@ -102,10 +114,9 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                     borderRadius: BorderRadius.circular(Dimensions.circular),
                   ),
                   child: Text(
-                    'SOS',
+                    controller.typeLabel,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: _alertInk,
-                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
                     ),
@@ -125,30 +136,34 @@ class _Loaded extends GetView<IncomingAlertViewModel> {
                 const SizedBox(height: Dimensions.ten),
                 Text(
                   controller.summaryLine,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontSize: 15,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     height: 1.5,
                     color: _alertInk.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: Dimensions.twenty),
                 const _LocationCard(),
-                _StatCardRow(
-                  owner: owner,
-                  medication: controller.primaryMedication,
-                ),
+                if (controller.isAlertActive) ...<Widget>[
+                  const SizedBox(height: Dimensions.twelve),
+                  const _EmergencyServicesCard(),
+                ],
+                // The care plan comes before the stat cards: it is what the
+                // caregiver needs to act on.
                 if (owner.carePlanSteps.isNotEmpty ||
                     owner.emergencyNote?.trim().isNotEmpty == true ||
-                    owner.rescueMedication?.trim().isNotEmpty == true ||
-                    owner.callEmergencyAfterMinutes > 0) ...<Widget>[
+                    owner.rescueMedication?.trim().isNotEmpty ==
+                        true) ...<Widget>[
                   const SizedBox(height: Dimensions.twelve),
                   _EmergencyNote(
                     note: owner.carePlanSteps.join('\n'),
                     emergencyNote: owner.emergencyNote,
                     rescueMedication: owner.rescueMedication,
-                    callAfterMinutes: owner.callEmergencyAfterMinutes,
                   ),
                 ],
+                _StatCardRow(
+                  owner: owner,
+                  medication: controller.primaryMedication,
+                ),
                 const SizedBox(height: Dimensions.twenty),
               ],
             ),
@@ -170,7 +185,7 @@ class _LocationCard extends GetView<IncomingAlertViewModel> {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: _alertInk.withValues(alpha: 0.15)),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -213,8 +228,7 @@ class _LocationCard extends GetView<IncomingAlertViewModel> {
                                 ? 'Location shared'
                                 : 'No location'),
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontSize: 15,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                           color: _alertInk,
                         ),
@@ -236,27 +250,39 @@ class _LocationCard extends GetView<IncomingAlertViewModel> {
                     ],
                   ),
                 ),
-                if (controller.hasLocation)
-                  GestureDetector(
-                    onTap: controller.openDirections,
-                    behavior: HitTestBehavior.opaque,
-                    child: Semantics(
-                      button: true,
-                      label: 'Open directions',
-                      child: Text(
-                        'Directions',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: _alertInk,
-                          fontWeight: FontWeight.w600,
-                          decoration: TextDecoration.underline,
-                          decorationColor: _alertInk,
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
+          if (controller.hasLocation)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Dimensions.sixteen,
+                0,
+                Dimensions.sixteen,
+                Dimensions.sixteen,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    controller.openDirections();
+                  },
+                  icon: const Icon(Icons.directions_outlined),
+                  label: const Text('Directions'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _alertInk,
+                    minimumSize: const Size.fromHeight(52),
+                    side: BorderSide(color: _alertInk.withValues(alpha: 0.5)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        context.design.cardRadius,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -282,7 +308,7 @@ class _NoLocation extends StatelessWidget {
           Text(
             'Location unavailable',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: _alertInk.withValues(alpha: 0.38),
+              color: _alertInk.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -315,9 +341,26 @@ class _StatCardRow extends StatelessWidget {
 
     if (cards.isEmpty) return const SizedBox.shrink();
 
+    // Every card is shown, two per row. Blood type and seizure type were
+    // previously dropped once two other cards existed.
     return Padding(
       padding: const EdgeInsets.only(top: Dimensions.twenty),
-      child: Row(spacing: Dimensions.eight, children: cards.take(2).toList()),
+      child: Column(
+        spacing: Dimensions.eight,
+        children: <Widget>[
+          for (int i = 0; i < cards.length; i += 2)
+            Row(
+              spacing: Dimensions.eight,
+              children: <Widget>[
+                cards[i],
+                if (i + 1 < cards.length)
+                  cards[i + 1]
+                else
+                  const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }
@@ -337,7 +380,7 @@ class _StatCard extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         border: Border.all(color: _alertInk.withValues(alpha: 0.15)),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,7 +388,6 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontSize: 11,
               color: _alertInk.withValues(alpha: 0.5),
             ),
           ),
@@ -354,8 +396,7 @@ class _StatCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 17,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: _alertInk,
               ),
@@ -372,13 +413,11 @@ class _EmergencyNote extends StatelessWidget {
     required this.note,
     this.emergencyNote,
     required this.rescueMedication,
-    required this.callAfterMinutes,
   });
 
   final String note;
   final String? emergencyNote;
   final String? rescueMedication;
-  final int callAfterMinutes;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -386,7 +425,7 @@ class _EmergencyNote extends StatelessWidget {
     padding: const EdgeInsets.all(Dimensions.sixteen),
     decoration: BoxDecoration(
       border: Border.all(color: _alertInk.withValues(alpha: 0.15)),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(context.design.cardRadius),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,27 +440,31 @@ class _EmergencyNote extends StatelessWidget {
         ),
         const SizedBox(height: Dimensions.eight),
         if (emergencyNote?.trim().isNotEmpty == true) ...[
+          // This screen is always black, whatever the app theme, so every
+          // text colour is set explicitly. The theme's ink was near-black here
+          // in light mode, which made the note invisible.
           Text(
             'Emergency note',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: _alertInk,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: Dimensions.four),
           Text(
             emergencyNote!.trim(),
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: _alertInk),
           ),
           const SizedBox(height: Dimensions.twelve),
         ],
         if (note.isNotEmpty)
           Text(
             note,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontSize: 15,
-              height: 1.5,
-              color: _alertInk,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(height: 1.5, color: _alertInk),
           ),
         if (rescueMedication.isNotNullOrEmpty) ...<Widget>[
           const SizedBox(height: Dimensions.twelve),
@@ -433,15 +476,98 @@ class _EmergencyNote extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: Dimensions.twelve),
-        Text(
-          'Call emergency services after $callAfterMinutes minutes unless the plan says sooner.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: _alertInk.withValues(alpha: 0.7),
-          ),
-        ),
       ],
     ),
+  );
+}
+
+/// When to call emergency services, with a clock time and a dial button.
+class _EmergencyServicesCard extends GetView<IncomingAlertViewModel> {
+  const _EmergencyServicesCard();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(Dimensions.sixteen),
+    decoration: BoxDecoration(
+      border: Border.all(color: _alertInk.withValues(alpha: 0.15)),
+      borderRadius: BorderRadius.circular(context.design.cardRadius),
+    ),
+    child: Obx(() {
+      // Reading elapsed rebuilds this every second for the countdown.
+      controller.elapsed.value;
+      final DateTime? started = controller.startedAt;
+      final DateTime now = DateTime.now();
+      final bool overdue =
+          started != null &&
+          isPastEmergencyDeadline(
+            startedAt: started,
+            callAfterMinutes: controller.callEmergencyAfterMinutes,
+            now: now,
+          );
+      final ButtonStyle style = overdue
+          ? ElevatedButton.styleFrom(
+              backgroundColor: _alertInk,
+              foregroundColor: _alertSurface,
+              minimumSize: const Size.fromHeight(52),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(context.design.cardRadius),
+              ),
+            )
+          : OutlinedButton.styleFrom(
+              foregroundColor: _alertInk,
+              minimumSize: const Size.fromHeight(52),
+              side: BorderSide(color: _alertInk.withValues(alpha: 0.5)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(context.design.cardRadius),
+              ),
+            );
+      void onCall() {
+        HapticFeedback.heavyImpact();
+        controller.callEmergency();
+      }
+
+      const Widget icon = Icon(Icons.local_hospital_outlined);
+      const Widget label = Text(
+        'Call emergency services (${CallService.emergencyNumber})',
+      );
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (started != null)
+            Text(
+              emergencyCallGuidance(
+                startedAt: started,
+                callAfterMinutes: controller.callEmergencyAfterMinutes,
+                now: now,
+                formatTime: (DateTime t) => _clock(context, t),
+              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: _alertInk,
+                fontWeight: overdue ? FontWeight.w700 : FontWeight.w500,
+                height: 1.5,
+              ),
+            ),
+          const SizedBox(height: Dimensions.twelve),
+          if (overdue)
+            ElevatedButton.icon(
+              onPressed: onCall,
+              icon: icon,
+              label: label,
+              style: style,
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: onCall,
+              icon: icon,
+              label: label,
+              style: style,
+            ),
+        ],
+      );
+    }),
   );
 }
 
@@ -458,16 +584,22 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
     ),
     child: Column(
       children: <Widget>[
-        SizedBox(
-          height: 72,
-          width: double.infinity,
+        // Minimum heights, not fixed ones, so labels can grow at large text
+        // sizes instead of being clipped.
+        ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: 72,
+            minWidth: double.infinity,
+          ),
           child: ElevatedButton.icon(
-            onPressed: controller.callOwner,
+            onPressed: () {
+              HapticFeedback.heavyImpact();
+              controller.callOwner();
+            },
             icon: const Icon(Icons.call, size: 24),
             label: Text(
               'Call ${controller.detail.value?.ownerProfile.displayName.split(' ').first ?? ''}',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 19,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: _alertSurface,
               ),
@@ -477,23 +609,27 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
               foregroundColor: _alertSurface,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(context.design.cardRadius),
               ),
             ),
           ),
         ),
         const SizedBox(height: Dimensions.twelve),
         if (!controller.isAlertActive)
-          SizedBox(
-            height: 60,
-            width: double.infinity,
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: 60,
+              minWidth: double.infinity,
+            ),
             child: OutlinedButton(
               onPressed: Get.back<void>,
               style: OutlinedButton.styleFrom(
                 foregroundColor: _alertInk,
                 side: BorderSide(color: _alertInk.withValues(alpha: 0.35)),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(
+                    context.design.cardRadius,
+                  ),
                 ),
               ),
               child: const Text('Back to alerts'),
@@ -504,13 +640,16 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
             spacing: Dimensions.ten,
             children: <Widget>[
               Expanded(
-                child: SizedBox(
-                  height: 60,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 60),
                   child: Obx(
                     () => OutlinedButton(
                       onPressed: controller.isResponding.value
                           ? null
-                          : controller.respond,
+                          : () {
+                              HapticFeedback.selectionClick();
+                              controller.respond();
+                            },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: _alertInk,
                         disabledForegroundColor: _alertInk.withValues(
@@ -520,7 +659,9 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
                           color: _alertInk.withValues(alpha: 0.35),
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(
+                            context.design.cardRadius,
+                          ),
                         ),
                       ),
                       child: controller.isResponding.value
@@ -540,9 +681,8 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
                   ),
                 ),
               ),
-              SizedBox(
-                width: 60,
-                height: 60,
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 60, minHeight: 60),
                 child: OutlinedButton(
                   onPressed: () => _showMoreActions(context),
                   style: OutlinedButton.styleFrom(
@@ -550,10 +690,16 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
                     side: BorderSide(color: _alertInk.withValues(alpha: 0.35)),
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(
+                        context.design.cardRadius,
+                      ),
                     ),
                   ),
-                  child: const Icon(Icons.more_horiz, size: 22),
+                  child: const Icon(
+                    Icons.more_horiz,
+                    size: 22,
+                    semanticLabel: 'More options',
+                  ),
                 ),
               ),
             ],
@@ -610,6 +756,90 @@ class _ActionBar extends GetView<IncomingAlertViewModel> {
       ),
     );
   }
+}
+
+/// The alert could not be loaded (offline, a timeout, the server busy). It
+/// may still be live, so this never says the alert is gone.
+class _LoadFailedState extends GetView<IncomingAlertViewModel> {
+  const _LoadFailedState();
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(Dimensions.twentyFour),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Icon(
+            Icons.cloud_off_outlined,
+            size: 48,
+            color: _alertInk.withValues(alpha: 0.7),
+          ),
+          const SizedBox(height: Dimensions.sixteen),
+          Text(
+            "Couldn't load this alert",
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: _alertInk,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: Dimensions.eight),
+          Text(
+            'The alert may still be active. Check your connection and try '
+            'again, or call for help now.',
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: _alertInk, height: 1.5),
+          ),
+          const SizedBox(height: Dimensions.twentyFour),
+          ElevatedButton(
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              controller.retry();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _alertInk,
+              foregroundColor: _alertSurface,
+              minimumSize: const Size.fromHeight(56),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(context.design.cardRadius),
+              ),
+            ),
+            child: const Text('Try again'),
+          ),
+          const SizedBox(height: Dimensions.twelve),
+          OutlinedButton.icon(
+            onPressed: () {
+              HapticFeedback.heavyImpact();
+              controller.callEmergency();
+            },
+            icon: const Icon(Icons.local_hospital_outlined),
+            label: const Text(
+              'Call emergency services (${CallService.emergencyNumber})',
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _alertInk,
+              minimumSize: const Size.fromHeight(52),
+              side: BorderSide(color: _alertInk.withValues(alpha: 0.5)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(context.design.cardRadius),
+              ),
+            ),
+          ),
+          const SizedBox(height: Dimensions.eight),
+          TextButton(
+            onPressed: Get.back<void>,
+            style: TextButton.styleFrom(foregroundColor: _alertInk),
+            child: const Text('Go back'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _UnavailableState extends StatelessWidget {

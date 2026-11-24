@@ -120,9 +120,15 @@ class LiveStatusLabel extends StatelessWidget {
     this.textStyle,
     this.indicatorSize = 14,
     this.gap = 8,
+    this.semanticsLabel,
   });
 
   final String label;
+
+  /// What screen readers announce. Pass a label that does not change every
+  /// second (the visible [label] may hold a running clock); a live region
+  /// re-announces on every change.
+  final String? semanticsLabel;
   final Color? color;
   final TextStyle? textStyle;
   final double indicatorSize;
@@ -131,7 +137,7 @@ class LiveStatusLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     liveRegion: true,
-    label: 'Live. $label',
+    label: semanticsLabel ?? 'Live. $label',
     child: ExcludeSemantics(
       child: Row(
         mainAxisSize: MainAxisSize.min,

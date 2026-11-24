@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/constants/snackbar_margin.dart';
@@ -11,6 +12,8 @@ import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/call_service.dart';
 import 'package:seizure_app/core/services/caregiver_service.dart';
 import 'package:seizure_app/core/services/firebase_messaging_service.dart';
+import 'package:seizure_app/core/services/location_service.dart';
+import 'package:seizure_app/core/services/map_launcher_service.dart';
 
 class RespondingViewModel extends GetxController {
   RespondingViewModel(this._alertId, this._caregiverService);
@@ -27,6 +30,7 @@ class RespondingViewModel extends GetxController {
   final Rx<Duration> elapsed = Duration.zero.obs;
   final RxBool isSavingNote = false.obs;
   final RxSet<String> nudging = <String>{}.obs;
+  final Rxn<double> distanceMeters = Rxn<double>();
 
   int _loadGeneration = 0;
   Timer? _ticker;
@@ -73,6 +77,7 @@ class RespondingViewModel extends GetxController {
 
     detail.value = result.data;
     screenState.value = GenericScreenStates.loaded;
+    unawaited(_computeDistance());
 
     if (!isAlertActive) {
       _ticker?.cancel();
@@ -169,6 +174,48 @@ class RespondingViewModel extends GetxController {
 
   Future<void> callOwner() =>
       CallService.call(detail.value?.ownerProfile.phone);
+
+  Future<void> callEmergency() => CallService.callEmergency();
+
+  bool get hasLocation =>
+      detail.value?.alert.latitude != null &&
+      detail.value?.alert.longitude != null;
+
+  String? distanceLabel() {
+    final double? meters = distanceMeters.value;
+    if (meters == null) return null;
+    if (meters < 1000) return '${meters.round()} m from you';
+    return '${(meters / 1000).toStringAsFixed(1)} km from you';
+  }
+
+  Future<void> _computeDistance() async {
+    final AlertDto? alert = detail.value?.alert;
+    final double? lat = alert?.latitude;
+    final double? lng = alert?.longitude;
+    if (lat == null || lng == null) return;
+
+    final Position? position = await LocationService.instance()
+        .getCurrentPosition();
+    if (isClosed || position == null || detail.value?.alert.id != alert?.id) {
+      return;
+    }
+    distanceMeters.value = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      lat,
+      lng,
+    );
+  }
+
+  Future<void> openDirections() async {
+    final AlertDto? alert = detail.value?.alert;
+    if (alert?.latitude == null || alert?.longitude == null) return;
+    await MapLauncherService.openDirections(
+      latitude: alert!.latitude!,
+      longitude: alert.longitude!,
+      label: detail.value?.ownerProfile.displayName,
+    );
+  }
 
   Future<void> nudge(AlertResponderDto responder) async {
     final String? targetId = responder.responderId;

@@ -1,3 +1,5 @@
+import 'package:seizure_app/core/helpers/timestamps.dart';
+
 class AlertResponseDto {
   final String id;
   final String alertId;
@@ -39,10 +41,10 @@ class AlertResponseDto {
         seen: map['seen'] as bool? ?? false,
         responding: map['responding'] as bool? ?? false,
         seenAt: map['seenAt'] != null
-            ? DateTime.parse(map['seenAt'] as String)
+            ? parseStoredTimestamp(map['seenAt'] as String)
             : null,
         respondedAt: map['respondedAt'] != null
-            ? DateTime.parse(map['respondedAt'] as String)
+            ? parseStoredTimestamp(map['respondedAt'] as String)
             : null,
         note: map['note'] as String?,
       );
@@ -56,8 +58,8 @@ class AlertResponseDto {
     'responderId': responderId,
     'seen': seen,
     'responding': responding,
-    'seenAt': seenAt?.toIso8601String(),
-    'respondedAt': respondedAt?.toIso8601String(),
+    'seenAt': seenAt == null ? null : toStoredTimestamp(seenAt!),
+    'respondedAt': respondedAt == null ? null : toStoredTimestamp(respondedAt!),
     'note': note,
   };
 }

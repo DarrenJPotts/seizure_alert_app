@@ -1,11 +1,8 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
-import 'package:seizure_app/core/constants/dimensions.dart';
-import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 class MapLauncherService {
   MapLauncherService._();
@@ -37,26 +34,9 @@ class MapLauncherService {
     }
 
     await Clipboard.setData(ClipboardData(text: coordinates));
-    Get.snackbar(
-      '',
-      '',
-      titleText: const Text(
-        'Could not open maps',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
-      messageText: Text(
-        '${label == null ? 'Location' : "$label's location"} copied to clipboard: $coordinates',
-        style: const TextStyle(color: Colors.white),
-      ),
-      snackPosition: SnackPosition.BOTTOM,
-      margin: snackbarMargin,
-      backgroundColor: Colors.black,
-      borderRadius: Dimensions.eight,
-      duration: const Duration(seconds: 4),
+    showAppSnackbar(
+      'Could not open maps',
+      '${label == null ? 'Location' : "$label's location"} copied to clipboard: $coordinates',
     );
   }
 }

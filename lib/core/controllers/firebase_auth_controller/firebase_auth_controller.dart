@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -12,6 +13,7 @@ import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 class FirebaseAuthController extends GetxController {
   FirebaseAuthController({FirebaseAuth? auth})
@@ -108,7 +110,7 @@ class FirebaseAuthController extends GetxController {
       await credential.user?.sendEmailVerification();
     } catch (_) {
       // The account exists. Verification can be resent from settings.
-      Get.snackbar(
+      showAppSnackbar(
         'Account created',
         'Verification email could not be sent. Resend it from settings.',
       );
@@ -172,7 +174,7 @@ class FirebaseAuthController extends GetxController {
         await Get.find<FirebaseMessagingService>().prepareForSignOut();
       }
     } catch (_) {
-      Get.snackbar(
+      showAppSnackbar(
         'Could not sign out',
         'Connect to the internet and try again to disconnect alerts from this device.',
       );
@@ -203,8 +205,16 @@ class FirebaseAuthController extends GetxController {
         );
       }
 
+      try {
+        await firebaseUser.delete();
+      } on FirebaseAuthException catch (e) {
+        debugPrint('[Auth] Data deleted but account removal failed: ${e.code}');
+        return ResultDto.failure(
+          'Your data was deleted, but the account itself could not be '
+          'removed. Check your connection and try again.',
+        );
+      }
       await _clearData();
-      await firebaseUser.delete();
       Get.offAllNamed(AppRoutes.login);
 
       return ResultDto.success(null);
@@ -355,7 +365,15 @@ class FirebaseAuthController extends GetxController {
     }
     final SharedPreferences sharedPreferences =
         await SharedPreferences.getInstance();
+    // The theme is a choice about this phone, not the account. Clearing it
+    // flipped the app back to the system theme after the next restart.
+    final String? themeMode = sharedPreferences.getString(
+      SharedPrefKeys.themeMode,
+    );
     await sharedPreferences.clear();
+    if (themeMode != null) {
+      await sharedPreferences.setString(SharedPrefKeys.themeMode, themeMode);
+    }
     if (Get.isRegistered<AppModeService>()) {
       Get.find<AppModeService>().resetSessionPreferences();
     }

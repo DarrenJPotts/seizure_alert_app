@@ -14,11 +14,15 @@ class DailyCheckInForm extends StatefulWidget {
     required this.date,
     this.entry,
     required this.hasSeizures,
+    this.seizuresKnown = true,
   });
   final DailyLogViewModel controller;
   final DateTime date;
   final DailyLogDto? entry;
   final bool hasSeizures;
+
+  /// False while the day's seizure entries are loading or failed to load.
+  final bool seizuresKnown;
   @override
   State<DailyCheckInForm> createState() => DailyCheckInFormState();
 }
@@ -98,7 +102,10 @@ class DailyCheckInFormState extends State<DailyCheckInForm> {
       stress: stress,
       sideEffects: effects.text.trim(),
       notes: notes.text.trim(),
-      noSeizuresReported: !widget.hasSeizures && none,
+      // Unknown seizures: keep what was saved rather than guess.
+      noSeizuresReported: widget.seizuresKnown
+          ? !widget.hasSeizures && none
+          : none,
     );
     final error = draft.validate(widget.controller.today);
     if (error != null) {
@@ -195,7 +202,9 @@ class DailyCheckInFormState extends State<DailyCheckInForm> {
               ).textTheme.bodySmall?.copyWith(color: context.secondaryInk),
             ),
             const SizedBox(height: Dimensions.sixteen),
-            if (widget.hasSeizures)
+            if (!widget.seizuresKnown)
+              const Text('Checking seizure entries for this day…')
+            else if (widget.hasSeizures)
               const Text('Seizure entries are recorded for this day.')
             else
               CheckboxListTile(

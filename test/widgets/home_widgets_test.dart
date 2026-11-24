@@ -133,7 +133,7 @@ void main() {
       await tester.pumpWidget(wrap(ActivityGrid(cells: cells())));
 
       expect(find.text('Seizure'), findsOneWidget);
-      expect(find.text('Seizure-free'), findsOneWidget);
+      expect(find.text('No seizure logged'), findsOneWidget);
     });
 
     testWidgets('lays out 28 cells regardless of content', (

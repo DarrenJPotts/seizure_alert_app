@@ -7,7 +7,7 @@ const {
   assertSucceeds,
   initializeTestEnvironment,
 } = require("@firebase/rules-unit-testing");
-const { doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where, orderBy } = require("firebase/firestore");
+const { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy } = require("firebase/firestore");
 
 const emulatorAvailable = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const suite = emulatorAvailable ? describe : describe.skip;
@@ -128,6 +128,90 @@ suite("Firestore authorization", () => {
     );
     await assertFails(
       setDoc(doc(caregiver, "rate_limits", "caregiver_test"), { count: 0 })
+    );
+  });
+
+  const alert = (id, extra = {}) => ({
+    id,
+    userId: "patient",
+    type: "sos",
+    status: "sent",
+    createdAt: "2026-11-23T08:00:00.000Z",
+    ...extra,
+  });
+
+  test("patients create SOS and Heads Up alerts, never missed check-ins", async () => {
+    const owner = environment.authenticatedContext("patient").firestore();
+    await assertSucceeds(setDoc(doc(owner, "alerts", "sos-1"), alert("sos-1")));
+    await assertSucceeds(
+      setDoc(doc(owner, "alerts", "hu-1"), alert("hu-1", { type: "headsUp" }))
+    );
+    await assertFails(
+      setDoc(
+        doc(owner, "alerts", "missed-1"),
+        alert("missed-1", { type: "headsUpExpired" })
+      )
+    );
+  });
+
+  test("nobody else can create, read or change a patient's alert", async () => {
+    const stranger = environment.authenticatedContext("stranger").firestore();
+    await assertFails(setDoc(doc(stranger, "alerts", "forged"), alert("forged")));
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "alerts", "sos-2"), alert("sos-2"));
+    });
+    await assertFails(getDoc(doc(stranger, "alerts", "sos-2")));
+    await assertFails(updateDoc(doc(stranger, "alerts", "sos-2"), { status: "cancelled" }));
+  });
+
+  test("a closed alert cannot be reopened or changed", async () => {
+    const owner = environment.authenticatedContext("patient").firestore();
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), "alerts", "closed-1"),
+        alert("closed-1", { status: "cancelled", resolvedAt: "2026-11-23T08:05:00.000Z" })
+      );
+    });
+    await assertFails(updateDoc(doc(owner, "alerts", "closed-1"), { status: "sent" }));
+  });
+
+  test("a missed check-in can only be closed by the patient saying they are OK", async () => {
+    const owner = environment.authenticatedContext("patient").firestore();
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "alerts", "missed-2"), alert("missed-2", { type: "headsUpExpired", resolvedAt: null }));
+      await setDoc(doc(db, "alerts", "missed-3"), alert("missed-3", { type: "headsUpExpired", resolvedAt: null }));
+    });
+    await assertFails(
+      updateDoc(doc(owner, "alerts", "missed-2"), { status: "cancelled" })
+    );
+    await assertFails(
+      updateDoc(doc(owner, "alerts", "missed-2"), {
+        status: "resolved",
+        resolvedAt: "2026-11-23T09:00:00.000Z",
+        locationLabel: "Edited",
+      })
+    );
+    await assertSucceeds(
+      updateDoc(doc(owner, "alerts", "missed-3"), {
+        status: "resolved",
+        resolvedAt: "2026-11-23T09:00:00.000Z",
+      })
+    );
+  });
+
+  test("each device can register its own push token, only on its own profile", async () => {
+    const owner = environment.authenticatedContext("patient").firestore();
+    const stranger = environment.authenticatedContext("stranger").firestore();
+    await assertSucceeds(
+      updateDoc(doc(owner, "users", "patient"), {
+        fcmToken: "tablet",
+        "fcmTokens.phone": 1,
+        "fcmTokens.tablet": 2,
+      })
+    );
+    await assertFails(
+      updateDoc(doc(stranger, "users", "patient"), { "fcmTokens.attacker": 3 })
     );
   });
 });

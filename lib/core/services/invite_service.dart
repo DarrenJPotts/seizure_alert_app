@@ -1,11 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
-import 'package:seizure_app/core/constants/dimensions.dart';
-import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 class InviteService {
   InviteService._();
@@ -75,25 +72,9 @@ class InviteService {
     await Clipboard.setData(
       ClipboardData(text: _buildMessage(senderName, code)),
     );
-    Get.snackbar(
-      '',
-      '',
-      titleText: const Text(
-        'Could not open app',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
-      messageText: const Text(
-        'Invite message copied to clipboard.',
-        style: TextStyle(color: Colors.white),
-      ),
-      snackPosition: SnackPosition.BOTTOM,
-      margin: snackbarMargin,
-      backgroundColor: Colors.black,
-      borderRadius: Dimensions.eight,
+    showAppSnackbar(
+      'Could not open app',
+      'Invite message copied to clipboard.',
       duration: const Duration(seconds: 3),
     );
   }
