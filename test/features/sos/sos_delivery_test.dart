@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:seizure_app/core/dtos/alert_delivery_dto.dart';
 import 'package:seizure_app/core/dtos/alert_dto.dart';
 import 'package:seizure_app/features/sos/view_models/sos_view_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// The active-SOS screen used to claim an alert was live the moment it was
 /// written to Firestore's local cache. Offline that write never reaches the
@@ -168,5 +169,44 @@ void main() {
         expect(SosViewModel.notifyGrace.inSeconds, lessThanOrEqualTo(45));
       },
     );
+  });
+
+  /// An SOS started on the watch used to be invisible on the phone, and one
+  /// cancelled on the watch stayed active here.
+  group('SOS started or closed on another device', () {
+    late SosViewModel vm;
+    final AlertDto watchSos = AlertDto(
+      id: 'watch-1',
+      userId: 'u1',
+      type: AlertType.sos,
+      status: AlertStatus.sent,
+      createdAt: DateTime(2026, 11, 23, 10),
+    );
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      vm = SosViewModel(currentUid: () => 'u1');
+    });
+    tearDown(() => vm.onClose());
+
+    test('shows an SOS started elsewhere', () {
+      vm.handleOpenSos(<AlertDto>[watchSos]);
+      expect(vm.activeSos.value?.id, 'watch-1');
+      expect(vm.delivery.value, SosDelivery.delivered);
+    });
+
+    test('clears an SOS that was cancelled elsewhere', () async {
+      vm.activeSos.value = watchSos;
+      vm.handleOpenSos(<AlertDto>[watchSos]);
+      vm.handleOpenSos(<AlertDto>[]);
+      await Future<void>.delayed(Duration.zero);
+      expect(vm.activeSos.value, isNull);
+    });
+
+    test('keeps a local SOS that has not reached the server yet', () {
+      vm.activeSos.value = watchSos;
+      vm.handleOpenSos(<AlertDto>[]);
+      expect(vm.activeSos.value?.id, 'watch-1');
+    });
   });
 }

@@ -18,6 +18,9 @@ class LocationService {
         permission == LocationPermission.always;
   }
 
+  /// The current position, or the last known one if a fresh fix is not
+  /// available in time (indoors, location services off, a slow GPS). During
+  /// an SOS an approximate location is far better than none.
   Future<Position?> getCurrentPosition() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -31,12 +34,24 @@ class LocationService {
         return null;
       }
 
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return await _lastKnown();
+      }
+
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
           timeLimit: Duration(seconds: 10),
         ),
       );
+    } catch (_) {
+      return _lastKnown();
+    }
+  }
+
+  Future<Position?> _lastKnown() async {
+    try {
+      return await Geolocator.getLastKnownPosition();
     } catch (_) {
       return null;
     }

@@ -14,6 +14,7 @@ class SosStatusBoardHeader extends StatelessWidget {
     required this.onCancel,
     required this.delivery,
     required this.onCallForHelp,
+    this.onRetry,
   });
 
   final String elapsedLabel;
@@ -23,6 +24,9 @@ class SosStatusBoardHeader extends StatelessWidget {
   final SosDelivery delivery;
 
   final VoidCallback onCallForHelp;
+
+  /// Shown when the server rejected the alert; sends it again.
+  final VoidCallback? onRetry;
 
   bool get _undelivered =>
       delivery == SosDelivery.queued ||
@@ -45,7 +49,12 @@ class SosStatusBoardHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _StatusLabel(delivery: delivery)),
+              Expanded(
+                child: Semantics(
+                  liveRegion: true,
+                  child: _StatusLabel(delivery: delivery),
+                ),
+              ),
               _CancelButton(onCancel: onCancel),
             ],
           ),
@@ -62,7 +71,11 @@ class SosStatusBoardHeader extends StatelessWidget {
           ),
           const SizedBox(height: Dimensions.twenty),
           if (_undelivered)
-            _UndeliveredNotice(delivery: delivery, onCallForHelp: onCallForHelp)
+            _UndeliveredNotice(
+              delivery: delivery,
+              onCallForHelp: onCallForHelp,
+              onRetry: onRetry,
+            )
           else ...<Widget>[
             Row(
               children: List.generate(totalCount == 0 ? 1 : totalCount, (i) {
@@ -225,10 +238,12 @@ class _UndeliveredNotice extends StatelessWidget {
   const _UndeliveredNotice({
     required this.delivery,
     required this.onCallForHelp,
+    this.onRetry,
   });
 
   final SosDelivery delivery;
   final VoidCallback onCallForHelp;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -274,6 +289,29 @@ class _UndeliveredNotice extends StatelessWidget {
             ),
           ),
         ),
+        if (delivery == SosDelivery.failed && onRetry != null) ...<Widget>[
+          const SizedBox(height: Dimensions.ten),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton(
+              onPressed: () {
+                HapticFeedback.heavyImpact();
+                onRetry!();
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.heroInk,
+                side: BorderSide(color: context.heroInk.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    context.design.cardRadius,
+                  ),
+                ),
+              ),
+              child: const Text('Try sending again'),
+            ),
+          ),
+        ],
       ],
     ),
   );

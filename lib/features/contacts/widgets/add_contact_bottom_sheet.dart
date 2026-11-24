@@ -168,7 +168,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isEditing ? 'Edit Contact' : 'Add Contact',
+              _isEditing ? 'Edit Contact' : 'Add contact',
               style: context.theme.textTheme.titleMedium,
             ),
             const SizedBox(height: Dimensions.twentyFour),
@@ -241,7 +241,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
                 'Creates a one-time code to share by SMS or WhatsApp after saving. '
                 'They sign in and enter the code to accept.',
                 style: context.theme.textTheme.bodySmall?.copyWith(
-                  color: context.ink.withValues(alpha: 0.38),
+                  color: context.secondaryInk,
                 ),
               ),
               const SizedBox(height: Dimensions.twentyFour),
@@ -273,7 +273,7 @@ class _AddContactBottomSheetState extends State<AddContactBottomSheet> {
                           strokeWidth: 2,
                         ),
                       )
-                    : Text(_isEditing ? 'Save Changes' : 'Add to Circle'),
+                    : Text(_isEditing ? 'Save changes' : 'Add to Circle'),
               ),
             ),
           ],

@@ -39,7 +39,7 @@ function isOwner(uid) {
         && data.userId is string
         && data.userId.size() > 0
         && data.userId.size() <= 128
-        && data.type in ['sos', 'headsUp']
+        && data.type in ['sos', 'headsUp', 'headsUpExpired']
         && data.status in ['sent', 'resolved', 'cancelled']
         && data.createdAt is string
         && data.createdAt.size() <= 40
@@ -162,8 +162,11 @@ match /seizureLogs/{logId} {
 match /alerts/{alertId} {
       allow read, delete: if isAuthed()
                           && resource.data.userId == request.auth.uid;
+      // Phones create only SOS and Heads Up alerts; a missed check-in
+      // (headsUpExpired) is written by the server alone.
       allow create:       if isOwner(request.resource.data.userId)
                           && hasValidAlertShape(request.resource.data, alertId)
+                          && request.resource.data.type in ['sos', 'headsUp']
                           && request.resource.data.status == 'sent'
                           && request.resource.data.get('resolvedAt', null) == null;
       allow update:       if isAuthed()
@@ -178,7 +181,14 @@ match /alerts/{alertId} {
                           && resource.data.status == 'sent'
                           && request.resource.data.status in [
                                'sent', 'resolved', 'cancelled'
-                             ];
+                             ]
+                          // A missed check-in can only be closed by the
+                          // patient saying they are OK.
+                          && (resource.data.type != 'headsUpExpired'
+                              || (request.resource.data.status == 'resolved'
+                                  && request.resource.data.diff(resource.data)
+                                       .affectedKeys()
+                                       .hasOnly(['status', 'resolvedAt'])));
     }
 
 match /headsUp/{headsUpId} {

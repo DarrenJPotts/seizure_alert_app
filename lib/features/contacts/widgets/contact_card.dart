@@ -1,5 +1,6 @@
 import 'package:seizure_app/core/themes/app_palette.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 
@@ -28,97 +29,125 @@ class ContactCard extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: Dimensions.twentyFour),
         decoration: BoxDecoration(
-          color: Colors.red.shade50,
+          color: Theme.of(context).colorScheme.errorContainer,
           borderRadius: BorderRadius.circular(context.design.cardRadius),
         ),
-        child: Icon(Icons.delete_outline, color: Colors.red.shade400),
+        child: Icon(
+          Icons.delete_outline,
+          color: Theme.of(context).colorScheme.onErrorContainer,
+        ),
       ),
       confirmDismiss: (_) async => _confirmDelete(context),
       onDismissed: (_) => onDelete(),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(context.design.cardRadius),
-        child: Container(
-          padding: const EdgeInsets.all(Dimensions.sixteen),
-          decoration: BoxDecoration(
-            color: context.cardSurface,
-            border: context.designBorder,
-            boxShadow: context.designShadows,
-            borderRadius: BorderRadius.circular(context.design.cardRadius),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: context.ink,
-                child: Text(
-                  contact.name.substring(0, 1).toUpperCase(),
-                  style: TextStyle(
-                    color: context.paper,
-                    fontWeight: FontWeight.bold,
-                  ),
+      // Swipe was the only way to remove a contact, which screen-reader
+      // users and people with limited motor control cannot do.
+      child: Semantics(
+        customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+          CustomSemanticsAction(label: 'Remove ${contact.name}'): () =>
+              _removeWithConfirm(context),
+        },
+        child: _buildCard(context),
+      ),
+    );
+  }
+
+  Future<void> _removeWithConfirm(BuildContext context) async {
+    if (await _confirmDelete(context) == true) onDelete();
+  }
+
+  Widget _buildCard(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(context.design.cardRadius),
+      child: Container(
+        padding: const EdgeInsets.all(Dimensions.sixteen),
+        decoration: BoxDecoration(
+          color: context.cardSurface,
+          border: context.designBorder,
+          boxShadow: context.designShadows,
+          borderRadius: BorderRadius.circular(context.design.cardRadius),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: context.ink,
+              child: Text(
+                contact.name.substring(0, 1).toUpperCase(),
+                style: TextStyle(
+                  color: context.paper,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: Dimensions.twelve),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: Dimensions.four,
-                  children: [
-                    Text(
-                      contact.name,
-                      style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(width: Dimensions.twelve),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: Dimensions.four,
+                children: [
+                  Text(
+                    contact.name,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  if (contact.status == ContactStatus.pending ||
+                      contact.inviteStatus == 'pending' ||
+                      contact.inviteStatus == 'declined' ||
+                      contact.linkedUid?.isNotEmpty == true)
+                    _InviteStatusBadge(contact: contact),
+                  Text(
+                    _subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.secondaryInk,
                     ),
-                    if (contact.status == ContactStatus.pending ||
-                        contact.inviteStatus == 'pending' ||
-                        contact.inviteStatus == 'declined' ||
-                        contact.linkedUid?.isNotEmpty == true)
-                      _InviteStatusBadge(contact: contact),
-                    Text(
-                      _subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.secondaryInk,
-                      ),
-                    ),
-                    if (contact.linkedUid?.isNotEmpty != true)
-                      Wrap(
-                        spacing: Dimensions.four,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          if (contact.linkedUid == null ||
-                              contact.linkedUid!.isEmpty)
-                            Tooltip(
-                              message: _inviteTooltip,
-                              child: TextButton.icon(
-                                onPressed: isInviting ? null : onInvite,
-                                icon: isInviting
-                                    ? SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          color: context.ink,
-                                          strokeWidth: 1.5,
-                                        ),
-                                      )
-                                    : Icon(_inviteIcon, size: 16),
-                                label: Text(
-                                  isInviting ? 'Loading…' : _inviteActionLabel,
-                                ),
+                  ),
+                  if (contact.linkedUid?.isNotEmpty != true)
+                    Wrap(
+                      spacing: Dimensions.four,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (contact.linkedUid == null ||
+                            contact.linkedUid!.isEmpty)
+                          Tooltip(
+                            message: _inviteTooltip,
+                            child: TextButton.icon(
+                              onPressed: isInviting ? null : onInvite,
+                              icon: isInviting
+                                  ? SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        color: context.ink,
+                                        strokeWidth: 1.5,
+                                      ),
+                                    )
+                                  : Icon(_inviteIcon, size: 16),
+                              label: Text(
+                                isInviting ? 'Loading…' : _inviteActionLabel,
                               ),
                             ),
-                        ],
-                      ),
-                  ],
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: Dimensions.eight),
+            Column(
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(top: Dimensions.four),
+                  child: _NotifyIcons(contact: contact),
                 ),
-              ),
-              const SizedBox(width: Dimensions.eight),
-              Padding(
-                padding: const EdgeInsets.only(top: Dimensions.four),
-                child: _NotifyIcons(contact: contact),
-              ),
-            ],
-          ),
+                IconButton(
+                  onPressed: () => _removeWithConfirm(context),
+                  tooltip: 'Remove ${contact.name}',
+                  icon: Icon(Icons.delete_outline, color: context.secondaryInk),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
 import 'package:seizure_app/core/dtos/alert_detail_dto.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
+import 'package:seizure_app/core/services/call_service.dart';
+import 'package:seizure_app/core/widgets/alert_map_widget.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
 import 'package:seizure_app/core/widgets/live_indicator.dart';
 import 'package:seizure_app/features/caregiver/view_models/responding_view_model.dart';
 import 'package:seizure_app/features/caregiver/widgets/caregiver_avatar.dart';
+import 'package:seizure_app/core/themes/app_palette.dart';
 
 class RespondingView extends GetView<RespondingViewModel> {
   const RespondingView({super.key});
@@ -101,6 +105,8 @@ class _Loaded extends GetView<RespondingViewModel> {
                   ),
                 ),
                 const SizedBox(height: Dimensions.twentyFour),
+                const _LocationSection(),
+                const SizedBox(height: Dimensions.twentyFour),
                 const _RosterSection(),
                 const SizedBox(height: Dimensions.twentyFour),
                 const _CarePlanSection(),
@@ -168,7 +174,6 @@ class _Header extends GetView<RespondingViewModel> {
             child: Obx(() {
               final TextStyle? style = Theme.of(context).textTheme.labelSmall
                   ?.copyWith(
-                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.4,
                     color: scheme.onInverseSurface,
@@ -191,6 +196,85 @@ class _Header extends GetView<RespondingViewModel> {
       ),
     );
   }
+}
+
+/// Where the person is. "I'm on my way" replaces the incoming alert screen
+/// with this one, so the map and directions have to be here too.
+class _LocationSection extends GetView<RespondingViewModel> {
+  const _LocationSection();
+
+  @override
+  Widget build(BuildContext context) => Obx(() {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final alert = controller.detail.value?.alert;
+    final String? distance = controller.distanceLabel();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const _SectionLabel('Location'),
+        const SizedBox(height: Dimensions.ten),
+        _Card(
+          children: <Widget>[
+            if (controller.hasLocation)
+              SizedBox(
+                height: 160,
+                width: double.infinity,
+                child: AlertMapWidget(
+                  latitude: alert!.latitude!,
+                  longitude: alert.longitude!,
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(Dimensions.sixteen),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Text(
+                    alert?.locationLabel ??
+                        (controller.hasLocation
+                            ? 'Location shared'
+                            : 'No location shared. Call to find out where they are.'),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (distance != null) ...<Widget>[
+                    const SizedBox(height: Dimensions.two),
+                    Text(
+                      distance,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  if (controller.hasLocation) ...<Widget>[
+                    const SizedBox(height: Dimensions.twelve),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        controller.openDirections();
+                      },
+                      icon: const Icon(Icons.directions_outlined),
+                      label: const Text('Directions'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            context.design.cardRadius,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  });
 }
 
 class _RosterSection extends GetView<RespondingViewModel> {
@@ -227,8 +311,9 @@ class _ResponderRow extends GetView<RespondingViewModel> {
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
     final String name = responder.isCaller ? 'You' : responder.contactName;
-    final TextStyle? statusStyle = Theme.of(context).textTheme.bodyLarge
-        ?.copyWith(fontSize: 13, color: scheme.onSurfaceVariant);
+    final TextStyle? statusStyle = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant);
 
     return SizedBox(
       height: 68,
@@ -291,8 +376,7 @@ class _ResponderRow extends GetView<RespondingViewModel> {
                   ),
                   child: Text(
                     busy ? 'Sending…' : 'Nudge',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontSize: 13,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -383,7 +467,7 @@ class _CarePlanStep extends StatelessWidget {
             text,
             style: Theme.of(
               context,
-            ).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.5),
+            ).textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
         ),
       ],
@@ -391,12 +475,21 @@ class _CarePlanStep extends StatelessWidget {
   );
 }
 
+/// Calling the person comes first; logging what happened can wait.
 class _ActionBar extends GetView<RespondingViewModel> {
   const _ActionBar();
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
+    final String firstName = controller.ownerName.split(' ').first;
+    final ButtonStyle secondary = OutlinedButton.styleFrom(
+      minimumSize: const Size.fromHeight(56),
+      side: BorderSide(color: scheme.onSurface, width: 1.5),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -405,47 +498,62 @@ class _ActionBar extends GetView<RespondingViewModel> {
         Dimensions.twenty,
         Dimensions.twenty,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: Dimensions.ten,
         children: <Widget>[
-          Expanded(
-            child: SizedBox(
-              height: 64,
-              child: ElevatedButton(
-                onPressed: () => AppBottomSheet.show<void>(
-                  context: context,
-                  builder: (_) => _LogResponseSheet(controller: controller),
-                ),
-
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  'Log what happened',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onPrimary,
-                  ),
-                ),
+          ElevatedButton.icon(
+            onPressed: () {
+              HapticFeedback.heavyImpact();
+              controller.callOwner();
+            },
+            icon: const Icon(Icons.call, size: 24),
+            label: Text(
+              firstName.isEmpty ? 'Call' : 'Call $firstName',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: scheme.onPrimary,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(64),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(context.design.cardRadius),
               ),
             ),
           ),
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: OutlinedButton(
-              onPressed: controller.callOwner,
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: scheme.onSurface, width: 1.5),
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+          Row(
+            spacing: Dimensions.ten,
+            children: <Widget>[
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    AppBottomSheet.show<void>(
+                      context: context,
+                      builder: (_) => _LogResponseSheet(controller: controller),
+                    );
+                  },
+                  style: secondary,
+                  child: const Text('Log what happened'),
                 ),
               ),
-              child: const Icon(Icons.call, size: 24),
-            ),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.heavyImpact();
+                    controller.callEmergency();
+                  },
+                  icon: const Icon(Icons.local_hospital_outlined),
+                  label: Text(
+                    'Call ${CallService.emergencyNumber}',
+                    semanticsLabel:
+                        'Call emergency services, ${CallService.emergencyNumber}',
+                  ),
+                  style: secondary,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -542,7 +650,6 @@ class _SectionLabel extends StatelessWidget {
     child: Text(
       label.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.6,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -564,7 +671,7 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surfaceBright,
         border: Border.all(color: scheme.outlineVariant),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(context.design.cardRadius),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -592,8 +699,7 @@ class _MessageRow extends StatelessWidget {
     ),
     child: Text(
       message,
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        fontSize: 14,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
         height: 1.5,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),

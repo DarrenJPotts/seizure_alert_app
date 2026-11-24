@@ -110,6 +110,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
       focusedBorder: hasError ? fieldTheme.focusedErrorBorder : null,
       suffixIcon: IconButton(
         onPressed: onToggleObscure,
+        tooltip: obscure ? 'Show password' : 'Hide password',
         icon: Icon(
           obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
           size: 20,
@@ -158,7 +159,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
             const SizedBox(height: Dimensions.eight),
           ] else ...[
             Text(
-              'Change Password',
+              'Change password',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: Dimensions.twentyFour),

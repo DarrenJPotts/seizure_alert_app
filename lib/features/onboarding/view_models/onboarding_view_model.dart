@@ -18,6 +18,7 @@ import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/features/contacts/widgets/invite_picker_sheet.dart';
 import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/core/widgets/onboarding_progress.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 enum OnboardingMode { preSignup, completeProfile }
 
@@ -318,7 +319,10 @@ class OnboardingViewModel extends GetxController {
         debugPrint(
           '[OnboardingVM] Commit failed: ${userResult.error ?? contactResult.error}',
         );
-        Get.snackbar('Setup not saved', 'Check your connection and try again.');
+        showAppSnackbar(
+          'Setup not saved',
+          'Check your connection and try again.',
+        );
         return false;
       }
 
@@ -341,7 +345,7 @@ class OnboardingViewModel extends GetxController {
             code: inviteResult.data!,
           );
         } else {
-          Get.snackbar(
+          showAppSnackbar(
             'Invite not created',
             inviteResult.error ??
                 'You can invite this contact from My Circle later.',
@@ -351,7 +355,10 @@ class OnboardingViewModel extends GetxController {
       return true;
     } catch (e) {
       debugPrint('[OnboardingVM] Commit failed: $e');
-      Get.snackbar('Setup not saved', 'Check your connection and try again.');
+      showAppSnackbar(
+        'Setup not saved',
+        'Check your connection and try again.',
+      );
       return false;
     }
   }

@@ -41,7 +41,8 @@ class AppColorsDark {
   static const Color surfaceDim = Color(0xFF181818);
   static const Color surfaceBright = Color(0xFF353535);
 
-  static const Color outline = Color(0xFF616161);
+  // #616161 was 2.9:1 on the #161616 page; #7A7A7A is 4.1:1.
+  static const Color outline = Color(0xFF7A7A7A);
   static const Color outlineVariant = Color(0xFF2D2D2D);
 
   static const Color errorContainer = Color(0xFF4A1513);

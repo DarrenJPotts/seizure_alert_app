@@ -5,7 +5,7 @@ const { onTaskDispatched } = require("firebase-functions/v2/tasks");
 const { onMessagePublished } = require("firebase-functions/v2/pubsub");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue, FieldPath } = require("firebase-admin/firestore");
 const { getRemoteConfig } = require("firebase-admin/remote-config");
 const { getFunctions } = require("firebase-admin/functions");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -13,6 +13,17 @@ const crypto = require("node:crypto");
 const { daysSince, isEscalationStale } = require("./time");
 const { functionsEnabled } = require("./killswitch");
 const { safetyFunctionsEnabled, remoteConfigFlagLoader } = require("./safety-flag");
+const { notifyLimitFor, tracksDelivery } = require("./alert-rate-limit");
+const { isFanoutStale, hasRetryableFailure } = require("./alert-fanout");
+const { buildMessage } = require("./push-message");
+const { tokensOf, summarizeSends, betterStatus, isStaleTokenError } = require("./push-tokens");
+const {
+  URGENT_TYPES,
+  isMissedCheckInExpired,
+  pickUrgentAlert,
+  isReusableWatchSos,
+  updateNotification,
+} = require("./open-alerts");
 
 setGlobalOptions({ maxInstances: 5, minInstances: 0 });
 
@@ -359,7 +370,10 @@ exports.wearableAction = onRequest(
         .orderBy("createdAt", "desc")
         .limit(5)
         .get();
-      const activeSos = existing.docs.find((doc) => doc.data().type === "sos");
+      // Reuse only a recent SOS. An old one left open (for example by a
+      // sign-out mid-alert) must not swallow a new emergency.
+      const nowMs = Date.now();
+      const activeSos = existing.docs.find((doc) => isReusableWatchSos(doc.data(), nowMs));
       if (activeSos) {
         return sendJson(response, 200, {
           ok: true,
@@ -505,6 +519,14 @@ function getCreatedCopy(alertType, userName) {
   }
 }
 
+function getOkayCopy(alertType, userName) {
+  if (alertType !== "headsUpExpired") return null;
+  return {
+    title: "Check-in received",
+    body: `${userName} has checked in and says they are okay.`,
+  };
+}
+
 function getCancelledCopy(alertType, userName) {
   switch (alertType) {
     case "sos":
@@ -522,68 +544,49 @@ function getCancelledCopy(alertType, userName) {
   }
 }
 
-function buildMessage({
-  token,
-  title,
-  body,
-  alertId,
-  alertType,
-  alertStatus,
-  userId,
-  route,
-  ttlMs,
-}) {
-  const data = {
-    alertType: String(alertType),
-    alertStatus: String(alertStatus),
-    userId: String(userId),
-  };
-  if (alertId != null) data.alertId = String(alertId);
-  if (typeof route === "string" && route.startsWith("/")) data.route = route;
-
-  const message = {
-    token,
-    notification: { title, body },
-    data,
-    android: {
-      priority: "high",
-      notification: { sound: "seizure_alert" },
-    },
-    apns: {
-      payload: {
-        aps: { sound: "default", contentAvailable: true },
-      },
-    },
-  };
-
-  if (Number.isFinite(ttlMs) && ttlMs > 0) {
-    message.android.ttl = ttlMs;
-    message.apns.headers = {
-      "apns-expiration": String(
-        Math.floor(Date.now() / 1000) + Math.ceil(ttlMs / 1000)
-      ),
-    };
-  }
-
-  return message;
-}
-
 function isStaleMessagingToken(error) {
-  const code = error?.code || error?.errorInfo?.code;
-  return code === "messaging/registration-token-not-registered" ||
-    code === "messaging/invalid-registration-token";
+  return isStaleTokenError(error);
 }
 
+/** Removes a token FCM no longer accepts, from both token fields. */
 async function clearStaleToken(userRef, attemptedToken) {
   await db.runTransaction(async (transaction) => {
     const current = await transaction.get(userRef);
-    if (current.data()?.fcmToken === attemptedToken) {
-      transaction.update(userRef, {
-        fcmToken: FieldValue.delete(),
-        fcmTokenUpdatedAt: FieldValue.delete(),
-      });
+    const data = current.data() || {};
+    const updates = [];
+    if (data.fcmToken === attemptedToken) {
+      updates.push("fcmToken", FieldValue.delete(), "fcmTokenUpdatedAt", FieldValue.delete());
     }
+    if (data.fcmTokens && Object.prototype.hasOwnProperty.call(data.fcmTokens, attemptedToken)) {
+      updates.push(new FieldPath("fcmTokens", attemptedToken), FieldValue.delete());
+    }
+    if (updates.length > 0) transaction.update(userRef, ...updates);
   });
+}
+
+/**
+ * Sends one message to every device a user is signed in on. Returns the
+ * user's delivery status ("sent", "failed" or "deviceOffline"); stale tokens
+ * are removed along the way.
+ */
+async function sendToUser(userDoc, messageForToken) {
+  const tokens = tokensOf(userDoc.exists ? userDoc.data() : null);
+  const results = await Promise.all(
+    tokens.map(async (token) => {
+      try {
+        await messaging.send(messageForToken(token));
+        return "sent";
+      } catch (error) {
+        if (isStaleMessagingToken(error)) {
+          await clearStaleToken(userDoc.ref, token);
+          return "stale";
+        }
+        console.error(`Push to a device of user ${userDoc.id} failed:`, error);
+        return "failed";
+      }
+    })
+  );
+  return summarizeSends(results);
 }
 
 const TEST_ALERT_RECIPIENT_LIMIT = 20;
@@ -652,13 +655,12 @@ exports.sendCaregiverTestAlert = onCall(CALLABLE_OPTIONS, async (request) => {
   const recipientsByToken = new Map();
   recipientDocs.forEach((doc, index) => {
     if (!doc.exists) return;
-    const token = doc.data().fcmToken;
-    if (typeof token !== "string" || token.length === 0) return;
-
     const uid = linkedUids[index];
-    const recipient = recipientsByToken.get(token) || { token, users: [] };
-    recipient.users.push({ uid, doc });
-    recipientsByToken.set(token, recipient);
+    for (const token of tokensOf(doc.data())) {
+      const recipient = recipientsByToken.get(token) || { token, users: [] };
+      recipient.users.push({ uid, doc });
+      recipientsByToken.set(token, recipient);
+    }
   });
   const recipients = [...recipientsByToken.values()];
 
@@ -699,14 +701,7 @@ exports.sendCaregiverTestAlert = onCall(CALLABLE_OPTIONS, async (request) => {
 
   await Promise.allSettled(
     staleRecipients.flatMap(({ users, token }) =>
-      users.map(({ doc }) =>
-        db.runTransaction(async (transaction) => {
-          const current = await transaction.get(doc.ref);
-          if (current.data()?.fcmToken === token) {
-            transaction.update(doc.ref, { fcmToken: FieldValue.delete() });
-          }
-        })
-      )
+      users.map(({ doc }) => clearStaleToken(doc.ref, token))
     )
   );
 
@@ -721,7 +716,10 @@ exports.sendCaregiverTestAlert = onCall(CALLABLE_OPTIONS, async (request) => {
           code === "messaging/invalid-registration-token"
         ? "deviceOffline"
         : "failed";
-    recipient.users.forEach(({ uid }) => statusByUid.set(uid, status));
+    // A caregiver with several devices counts as reached if any device was.
+    recipient.users.forEach(({ uid }) =>
+      statusByUid.set(uid, betterStatus(statusByUid.get(uid), status))
+    );
   });
   await writeCaregiverTestStatuses(contacts, statusByUid);
 
@@ -761,9 +759,20 @@ async function notifyContacts(alertUserId, alert, copy, { trackDelivery = false 
     return [];
   }
 
-  const sendPromises = contactsSnap.docs.map(async (contactDoc) => {
+  const deliveryRef = (contactDoc) =>
+    db.collection("alert_deliveries").doc(`${alert.id}_${contactDoc.id}`);
+
+  const sendOne = async (contactDoc) => {
     const contact = contactDoc.data();
     const linkedUid = contact.linkedUid;
+
+    // On a retry, never send the same contact the same alert twice.
+    if (trackDelivery && alert.id) {
+      const existing = await deliveryRef(contactDoc).get();
+      if (existing.exists && existing.data().status === "sent") {
+        return { contactDoc, linkedUid, status: "sent", alreadyRecorded: true };
+      }
+    }
 
 if (contact.status === "pending" || typeof linkedUid !== "string" || !linkedUid) {
       console.log(`Contact ${contactDoc.id} is not linked; skipping push.`);
@@ -776,62 +785,47 @@ if (contact.status === "pending" || typeof linkedUid !== "string" || !linkedUid)
       return { contactDoc, linkedUid, status: "accountMissing" };
     }
 
-    const fcmToken = userDoc.data().fcmToken;
-    if (!fcmToken) {
-      console.log(`User ${userDoc.id} (contact ${contactDoc.id}) has no fcmToken.`);
-      return { contactDoc, linkedUid, status: "deviceOffline" };
-    }
+    // Every device the caregiver is signed in on, not only the latest.
+    const status = await sendToUser(userDoc, (token) =>
+      buildMessage({
+        token,
+        title: copy.title,
+        body: copy.body,
+        alertId: alert.id,
+        alertType: alert.type,
+        alertStatus: alert.status,
+        userId: alertUserId,
+      })
+    );
+    console.log(`Contact ${contactDoc.id}: ${status}`);
+    return { contactDoc, linkedUid, status };
+  };
 
-    const message = buildMessage({
-      token: fcmToken,
-      title: copy.title,
-      body: copy.body,
-      alertId: alert.id,
-      alertType: alert.type,
-      alertStatus: alert.status,
-      userId: alertUserId,
-    });
-
-    try {
-      const response = await messaging.send(message);
-      console.log(`Notified contact ${contactDoc.id}: ${response}`);
-      return { contactDoc, linkedUid, status: "sent" };
-    } catch (error) {
-      if (isStaleMessagingToken(error)) {
-        await clearStaleToken(userDoc.ref, fcmToken);
-        return { contactDoc, linkedUid, status: "deviceOffline" };
+  // Each contact's record is written as soon as its send finishes, so a crash
+  // part-way through keeps the sends that succeeded and a retry skips them.
+  const deliveries = await Promise.all(
+    contactsSnap.docs.map(async (contactDoc) => {
+      const delivery = await sendOne(contactDoc);
+      if (trackDelivery && alert.id && !delivery.alreadyRecorded) {
+        const ref = deliveryRef(contactDoc);
+        await ref.set(
+          {
+            id: ref.id,
+            alertId: alert.id,
+            alertOwnerId: alertUserId,
+            contactId: contactDoc.id,
+            contactName: contactDoc.data().name || "Someone",
+            responderId: delivery.linkedUid,
+            priority: contactDoc.data().priority || 0,
+            status: delivery.status,
+            sentAtMs: Date.now(),
+          },
+          { merge: true }
+        );
       }
-      console.error(`Failed to notify contact ${contactDoc.id}:`, error);
-      return { contactDoc, linkedUid, status: "failed" };
-    }
-  });
-
-  const deliveries = await Promise.all(sendPromises);
-  if (trackDelivery && alert.id) {
-    const batch = db.batch();
-    const sentAtMs = Date.now();
-    deliveries.forEach(({ contactDoc, linkedUid, status }) => {
-      const ref = db
-        .collection("alert_deliveries")
-        .doc(`${alert.id}_${contactDoc.id}`);
-      batch.set(
-        ref,
-        {
-          id: ref.id,
-          alertId: alert.id,
-          alertOwnerId: alertUserId,
-          contactId: contactDoc.id,
-          contactName: contactDoc.data().name || "Someone",
-          responderId: linkedUid,
-          priority: contactDoc.data().priority || 0,
-          status,
-          sentAtMs,
-        },
-        { merge: true }
-      );
-    });
-    await batch.commit();
-  }
+      return delivery;
+    })
+  );
   return deliveries;
 }
 
@@ -921,38 +915,32 @@ exports.escalateUnansweredAlert = onTaskDispatched(
     const contactDoc = ready[stage];
     const contact = contactDoc.data();
     const caregiver = await db.collection("users").doc(contact.linkedUid).get();
-    const token = caregiver.exists ? caregiver.data().fcmToken : null;
-    if (typeof token === "string" && token) {
-      try {
-        await messaging.send(
-          buildMessage({
-            token,
-            title: "No caregiver has responded",
-            body: "Open the active alert and confirm whether you can help.",
-            alertId,
-            alertType: alertDoc.data().type,
-            alertStatus: "sent",
-            userId: alertDoc.data().userId,
-          })
+    const status = await sendToUser(caregiver, (token) =>
+      buildMessage({
+        token,
+        title: "No caregiver has responded",
+        body: "Open the active alert and confirm whether you can help.",
+        alertId,
+        alertType: alertDoc.data().type,
+        alertStatus: "sent",
+        userId: alertDoc.data().userId,
+      })
+    );
+    if (status === "sent") {
+      await db
+        .collection("alert_deliveries")
+        .doc(`${alertId}_${contactDoc.id}`)
+        .set(
+          {
+            escalationStage: stage + 1,
+            lastEscalatedAtMs: Date.now(),
+            status: "sent",
+          },
+          { merge: true }
         );
-        await db
-          .collection("alert_deliveries")
-          .doc(`${alertId}_${contactDoc.id}`)
-          .set(
-            {
-              escalationStage: stage + 1,
-              lastEscalatedAtMs: Date.now(),
-              status: "sent",
-            },
-            { merge: true }
-          );
-      } catch (error) {
-        if (isStaleMessagingToken(error)) {
-          await clearStaleToken(caregiver.ref, token);
-        } else {
-          throw error;
-        }
-      }
+    } else if (status === "failed") {
+      // Let Cloud Tasks retry this stage.
+      throw new Error(`Escalation push for alert ${alertId} failed.`);
     }
 
     await alertRef.set(
@@ -969,26 +957,56 @@ exports.escalateUnansweredAlert = onTaskDispatched(
   }
 );
 
-exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => {
+/**
+ * Applies `limit` (from notifyLimitFor) and reports whether to notify.
+ * A null limit always passes.
+ */
+async function withinNotifyLimit(uid, limit, alert) {
+  if (!limit) return true;
+  try {
+    await enforceRateLimit(uid, limit.action, limit.max, limit.windowMs);
+    return true;
+  } catch (error) {
+    if (error instanceof HttpsError && error.code === "resource-exhausted") {
+      const log = alert.type === "sos" ? console.error : console.warn;
+      log(`${limit.action} limit reached for ${uid}; alert ${alert.id} not notified.`);
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function anyDeliverySent(alertId) {
+  const snap = await db
+    .collection("alert_deliveries")
+    .where("alertId", "==", alertId)
+    .where("status", "==", "sent")
+    .limit(1)
+    .get();
+  return !snap.empty;
+}
+
+exports.onAlertCreated = onDocumentCreated({ document: "alerts/{alertId}", retry: true }, async (event) => {
   if (!(await safetyEnabled())) {
     console.warn("sos_functions_enabled is off; skipping onAlertCreated.");
     return;
   }
+  if (isFanoutStale(event.time)) {
+    console.error(`Giving up on alert ${event.params.alertId}: still failing after the retry window.`);
+    return;
+  }
 
-  const alert = event.data?.data();
+  // Read the current doc, not the creation snapshot: on a retry the alert may
+  // have been cancelled in the meantime.
+  const current = event.data ? await event.data.ref.get() : null;
+  const alert = current?.exists ? current.data() : null;
   if (!alert || alert.status !== "sent") return;
 
   const alertUserId = alert.userId;
   if (!alertUserId) return;
 
-  try {
-    await enforceRateLimit(alertUserId, "alertNotify", 6, 10 * 60 * 1000);
-  } catch (error) {
-    if (error instanceof HttpsError && error.code === "resource-exhausted") {
-      console.warn(`Notification rate limit reached for ${alertUserId}.`);
-      return;
-    }
-    throw error;
+  if (!(await withinNotifyLimit(alertUserId, notifyLimitFor("created", alert.type), alert))) {
+    return;
   }
 
   const userDoc = await db.collection("users").doc(alertUserId).get();
@@ -998,45 +1016,52 @@ exports.onAlertCreated = onDocumentCreated("alerts/{alertId}", async (event) => 
   if (!copy) return;
 
   const deliveries = await notifyContacts(alertUserId, alert, copy, {
-    trackDelivery: alert.type === "sos" || alert.type === "headsUpExpired",
+    trackDelivery: tracksDelivery(alert.type),
   });
   if (
-    (alert.type === "sos" || alert.type === "headsUpExpired") &&
+    tracksDelivery(alert.type) &&
     deliveries.some((delivery) => delivery.status === "sent")
   ) {
     await enqueueAlertEscalation(alert.id, 0);
   }
+  // Throwing makes the platform retry; contacts already sent are skipped.
+  if (tracksDelivery(alert.type) && hasRetryableFailure(deliveries)) {
+    throw new Error(`Alert ${alert.id}: some pushes failed; retrying.`);
+  }
 });
 
-exports.onAlertUpdated = onDocumentUpdated("alerts/{alertId}", async (event) => {
+exports.onAlertUpdated = onDocumentUpdated({ document: "alerts/{alertId}", retry: true }, async (event) => {
   if (!(await safetyEnabled())) {
     console.warn("sos_functions_enabled is off; skipping onAlertUpdated.");
+    return;
+  }
+  if (isFanoutStale(event.time)) {
+    console.error(`Giving up on cancel for alert ${event.params.alertId}: still failing after the retry window.`);
     return;
   }
 
   const before = event.data?.before?.data();
   const after = event.data?.after?.data();
 
-  if (!before || !after) return;
-  if (before.status === "cancelled" || after.status !== "cancelled") return;
+  const notification = updateNotification(before, after);
+  if (!notification) return;
 
   const alertUserId = after.userId;
   if (!alertUserId) return;
 
-  try {
-    await enforceRateLimit(alertUserId, "alertNotify", 6, 10 * 60 * 1000);
-  } catch (error) {
-    if (error instanceof HttpsError && error.code === "resource-exhausted") {
-      console.warn(`Notification rate limit reached for ${alertUserId}.`);
-      return;
-    }
-    throw error;
+  // Cancels are not rate-limited (see alert-rate-limit.js). For tracked types,
+  // don't tell people an alert is cancelled when they were never alerted.
+  if (tracksDelivery(after.type) && !(await anyDeliverySent(event.params.alertId))) {
+    console.info(`Alert ${event.params.alertId} cancelled before anyone was notified.`);
+    return;
   }
 
   const userDoc = await db.collection("users").doc(alertUserId).get();
   const userName = userDoc.exists ? (userDoc.data().displayName || "Someone") : "Someone";
 
-  const copy = getCancelledCopy(after.type, userName);
+  const copy = notification === "okay"
+    ? getOkayCopy(after.type, userName)
+    : getCancelledCopy(after.type, userName);
   if (!copy) return;
 
   await notifyContacts(alertUserId, after, copy);
@@ -1140,8 +1165,20 @@ async function expireOneHeadsUp(doc, nowMs) {
   // Too late to be useful as an alert, so close the window before doing the
   // extra reads and push work that a stale delayed task no longer justifies.
   const lateBy = nowMs - (headsUp.expiresAtMs ?? nowMs);
+  const originRef = db.collection("alerts").doc(`${doc.id}_alert`);
+  // The Heads Up's own alert ends with the window. Left open, it marked the
+  // person as active on every caregiver's watch list indefinitely.
+  const closeOrigin = {
+    status: "resolved",
+    resolvedAt: new Date(nowMs).toISOString(),
+    resolvedReason: "headsUpExpired",
+  };
   if (isEscalationStale(headsUp.expiresAtMs, nowMs, HEADS_UP_ESCALATION_GRACE_MS)) {
     await doc.ref.update({ status: "expired" });
+    const origin = await originRef.get();
+    if (origin.exists && origin.data().status === "sent") {
+      await originRef.update(closeOrigin);
+    }
     return { suppressed: true, lateBy };
   }
 
@@ -1151,14 +1188,15 @@ async function expireOneHeadsUp(doc, nowMs) {
   // caregiver who opens the notification immediately. Without this the most
   // urgent alert type in the app — a missed check-in — would reach the
   // contact circle with no location at all.
-  const originAlert = await db.collection("alerts").doc(`${doc.id}_alert`).get();
+  const originAlert = await originRef.get();
   const origin = originAlert.exists ? originAlert.data() : {};
   const hasPosition = origin.latitude != null && origin.longitude != null;
 
 await db.runTransaction(async (tx) => {
-    const [freshHeadsUp, existingAlert] = await Promise.all([
+    const [freshHeadsUp, existingAlert, freshOrigin] = await Promise.all([
       tx.get(doc.ref),
       tx.get(alertRef),
+      tx.get(originRef),
     ]);
 
 if (!freshHeadsUp.exists || freshHeadsUp.data().status !== "active") {
@@ -1166,6 +1204,9 @@ if (!freshHeadsUp.exists || freshHeadsUp.data().status !== "active") {
     }
 
     tx.update(doc.ref, { status: "expired" });
+    if (freshOrigin.exists && freshOrigin.data().status === "sent") {
+      tx.update(originRef, closeOrigin);
+    }
 
 if (existingAlert.exists) return;
 
@@ -1242,14 +1283,15 @@ exports.getPeopleIWatch = onCall(CALLABLE_OPTIONS, async (request) => {
       // alerts on top would drop out of a "most recent 5" window, and the
       // watch list silently failing to show a live SOS is the one failure
       // this screen must not have. One extra read buys that guarantee.
-      const [ownerDoc, sosSnap, headsUpSnap, recentAlertsSnap, lastLog] =
+      const [ownerDoc, urgentSnap, headsUpSnap, recentAlertsSnap, lastLog] =
         await Promise.all([
           db.collection("users").doc(ownerId).get(),
           db
             .collection("alerts")
             .where("userId", "==", ownerId)
             .where("status", "==", "sent")
-            .limit(1)
+            .where("type", "in", URGENT_TYPES)
+            .limit(10)
             .get(),
           db
             .collection("headsUp")
@@ -1275,9 +1317,28 @@ exports.getPeopleIWatch = onCall(CALLABLE_OPTIONS, async (request) => {
       let headsUpNote = null;
       let headsUpAt = null;
 
-      if (!sosSnap.empty) {
+      // An SOS or a missed check-in puts the person at the top as "sos".
+      // A missed check-in nobody closed times out after 12 hours.
+      const nowMs = Date.now();
+      const openAlerts = urgentSnap.docs.map((d) => ({ ...d.data(), id: d.id }));
+      await Promise.all(
+        urgentSnap.docs
+          .filter((d) => isMissedCheckInExpired(d.data(), nowMs))
+          .map((d) =>
+            d.ref
+              .update({
+                status: "resolved",
+                resolvedAt: new Date(nowMs).toISOString(),
+                resolvedReason: "timeout",
+              })
+              .catch((error) => console.error(`Could not time out alert ${d.id}:`, error))
+          )
+      );
+      const urgent = pickUrgentAlert(openAlerts, nowMs);
+
+      if (urgent) {
         status = "sos";
-        activeAlertId = sosSnap.docs[0].id;
+        activeAlertId = urgent.id;
       } else if (!headsUpSnap.empty) {
         status = "headsUp";
         const headsUp = headsUpSnap.docs[0].data();
@@ -1659,8 +1720,7 @@ findLinkedContacts(targetResponderId, [["userId", "==", alertUserId]]),
   // can hammer another's phone indefinitely.
   await enforceRateLimit(callerUid, "nudge", 3, 10 * 60 * 1000);
 
-  const fcmToken = targetDoc.exists ? targetDoc.data().fcmToken : null;
-  if (!fcmToken) {
+  if (tokensOf(targetDoc.exists ? targetDoc.data() : null).length === 0) {
     // Not an error the caller can act on, and throwing would make the button
     // look broken. Report it so the UI can say the nudge did not land.
     return { delivered: false, reason: "no-token" };
@@ -1673,26 +1733,21 @@ findLinkedContacts(targetResponderId, [["userId", "==", alertUserId]]),
     ? callerDoc.data().displayName || "A caregiver"
     : "A caregiver";
 
-  try {
-    await messaging.send(
-      buildMessage({
-        token: fcmToken,
-        title: "Response needed",
-        body: `${callerName} is asking you to respond to ${ownerName}'s SOS.`,
-        alertId,
-        alertType: alert.type || "sos",
-        alertStatus: alert.status || "sent",
-        userId: alertUserId,
-      })
-    );
-  } catch (error) {
-    if (isStaleMessagingToken(error)) {
-      await clearStaleToken(targetDoc.ref, fcmToken);
-      return { delivered: false, reason: "no-token" };
-    }
-    throw error;
+  const status = await sendToUser(targetDoc, (token) =>
+    buildMessage({
+      token,
+      title: "Response needed",
+      body: `${callerName} is asking you to respond to ${ownerName}'s SOS.`,
+      alertId,
+      alertType: alert.type || "sos",
+      alertStatus: alert.status || "sent",
+      userId: alertUserId,
+    })
+  );
+  if (status === "deviceOffline") return { delivered: false, reason: "no-token" };
+  if (status === "failed") {
+    throw new HttpsError("unavailable", "The nudge could not be sent. Try again.");
   }
-
   return { delivered: true };
 });
 

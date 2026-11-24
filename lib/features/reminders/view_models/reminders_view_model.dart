@@ -25,6 +25,9 @@ class RemindersViewModel extends GetxController with WidgetsBindingObserver {
   final busy = false.obs;
   final error = RxnString();
   final notificationWarning = RxnString();
+
+  /// False when Android may deliver reminders late (exact alarms not allowed).
+  final exactTiming = true.obs;
   final now = DateTime.now().obs;
   Timer? _timer;
   int _generation = 0;
@@ -46,7 +49,7 @@ class RemindersViewModel extends GetxController with WidgetsBindingObserver {
     unawaited(load());
   }
 
-  Future<void> load() async {
+  Future<void> load({bool rescheduleAlways = true}) async {
     if (busy.value) return;
     final generation = ++_generation;
     final uid = _uid;
@@ -67,7 +70,41 @@ class RemindersViewModel extends GetxController with WidgetsBindingObserver {
     final previous = reminders.toList();
     reminders.assignAll(result.data!.medicationReminders);
     now.value = _clock();
-    await _schedule(previous, uid);
+    unawaited(_refreshExactTiming());
+    // On resume the notifications service has already rescheduled; only do
+    // it again here if the reminders themselves changed.
+    if (rescheduleAlways || _changed(previous, reminders)) {
+      await _schedule(previous, uid);
+    }
+  }
+
+  bool _changed(
+    List<MedicationReminderDto> before,
+    List<MedicationReminderDto> after,
+  ) {
+    if (before.length != after.length) return true;
+    for (int i = 0; i < before.length; i++) {
+      if (before[i].id != after[i].id ||
+          before[i].revision != after[i].revision) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> _refreshExactTiming() async {
+    final LocalNotificationsService? notifications = _notifications;
+    if (notifications == null) return;
+    final bool allowed = await notifications.exactRemindersAllowed();
+    if (!isClosed) exactTiming.value = allowed;
+  }
+
+  /// Asks Android to allow exact reminder times, then reschedules.
+  Future<void> allowExactTiming() async {
+    final LocalNotificationsService? notifications = _notifications;
+    if (notifications == null) return;
+    await notifications.requestExactReminders();
+    await load();
   }
 
   Future<void> _schedule(
@@ -246,7 +283,7 @@ class RemindersViewModel extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       now.value = _clock();
-      unawaited(load());
+      unawaited(load(rescheduleAlways: false));
     }
   }
 

@@ -29,8 +29,8 @@ void main() {
       expect(decoded.longitude, original.longitude);
       expect(decoded.locationLabel, original.locationLabel);
       expect(decoded.message, original.message);
-      expect(decoded.createdAt, original.createdAt);
-      expect(decoded.resolvedAt, original.resolvedAt);
+      expect(decoded.createdAt.toUtc(), original.createdAt.toUtc());
+      expect(decoded.resolvedAt?.toUtc(), original.resolvedAt?.toUtc());
     });
 
     test('round-trips with every optional field null', () {
@@ -108,7 +108,7 @@ void main() {
       expect(decoded.relation, original.relation);
       expect(decoded.priority, original.priority);
       expect(decoded.notifyViaPush, original.notifyViaPush);
-      expect(decoded.createdAt, original.createdAt);
+      expect(decoded.createdAt.toUtc(), original.createdAt.toUtc());
       expect(decoded.status, original.status);
     });
 
@@ -232,8 +232,8 @@ void main() {
       expect(decoded.responderId, original.responderId);
       expect(decoded.seen, original.seen);
       expect(decoded.responding, original.responding);
-      expect(decoded.seenAt, original.seenAt);
-      expect(decoded.respondedAt, original.respondedAt);
+      expect(decoded.seenAt?.toUtc(), original.seenAt?.toUtc());
+      expect(decoded.respondedAt?.toUtc(), original.respondedAt?.toUtc());
     });
 
     test('always emits alertOwnerId, which the security rules require', () {
@@ -268,8 +268,8 @@ void main() {
 
       expect(decoded.id, original.id);
       expect(decoded.userId, original.userId);
-      expect(decoded.createdAt, original.createdAt);
-      expect(decoded.expiresAt, original.expiresAt);
+      expect(decoded.createdAt.toUtc(), original.createdAt.toUtc());
+      expect(decoded.expiresAt.toUtc(), original.expiresAt.toUtc());
       expect(decoded.note, original.note);
       expect(decoded.status, original.status);
     });
@@ -354,7 +354,7 @@ void main() {
 
       expect(decoded.id, original.id);
       expect(decoded.userId, original.userId);
-      expect(decoded.occurredAt, original.occurredAt);
+      expect(decoded.occurredAt.toUtc(), original.occurredAt.toUtc());
       expect(decoded.durationSeconds, original.durationSeconds);
       expect(decoded.location, original.location);
       expect(decoded.latitude, original.latitude);

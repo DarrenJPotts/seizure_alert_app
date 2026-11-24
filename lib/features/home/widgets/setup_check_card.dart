@@ -5,13 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
-import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/contact_dto.dart';
 import 'package:seizure_app/core/services/alert_drill_service.dart';
 import 'package:seizure_app/core/services/app_mode_service.dart';
 import 'package:seizure_app/core/enums/generic_screen_states.dart';
 import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/features/contacts/view_models/contacts_view_model.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 class SetupCheckCard extends GetView<ContactsViewModel> {
   const SetupCheckCard({
@@ -289,11 +289,9 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
     if (!context.mounted) return;
 
     if (!result.isSuccess || result.data == null) {
-      Get.snackbar(
+      showAppSnackbar(
         'Test alert not sent',
         result.error ?? 'Check your connection and try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: snackbarMargin,
       );
       return;
     }
@@ -302,11 +300,9 @@ class SetupCheckCard extends GetView<ContactsViewModel> {
     final String message = drill.failedCount == 0
         ? 'Sent to ${drill.sentCount} caregiver ${drill.sentCount == 1 ? 'device' : 'devices'}.'
         : 'Sent to ${drill.sentCount} of ${drill.recipientCount} caregiver devices.';
-    Get.snackbar(
+    showAppSnackbar(
       'Test alert sent',
       '$message Device settings can still prevent it from appearing.',
-      snackPosition: SnackPosition.BOTTOM,
-      margin: snackbarMargin,
     );
   }
 }

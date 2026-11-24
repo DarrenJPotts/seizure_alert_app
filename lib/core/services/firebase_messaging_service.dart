@@ -272,7 +272,9 @@ class FirebaseMessagingService extends GetxService with WidgetsBindingObserver {
     final alertId = data['alertId'];
     if (alertId != null &&
         alertId.isNotEmpty &&
-        data['alertType'] == 'sos' &&
+        // A missed check-in is as urgent as an SOS and opens the same
+        // screen; it used to open the app with no destination.
+        (data['alertType'] == 'sos' || data['alertType'] == 'headsUpExpired') &&
         data['alertStatus'] == 'sent') {
       return '${AppRoutes.incomingAlert}?alertId=${Uri.encodeQueryComponent(alertId.toString())}';
     }

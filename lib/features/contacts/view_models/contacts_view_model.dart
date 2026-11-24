@@ -40,6 +40,13 @@ class ContactsViewModel extends GetxController {
     _init();
   }
 
+  /// Restarts loading after an error.
+  void retry() {
+    _initialLoadTimer?.cancel();
+    _contactsSub?.cancel();
+    _init();
+  }
+
   void _init() {
     if (_uid.isEmpty) {
       screenState.value = GenericScreenStates.error;

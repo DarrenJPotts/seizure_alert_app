@@ -1,3 +1,5 @@
+import 'package:seizure_app/core/helpers/timestamps.dart';
+
 class SeizureLogDto {
   final String id;
   final String userId;
@@ -42,7 +44,7 @@ class SeizureLogDto {
   factory SeizureLogDto.fromMap(Map<String, dynamic> map) => SeizureLogDto(
     id: map['id'] as String,
     userId: map['userId'] as String,
-    occurredAt: DateTime.parse(map['occurredAt'] as String),
+    occurredAt: parseStoredTimestamp(map['occurredAt'] as String),
     durationSeconds: map['durationSeconds'] as int?,
     location: map['location'] as String?,
     latitude: (map['latitude'] as num?)?.toDouble(),
@@ -63,7 +65,7 @@ class SeizureLogDto {
   Map<String, dynamic> toMap() => {
     'id': id,
     'userId': userId,
-    'occurredAt': occurredAt.toIso8601String(),
+    'occurredAt': toStoredTimestamp(occurredAt),
     'durationSeconds': durationSeconds,
     'location': location,
     'latitude': latitude,

@@ -85,6 +85,19 @@ class _RemindersViewState extends State<RemindersView> {
                   child: const Text('Refresh reminders'),
                 ),
               ],
+              if (!controller.exactTiming.value) ...[
+                const SizedBox(height: Dimensions.sixteen),
+                Text(
+                  'This phone may deliver reminders a few minutes late. '
+                  'Allow exact times so medication reminders arrive on time.',
+                ),
+                TextButton(
+                  onPressed: controller.busy.value
+                      ? null
+                      : controller.allowExactTiming,
+                  child: const Text('Allow exact times'),
+                ),
+              ],
               if (controller.notificationWarning.value != null) ...[
                 const SizedBox(height: Dimensions.sixteen),
                 Text(controller.notificationWarning.value!),

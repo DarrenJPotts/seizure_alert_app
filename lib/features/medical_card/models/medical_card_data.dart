@@ -5,6 +5,9 @@ enum MedicalCardField {
   bloodType('Blood type'),
   seizureType('Seizure type'),
   medications('Medications'),
+  rescueMedication('Rescue medication'),
+  seizureActionPlan('Seizure action plan'),
+  callEmergency('Call emergency services'),
   emergencyNote('Emergency note');
 
   const MedicalCardField(this.label);
@@ -23,6 +26,13 @@ class MedicalCardData {
             .map((value) => value.trim())
             .where((value) => value.isNotEmpty)
             .join(', '),
+        MedicalCardField.rescueMedication: user.rescueMedication?.trim() ?? '',
+        MedicalCardField.seizureActionPlan:
+            user.seizureActionPlan?.trim() ?? '',
+        MedicalCardField.callEmergency: user.callEmergencyAfterMinutes > 0
+            ? 'If a seizure lasts more than ${user.callEmergencyAfterMinutes} '
+                  'minutes'
+            : '',
         MedicalCardField.emergencyNote: user.emergencyNote?.trim() ?? '',
       });
   final Map<MedicalCardField, String> values;

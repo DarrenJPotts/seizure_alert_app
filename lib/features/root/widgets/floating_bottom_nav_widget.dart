@@ -84,6 +84,10 @@ class FloatingBottomNavWidget extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.bottomCenter,
         children: [
+          // Makes the Stack tall enough to contain the raised SOS button.
+          // Flutter only delivers taps inside a widget's bounds, so the top
+          // 25 dp of the button, above the bar, used to ignore taps.
+          const SizedBox(height: 95, width: double.infinity),
           Container(
             height: 70,
             decoration: BoxDecoration(
@@ -137,7 +141,7 @@ class FloatingBottomNavWidget extends StatelessWidget {
           ),
 
           Positioned(
-            top: -25,
+            top: 0,
             child: Semantics(
               button: true,
               label: 'SOS',
@@ -231,7 +235,7 @@ class _FloatingNavItem extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(
             horizontal: Dimensions.eight,
-            vertical: Dimensions.twelve,
+            vertical: Dimensions.eight,
           ),
           decoration: BoxDecoration(
             color: isActive && context.design.filledSelection
@@ -252,16 +256,32 @@ class _FloatingNavItem extends StatelessWidget {
                     : context.secondaryInk,
                 size: 26,
               ),
-              const SizedBox(height: Dimensions.four),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: isActive ? 6 : 0,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: context.design.filledSelection
-                      ? context.paper
-                      : context.ink,
+              const SizedBox(height: Dimensions.two),
+              // Icons alone were hard to read for someone just after a
+              // seizure; each tab now says what it is. The Semantics label
+              // above already names it for screen readers.
+              ExcludeSemantics(
+                child: ConstrainedBox(
+                  // Bounded so a long label ellipsises instead of overflowing
+                  // the bar on narrow phones.
+                  constraints: const BoxConstraints(maxWidth: 72),
+                  child: Text(
+                    semanticLabel,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textScaler: MediaQuery.textScalerOf(
+                      context,
+                    ).clamp(maxScaleFactor: 1.2),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: isActive
+                          ? (context.design.filledSelection
+                                ? context.paper
+                                : context.ink)
+                          : context.secondaryInk,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
             ],

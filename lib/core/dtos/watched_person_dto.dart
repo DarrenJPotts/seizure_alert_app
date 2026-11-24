@@ -1,3 +1,5 @@
+import 'package:seizure_app/core/helpers/timestamps.dart';
+
 enum WatchedPersonStatus { sos, headsUp, monitoring }
 
 class WatchedPersonDto {
@@ -102,7 +104,5 @@ class WatchListDto {
   );
 }
 
-DateTime? parseTimestamp(Object? value) {
-  if (value is! String || value.isEmpty) return null;
-  return DateTime.tryParse(value);
-}
+/// Server timestamps are UTC; shown in local time.
+DateTime? parseTimestamp(Object? value) => tryParseStoredTimestamp(value);

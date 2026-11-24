@@ -187,7 +187,10 @@ void main() {
         wrapBounded(CountdownAlertDialog(onConfirm: () {}, onCancel: () {})),
       );
 
-      expect(find.text('Do nothing and help is on the way'), findsOneWidget);
+      expect(
+        find.text('Your circle will be alerted when the timer ends'),
+        findsOneWidget,
+      );
 
       await tester.pump(const Duration(seconds: 10));
     });

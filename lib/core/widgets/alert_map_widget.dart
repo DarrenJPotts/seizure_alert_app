@@ -95,7 +95,7 @@ class AlertMapPlaceholder extends StatelessWidget {
             Text(
               'Location unavailable',
               style: context.theme.textTheme.bodySmall?.copyWith(
-                color: context.ink.withValues(alpha: 0.38),
+                color: context.secondaryInk,
               ),
             ),
           ],

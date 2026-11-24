@@ -129,7 +129,7 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
           spacing: Dimensions.twentyFour,
           children: [
             Text(
-              'Edit Profile',
+              'Edit profile',
               style: Theme.of(context).textTheme.titleMedium,
             ),
 
@@ -162,14 +162,14 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
             ),
 
             _LabeledField(
-              label: 'Blood Type',
+              label: 'Blood type',
               child: DropdownButtonFormField<String>(
                 initialValue: _selectedBloodType,
                 hint: Text(
                   'Select',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: context.ink.withValues(alpha: 0.38),
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: context.secondaryInk),
                 ),
                 decoration: _inputDeco(),
                 items: _bloodTypes
@@ -191,7 +191,7 @@ class _EditProfileBottomSheetState extends State<EditProfileBottomSheet> {
             ),
 
             _LabeledField(
-              label: 'Seizure Type',
+              label: 'Seizure type',
               child: TextFormField(
                 controller: _seizureTypeController,
                 style: Theme.of(context).textTheme.bodyMedium,

@@ -84,6 +84,10 @@ class CaregiverService {
       });
       final data = Map<String, dynamic>.from(result.data as Map);
       return ResultDto.success(AlertDetailDto.fromMap(data));
+    } on FirebaseFunctionsException catch (e) {
+      // The bare code, so callers can tell "this alert is gone" from
+      // "could not reach the server".
+      return ResultDto.failure(e.code);
     } catch (e) {
       return ResultDto.failure(e.toString());
     }

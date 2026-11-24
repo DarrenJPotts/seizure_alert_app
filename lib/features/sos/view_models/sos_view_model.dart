@@ -18,6 +18,7 @@ import 'package:seizure_app/core/services/local_notifications_service.dart';
 import 'package:seizure_app/features/seizure_log/view_models/seizure_log_view_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seizure_app/core/constants/firebase_collection_keys.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 ///
 /// Firestore's offline cache acknowledges a write locally and completes the
@@ -54,6 +55,19 @@ class SosViewModel extends GetxController {
   Timer? _deliveryWatchdog;
   Timer? _notifyWatchdog;
   bool _notifyGraceElapsed = false;
+
+  /// Open SOS alerts on the server, from any device. A watch SOS used to be
+  /// invisible on the phone, which could then send a second one and could
+  /// not cancel the first.
+  StreamSubscription<List<AlertDto>>? _openSosSub;
+
+  /// Alerts this phone has seen open on the server, so a later absence means
+  /// they were closed elsewhere (not merely not uploaded yet).
+  final Set<String> _seenOnServer = <String>{};
+
+  /// Alerts closed on this phone, so they are not adopted again while the
+  /// cancel is still on its way to the server.
+  final Set<String> _closedHere = <String>{};
   StreamSubscription<List<AlertResponseDto>>? _responsesSub;
   StreamSubscription<List<AlertDeliveryDto>>? _deliveriesSub;
 
@@ -70,6 +84,7 @@ class SosViewModel extends GetxController {
   void onInit() {
     super.onInit();
     _restoreActiveSos();
+    _watchOpenSos();
   }
 
   @override
@@ -77,6 +92,7 @@ class SosViewModel extends GetxController {
     _elapsedTimer?.cancel();
     _deliveryWatchdog?.cancel();
     _notifyWatchdog?.cancel();
+    _openSosSub?.cancel();
     _responsesSub?.cancel();
     _deliveriesSub?.cancel();
     super.onClose();
@@ -99,6 +115,16 @@ class SosViewModel extends GetxController {
       final AlertDto dto = AlertDto.fromMap(jsonDecode(json));
       if (dto.userId != _sessionUid) return;
       if (dto.status == AlertStatus.sent) {
+        // The SOS may have been cancelled from the watch or another device
+        // while the app was closed. Re-sending it then is rejected by the
+        // rules and the screen claimed "NOT SENT. Nobody has been notified".
+        final AlertStatus? serverStatus = await _serverStatus(dto.id);
+        if (!_sessionActive) return;
+        if (serverStatus == AlertStatus.cancelled ||
+            serverStatus == AlertStatus.resolved) {
+          await _persist(dto.copyWith(status: serverStatus));
+          return;
+        }
         activeSos.value = dto;
         _syncHomeWidget();
         _startElapsed();
@@ -115,6 +141,17 @@ class SosViewModel extends GetxController {
       }
     } catch (e) {
       debugPrint('[SosVM] Error restoring active SOS: $e');
+    }
+  }
+
+  /// The server's status for [alertId], or null if offline or unknown.
+  Future<AlertStatus?> _serverStatus(String alertId) async {
+    try {
+      return await FirestoreService.instance()
+          .fetchAlertStatus(alertId)
+          .timeout(const Duration(seconds: 5), onTimeout: () => null);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -158,8 +195,19 @@ class SosViewModel extends GetxController {
         latitude: position.latitude,
         longitude: position.longitude,
       );
-      await _persist(located);
       activeSos.value = located;
+      await _persist(located);
+      if (activeSos.value?.id != alert.id) {
+        // Cancelled while the location was being saved. Store the cancel
+        // again so the saved "sent" copy cannot bring the SOS back.
+        await _persist(
+          located.copyWith(
+            status: AlertStatus.cancelled,
+            resolvedAt: DateTime.now(),
+          ),
+        );
+        return;
+      }
 
       unawaited(
         FirestoreService.instance().createAlert(located).then((
@@ -173,6 +221,12 @@ class SosViewModel extends GetxController {
     } catch (e) {
       debugPrint('[SosVM] Error starting SOS: $e');
       delivery.value = SosDelivery.failed;
+      if (activeSos.value == null) {
+        showAppSnackbar(
+          'SOS not sent',
+          'Something went wrong before the alert was sent. Try again or call a contact.',
+        );
+      }
     }
   }
 
@@ -200,6 +254,17 @@ class SosViewModel extends GetxController {
           delivery.value = SosDelivery.failed;
         }
       }),
+    );
+  }
+
+  /// Sends the active alert again after the server rejected it. The id is
+  /// fixed, so this cannot create a second alert.
+  void retrySend() {
+    final AlertDto? current = activeSos.value;
+    if (!_sessionActive || current == null) return;
+    _trackDelivery(
+      current.id,
+      FirestoreService.instance().createAlert(current),
     );
   }
 
@@ -242,31 +307,8 @@ class SosViewModel extends GetxController {
     if (!_sessionActive || current == null) return;
 
     try {
-      _elapsedTimer?.cancel();
-      _responsesSub?.cancel();
-      _deliveriesSub?.cancel();
-
-      final AlertDto updated = current.copyWith(
-        status: AlertStatus.cancelled,
-        resolvedAt: DateTime.now(),
-      );
-      await _persist(updated);
+      await _clearActiveSos(current);
       if (!_sessionActive) return;
-      activeSos.value = null;
-      _syncHomeWidget();
-      elapsed.value = Duration.zero;
-      alertResponses.clear();
-      alertDeliveries.clear();
-      if (Get.isRegistered<LocalNotificationsService>()) {
-        unawaited(
-          Get.find<LocalNotificationsService>().cancelNearbyEmergencyAlert(),
-        );
-      }
-
-      _deliveryWatchdog?.cancel();
-      _notifyWatchdog?.cancel();
-      _notifyGraceElapsed = false;
-      delivery.value = SosDelivery.delivered;
 
       // Same reasoning as the send path: offline this never resolves, so it
       // cannot be awaited. The difference is what a failure means — the
@@ -297,10 +339,119 @@ class SosViewModel extends GetxController {
     } catch (e) {
       debugPrint('[SosVM] Error cancelling SOS: $e');
       _showErrorSnackbar(
-        'Not Updated',
+        'Not updated',
         'Your circle may still think this alert is active.',
       );
     }
+  }
+
+  /// Cancels the active SOS and waits for the server to confirm it. Used
+  /// before signing out: once signed out the phone can no longer send the
+  /// cancel, and an SOS left open alarms caregivers and blocks watch SOS.
+  /// Returns false, changing nothing, if the server did not confirm.
+  Future<bool> cancelSosAndConfirm() async {
+    final AlertDto? current = activeSos.value;
+    if (!_sessionActive || current == null) return true;
+
+    final ResultDto<void> result = await FirestoreService.instance()
+        .updateAlertStatus(current.id, AlertStatus.cancelled)
+        .timeout(
+          deliveryGrace,
+          onTimeout: () => ResultDto<void>.failure('timed out'),
+        );
+    if (!result.isSuccess) {
+      debugPrint(
+        '[SosVM] Could not cancel SOS before sign-out: ${result.error}',
+      );
+      return false;
+    }
+    await _clearActiveSos(current);
+    return true;
+  }
+
+  void _watchOpenSos() {
+    try {
+      if (!_sessionActive) return;
+      _openSosSub = FirestoreService.instance()
+          .watchOpenSos(_sessionUid)
+          .listen(
+            handleOpenSos,
+            onError: (Object e) =>
+                debugPrint('[SosVM] Error watching open SOS alerts: $e'),
+          );
+    } catch (e) {
+      debugPrint('[SosVM] Could not watch open SOS alerts: $e');
+    }
+  }
+
+  /// Keeps this phone in step with SOS alerts started or closed elsewhere.
+  @visibleForTesting
+  void handleOpenSos(List<AlertDto> open) {
+    if (!_sessionActive) return;
+    final AlertDto? current = activeSos.value;
+    final Set<String> openIds = open.map((AlertDto a) => a.id).toSet();
+
+    if (current != null) {
+      if (openIds.contains(current.id)) {
+        _seenOnServer.add(current.id);
+      } else if (_seenOnServer.remove(current.id)) {
+        // Cancelled from the watch or another device.
+        unawaited(_clearActiveSos(current));
+      }
+      return;
+    }
+
+    final List<AlertDto> candidates =
+        open.where((AlertDto a) => !_closedHere.contains(a.id)).toList()..sort(
+          (AlertDto a, AlertDto b) => b.createdAt.compareTo(a.createdAt),
+        );
+    if (candidates.isEmpty) return;
+
+    // Started elsewhere: show it here so it can be followed and cancelled.
+    final AlertDto adopted = candidates.first;
+    _seenOnServer.add(adopted.id);
+    activeSos.value = adopted;
+    delivery.value = SosDelivery.delivered;
+    try {
+      unawaited(_persist(adopted));
+      _syncHomeWidget();
+      _startElapsed();
+      _watchResponses(adopted.id);
+      _startNotifyWatchdog(adopted.id);
+    } catch (e) {
+      debugPrint('[SosVM] Error showing an SOS started elsewhere: $e');
+    }
+  }
+
+  /// Local side of a cancel: stops timers and listeners, stores the
+  /// cancelled alert, and resets the screen.
+  Future<void> _clearActiveSos(AlertDto current) async {
+    _closedHere.add(current.id);
+    _elapsedTimer?.cancel();
+    _responsesSub?.cancel();
+    _deliveriesSub?.cancel();
+
+    final AlertDto updated = current.copyWith(
+      status: AlertStatus.cancelled,
+      resolvedAt: DateTime.now(),
+    );
+    await _persist(updated);
+    if (!_sessionActive) return;
+    activeSos.value = null;
+    _syncHomeWidget();
+    elapsed.value = Duration.zero;
+    alertResponses.clear();
+    alertDeliveries.clear();
+    if (Get.isRegistered<LocalNotificationsService>()) {
+      unawaited(
+        Get.find<LocalNotificationsService>().cancelNearbyEmergencyAlert(),
+      );
+    }
+
+    _deliveryWatchdog?.cancel();
+    _notifyWatchdog?.cancel();
+    _notifyGraceElapsed = false;
+    delivery.value = SosDelivery.delivered;
   }
 
   void _watchResponses(String alertId) {

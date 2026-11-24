@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Lets medication reminders fire on time under Doze when the user allows it. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <!-- Android 13+ refuses to display any notification without this. Alerts
          to the contact circle are the app's core function, so its absence
          silently disabled the whole feature on modern devices. -->

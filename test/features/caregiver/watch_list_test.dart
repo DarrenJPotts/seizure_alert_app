@@ -21,13 +21,14 @@ void main() {
 
     test('leaves every context field null when the server omits it', () {
       // What an older deployed function returns, or a person with no history.
-      final WatchedPersonDto person =
-          WatchedPersonDto.fromMap(<String, dynamic>{
-            'ownerId': 'u',
-            'ownerName': 'Someone',
-            'contactId': 'c',
-            'status': 'monitoring',
-          });
+      final WatchedPersonDto person = WatchedPersonDto.fromMap(
+        <String, dynamic>{
+          'ownerId': 'u',
+          'ownerName': 'Someone',
+          'contactId': 'c',
+          'status': 'monitoring',
+        },
+      );
 
       expect(person.headsUpNote, isNull);
       expect(person.headsUpAt, isNull);

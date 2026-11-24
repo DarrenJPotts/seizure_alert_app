@@ -1,5 +1,6 @@
 import 'package:seizure_app/core/helpers/phone_number.dart';
 import 'package:seizure_app/core/dtos/medication_reminder_dto.dart';
+import 'package:seizure_app/core/helpers/timestamps.dart';
 
 class UserDto {
   UserDto({
@@ -71,7 +72,7 @@ class UserDto {
         )
         .toList(),
     privacyConsentAt: map['privacyConsentAt'] != null
-        ? DateTime.tryParse(map['privacyConsentAt'] as String)
+        ? tryParseStoredTimestamp(map['privacyConsentAt'])
         : null,
     privacyConsentVersion: map['privacyConsentVersion'] as String?,
   );
@@ -95,7 +96,9 @@ class UserDto {
     'medicationReminders': medicationReminders
         .map((MedicationReminderDto reminder) => reminder.toMap())
         .toList(),
-    'privacyConsentAt': privacyConsentAt?.toIso8601String(),
+    'privacyConsentAt': privacyConsentAt == null
+        ? null
+        : toStoredTimestamp(privacyConsentAt!),
     'privacyConsentVersion': privacyConsentVersion,
   };
 

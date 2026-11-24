@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 class CircleInviteViewModel extends GetxController {
   CircleInviteViewModel(this._circleInviteService);
@@ -39,13 +39,11 @@ class CircleInviteViewModel extends GetxController {
     isResponding.value = false;
     if (result.isSuccess) {
       Get.back();
-      Get.snackbar(
+      showAppSnackbar(
         accept ? 'Invite accepted' : 'Invite declined',
         accept
             ? "You'll now receive their alerts."
             : "You won't be added to their circle.",
-        snackPosition: SnackPosition.BOTTOM,
-        margin: snackbarMargin,
       );
     } else {
       errorMessage.value =

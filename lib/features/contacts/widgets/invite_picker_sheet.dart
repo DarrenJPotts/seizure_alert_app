@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:seizure_app/core/constants/dimensions.dart';
-import 'package:seizure_app/core/constants/snackbar_margin.dart';
 import 'package:seizure_app/core/dtos/onboarding_invite_dto.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
 import 'package:seizure_app/core/services/circle_invite_service.dart';
 import 'package:seizure_app/core/services/invite_service.dart';
 import 'package:seizure_app/core/widgets/bottom_sheet/app_bottom_sheet.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 typedef RegenerateInviteCallback = Future<ResultDto<String>> Function();
 
@@ -113,11 +113,9 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
     if (!mounted) return;
     setState(() => _isRegenerating = false);
     if (!result.isSuccess || result.data == null) {
-      Get.snackbar(
+      showAppSnackbar(
         'Could not generate code',
         result.error ?? 'Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: snackbarMargin,
       );
       return;
     }
@@ -128,11 +126,7 @@ class _InvitePickerSheetState extends State<InvitePickerSheet> {
     if (!_codeReady) return;
     await Clipboard.setData(ClipboardData(text: _code!));
     if (!mounted) return;
-    Get.snackbar(
-      'Code copied',
-      'Share it with ${widget.contactName}.',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    showAppSnackbar('Code copied', 'Share it with ${widget.contactName}.');
   }
 
   @override

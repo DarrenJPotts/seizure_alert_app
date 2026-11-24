@@ -180,7 +180,7 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'SENDING SOS',
+                  'SOS IN',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: context.heroInk.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w600,
@@ -194,6 +194,10 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                       children: [
                         Text(
                           '$_remaining',
+                          // Already 160 px; scaling it with the system text
+                          // size pushed it off small phones.
+                          textScaler: TextScaler.noScaling,
+                          semanticsLabel: '',
                           style: TextStyle(
                             fontSize: 160,
                             fontWeight: FontWeight.w700,
@@ -203,15 +207,18 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                           ),
                         ),
                         const SizedBox(height: Dimensions.twentyFour),
-                        Text(
-                          widget.hasRecipients
-                              ? 'Your circle will be notified in $_remaining second${_remaining == 1 ? '' : 's'}.'
-                              : 'No one will be notified. SOS will be recorded only.',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: context.heroInk.withValues(alpha: 0.7),
-                              ),
-                          textAlign: TextAlign.center,
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            widget.hasRecipients
+                                ? 'Your circle will be notified in $_remaining second${_remaining == 1 ? '' : 's'}.'
+                                : 'No one will be notified. SOS will be recorded only.',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  color: context.heroInk.withValues(alpha: 0.7),
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ],
                     ),
@@ -241,7 +248,7 @@ class _CountdownAlertDialogState extends State<CountdownAlertDialog> {
                     const SizedBox(height: Dimensions.twelve),
                     Text(
                       widget.hasRecipients
-                          ? 'Do nothing and help is on the way'
+                          ? 'Your circle will be alerted when the timer ends'
                           : 'Cancel and review My Circle',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: context.heroInk.withValues(alpha: 0.7),
@@ -274,6 +281,18 @@ class _DialogButtonState extends State<_DialogButton> {
 
   @override
   Widget build(BuildContext context) {
+    // A bare GestureDetector has no button role, so screen readers did not
+    // announce the countdown's Cancel as something you can press.
+    return Semantics(
+      button: true,
+      label: widget.text,
+      onTap: widget.onPressed,
+      excludeSemantics: true,
+      child: _buildTapTarget(context),
+    );
+  }
+
+  Widget _buildTapTarget(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) {
         setState(() => _isPressed = true);
@@ -305,113 +324,6 @@ class _DialogButtonState extends State<_DialogButton> {
               color: _isPressed ? context.heroInk : context.heroSurface,
               letterSpacing: 0.3,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class PulsingSOSCircle extends StatefulWidget {
-  const PulsingSOSCircle({super.key});
-
-  @override
-  State<PulsingSOSCircle> createState() => _PulsingSOSCircleState();
-}
-
-class _PulsingSOSCircleState extends State<PulsingSOSCircle>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  static double _easeOut(double t) => 1 - math.pow(1 - t, 2).toDouble();
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (_, child) {
-        final t1 = _controller.value;
-        final t2 = (_controller.value + 0.5) % 1.0;
-        return SizedBox(
-          width: 300,
-          height: 300,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              _Ring(progress: _easeOut(t1)),
-              _Ring(progress: _easeOut(t2)),
-              child!,
-            ],
-          ),
-        );
-      },
-      child: Container(
-        width: 208,
-        height: 208,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: context.ink),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'SOS',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 8,
-                color: context.paper,
-                height: 1,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'ACTIVE',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                letterSpacing: 3,
-                color: context.paper.withValues(alpha: 0.6),
-                height: 1,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Ring extends StatelessWidget {
-  const _Ring({required this.progress});
-
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = 208.0 + (80.0 * progress);
-    final opacity = (1.0 - progress) * 0.18;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: context.ink.withValues(alpha: opacity),
-            width: 1.0,
           ),
         ),
       ),

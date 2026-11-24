@@ -65,6 +65,7 @@ class ContactStatusRow extends StatelessWidget {
           ),
           IconButton(
             onPressed: () => CallService.call(phone),
+            tooltip: 'Call $name',
             icon: Icon(Icons.call_outlined, color: context.ink),
           ),
         ],

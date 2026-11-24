@@ -13,7 +13,7 @@ import 'package:seizure_app/core/services/firebase_messaging_service.dart';
 import 'package:seizure_app/core/services/location_service.dart';
 import 'package:seizure_app/core/services/map_launcher_service.dart';
 import 'package:seizure_app/core/dtos/result_dto.dart';
-import 'package:seizure_app/core/constants/snackbar_margin.dart';
+import 'package:seizure_app/core/helpers/app_snackbar.dart';
 
 class IncomingAlertViewModel extends GetxController {
   IncomingAlertViewModel(this._alertId, this._caregiverService);
@@ -27,8 +27,28 @@ class IncomingAlertViewModel extends GetxController {
   final Rxn<double> distanceMeters = Rxn<double>();
 
   final Rx<Duration> elapsed = Duration.zero.obs;
+
+  /// Set when the load failed because the alert no longer exists or this
+  /// caregiver can no longer see it. Any other failure (offline, a timeout)
+  /// is shown as "couldn't load" with a retry, never as "alert gone".
+  final RxBool alertGone = false.obs;
+
+  /// Error codes from getAlertDetail that mean the alert itself is gone.
+  static const Set<String> goneErrorCodes = <String>{
+    'not-found',
+    'permission-denied',
+    'invalid-argument',
+  };
+
+  /// The phone writes the alert first and adds GPS a few seconds later, so a
+  /// caregiver who opens the push at once can load it before the location.
+  static const Duration locationPollInterval = Duration(seconds: 10);
+  static const int maxLocationPolls = 12;
+
   int _loadGeneration = 0;
+  int _locationPolls = 0;
   Timer? _ticker;
+  Timer? _locationPoll;
   Worker? _notificationWorker;
 
   @override
@@ -47,6 +67,7 @@ class IncomingAlertViewModel extends GetxController {
   void onClose() {
     ++_loadGeneration;
     _ticker?.cancel();
+    _locationPoll?.cancel();
     _notificationWorker?.dispose();
     super.onClose();
   }
@@ -64,11 +85,20 @@ class IncomingAlertViewModel extends GetxController {
     final result = await _caregiverService.getAlertDetail(_alertId);
     if (isClosed || request != _loadGeneration) return;
     if (!result.isSuccess || result.data == null) {
+      final bool gone = goneErrorCodes.contains(result.error);
+      // A failed background refresh keeps the alert already on screen.
+      if (detail.value != null && !gone) {
+        _scheduleLocationPoll();
+        return;
+      }
+      alertGone.value = gone;
       screenState.value = GenericScreenStates.error;
       return;
     }
+    alertGone.value = false;
     detail.value = result.data;
     screenState.value = GenericScreenStates.loaded;
+    _scheduleLocationPoll();
 
     if (isAlertActive) {
       _startTicker();
@@ -78,6 +108,21 @@ class IncomingAlertViewModel extends GetxController {
     }
     if (isAlertActive) unawaited(_markSeen());
     unawaited(_computeDistance());
+  }
+
+  /// Reloads the alert. Used by the "Try again" button.
+  Future<void> retry() => _load();
+
+  void _scheduleLocationPoll() {
+    _locationPoll?.cancel();
+    _locationPoll = null;
+    if (!isAlertActive || hasLocation || _locationPolls >= maxLocationPolls) {
+      return;
+    }
+    _locationPoll = Timer(locationPollInterval, () {
+      _locationPolls++;
+      unawaited(_load(showLoading: false));
+    });
   }
 
   void _startTicker() {
@@ -128,6 +173,24 @@ class IncomingAlertViewModel extends GetxController {
 
   bool get isAlertActive => detail.value?.alert.status == AlertStatus.sent;
 
+  bool get isMissedCheckIn =>
+      detail.value?.alert.type == AlertType.headsUpExpired;
+
+  /// The chip above the heading.
+  String get typeLabel => isMissedCheckIn ? 'CHECK-IN MISSED' : 'SOS';
+
+  DateTime? get startedAt => detail.value?.alert.createdAt.toLocal();
+
+  int get callEmergencyAfterMinutes =>
+      detail.value?.ownerProfile.callEmergencyAfterMinutes ?? 0;
+
+  /// Read by screen readers instead of the per-second clock.
+  String startedSemantics(String Function(DateTime) formatTime) {
+    final DateTime? started = startedAt;
+    if (started == null) return 'Live alert';
+    return 'Live alert, started at ${formatTime(started)}';
+  }
+
   String get alertStatusLabel => switch (detail.value?.alert.status) {
     AlertStatus.cancelled => 'CANCELLED',
     AlertStatus.resolved => 'RESOLVED',
@@ -141,7 +204,10 @@ class IncomingAlertViewModel extends GetxController {
     return switch (current.alert.status) {
       AlertStatus.cancelled => '$firstName cancelled the alert',
       AlertStatus.resolved => '$firstName resolved the alert',
-      AlertStatus.sent => '$firstName needs help',
+      AlertStatus.sent =>
+        isMissedCheckIn
+            ? '$firstName missed a check-in'
+            : '$firstName needs help',
     };
   }
 
@@ -178,6 +244,9 @@ class IncomingAlertViewModel extends GetxController {
       1 => 'You and 1 other were notified.',
       _ => 'You and $others others were notified.',
     };
+    if (isMissedCheckIn) {
+      return '$firstName started a Heads Up and did not check in before it ran out. $who';
+    }
     return '$firstName sent an SOS and did not cancel. $who';
   }
 
@@ -204,11 +273,9 @@ class IncomingAlertViewModel extends GetxController {
     isResponding.value = false;
 
     if (!result.isSuccess) {
-      Get.snackbar(
+      showAppSnackbar(
         'Could not respond',
         'Your response was not recorded. Check your connection and try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: snackbarMargin,
       );
       return;
     }
@@ -221,6 +288,8 @@ class IncomingAlertViewModel extends GetxController {
 
   Future<void> callOwner() =>
       CallService.call(detail.value?.ownerProfile.phone);
+
+  Future<void> callEmergency() => CallService.callEmergency();
 
   Future<void> openDirections() async {
     final alert = detail.value?.alert;

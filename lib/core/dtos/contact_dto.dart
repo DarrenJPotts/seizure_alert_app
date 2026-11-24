@@ -1,4 +1,5 @@
 import 'package:seizure_app/core/helpers/phone_number.dart';
+import 'package:seizure_app/core/helpers/timestamps.dart';
 
 enum ContactStatus { active, pending }
 
@@ -48,7 +49,7 @@ class ContactDto {
     relation: map['relation'] as String?,
     priority: map['priority'] as int? ?? 0,
     notifyViaPush: map['notifyViaPush'] as bool? ?? true,
-    createdAt: DateTime.parse(map['createdAt'] as String),
+    createdAt: parseStoredTimestamp(map['createdAt'] as String),
     status: ContactStatus.values.firstWhere(
       (ContactStatus e) => e.name == map['status'],
       orElse: () => ContactStatus.active,
@@ -89,7 +90,7 @@ class ContactDto {
     'relation': relation,
     'priority': priority,
     'notifyViaPush': notifyViaPush,
-    'createdAt': createdAt.toIso8601String(),
+    'createdAt': toStoredTimestamp(createdAt),
     'status': status.name,
   };
 }

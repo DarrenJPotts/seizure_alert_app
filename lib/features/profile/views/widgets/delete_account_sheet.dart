@@ -67,7 +67,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Delete Account',
+            'Delete account',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: Dimensions.twelve),
@@ -75,15 +75,14 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
           Container(
             padding: const EdgeInsets.all(Dimensions.sixteen),
             decoration: BoxDecoration(
-              color: Colors.red.shade50,
+              color: Theme.of(context).colorScheme.errorContainer,
               borderRadius: BorderRadius.circular(context.design.cardRadius),
-              border: Border.all(color: Colors.red.shade100),
             ),
             child: Text(
-              'This will permanently delete your account, medical profile, seizure log, contacts, and all alert history. This cannot be undone.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.red.shade700),
+              'This will permanently delete your account, medical profile, seizure log, daily check-ins, cycle data, reminders, contacts, and all alert history. This cannot be undone.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
             ),
           ),
           const SizedBox(height: Dimensions.twentyFour),
@@ -113,6 +112,7 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
                   : Theme.of(context).inputDecorationTheme.focusedErrorBorder,
               suffixIcon: IconButton(
                 onPressed: () => setState(() => _obscure = !_obscure),
+                tooltip: _obscure ? 'Show password' : 'Hide password',
                 icon: Icon(
                   _obscure
                       ? Icons.visibility_off_outlined
